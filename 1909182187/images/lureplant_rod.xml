@@ -1,0 +1,7 @@
+<Atlas>
+	<Texture filename="lureplant_rod.tex"/>
+	<Elements>
+		<Element name="lureplant_rod_skin1.tex" u1="0.000000" u2="1.000000" v1="0.015152" v2="0.500000"/>
+		<Element name="lureplant_rod.tex" u1="0.000000" u2="1.000000" v1="0.515152" v2="1.000000"/>
+	</Elements>
+</Atlas>

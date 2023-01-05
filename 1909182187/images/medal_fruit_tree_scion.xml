@@ -1,0 +1,22 @@
+<Atlas>
+	<Texture filename="medal_fruit_tree_scion.tex"/>
+	<Elements>
+		<Element name="medal_fruit_tree_durian_scion.tex" u1="0.500000" u2="0.742424" v1="0.201220" v2="0.396341"/>
+		<Element name="medal_fruit_tree_potato_scion.tex" u1="0.500000" u2="0.742424" v1="0.603659" v2="0.798780"/>
+		<Element name="medal_fruit_tree_garlic_scion.tex" u1="0.000000" u2="0.242424" v1="0.201220" v2="0.396341"/>
+		<Element name="medal_fruit_tree_watermelon_scion.tex" u1="0.000000" u2="0.242424" v1="0.000000" v2="0.195122"/>
+		<Element name="medal_fruit_tree_lucky_fruit_scion.tex" u1="0.750000" u2="0.992424" v1="0.804878" v2="1.000000"/>
+		<Element name="medal_fruit_tree_dragonfruit_scion.tex" u1="0.750000" u2="0.992424" v1="0.201220" v2="0.396341"/>
+		<Element name="medal_fruit_tree_immortal_fruit_scion.tex" u1="0.000000" u2="0.242424" v1="0.402439" v2="0.597561"/>
+		<Element name="medal_fruit_tree_onion_scion.tex" u1="0.500000" u2="0.742424" v1="0.804878" v2="1.000000"/>
+		<Element name="medal_fruit_tree_corn_scion.tex" u1="0.250000" u2="0.492424" v1="0.201220" v2="0.396341"/>
+		<Element name="medal_fruit_tree_eggplant_scion.tex" u1="0.250000" u2="0.492424" v1="0.402439" v2="0.597561"/>
+		<Element name="medal_fruit_tree_tomato_scion.tex" u1="0.750000" u2="0.992424" v1="0.603659" v2="0.798780"/>
+		<Element name="medal_fruit_tree_carrot_scion.tex" u1="0.500000" u2="0.742424" v1="0.402439" v2="0.597561"/>
+		<Element name="medal_fruit_tree_asparagus_scion.tex" u1="0.000000" u2="0.242424" v1="0.804878" v2="1.000000"/>
+		<Element name="medal_fruit_tree_pomegranate_scion.tex" u1="0.000000" u2="0.242424" v1="0.603659" v2="0.798780"/>
+		<Element name="medal_fruit_tree_pumpkin_scion.tex" u1="0.250000" u2="0.492424" v1="0.603659" v2="0.798780"/>
+		<Element name="medal_fruit_tree_banana_scion.tex" u1="0.750000" u2="0.992424" v1="0.402439" v2="0.597561"/>
+		<Element name="medal_fruit_tree_pepper_scion.tex" u1="0.250000" u2="0.492424" v1="0.804878" v2="1.000000"/>
+	</Elements>
+</Atlas>

@@ -1,0 +1,9 @@
+<Atlas>
+	<Texture filename="medal_space_staff.tex"/>
+	<Elements>
+		<Element name="medal_space_staff_skin1_bind.tex" u1="0.500000" u2="0.984848" v1="0.015152" v2="0.500000"/>
+		<Element name="medal_space_staff.tex" u1="0.000000" u2="0.484848" v1="0.515152" v2="1.000000"/>
+		<Element name="medal_space_staff_bind.tex" u1="0.000000" u2="0.484848" v1="0.015152" v2="0.500000"/>
+		<Element name="medal_space_staff_skin1.tex" u1="0.500000" u2="0.984848" v1="0.515152" v2="1.000000"/>
+	</Elements>
+</Atlas>

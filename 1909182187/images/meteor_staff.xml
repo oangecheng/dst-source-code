@@ -1,0 +1,7 @@
+<Atlas>
+	<Texture filename="meteor_staff.tex"/>
+	<Elements>
+		<Element name="meteor_staff.tex" u1="0.000000" u2="1.000000" v1="0.515152" v2="1.000000"/>
+		<Element name="meteor_staff_skin1.tex" u1="0.000000" u2="1.000000" v1="0.015152" v2="0.500000"/>
+	</Elements>
+</Atlas>

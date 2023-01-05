@@ -1,0 +1,13 @@
+<Atlas>
+	<Texture filename="medal_spacetimestormmarker.tex"/>
+	<Elements>
+		<Element name="medal_spacetimestormmarker1.tex" u1="0.667532" u2="1.000000" v1="0.333766" v2="0.666234"/>
+		<Element name="medal_spacetimestormmarker2.tex" u1="0.000000" u2="0.332468" v1="0.000000" v2="0.332468"/>
+		<Element name="medal_spacetimestormmarker7.tex" u1="0.333766" u2="0.666234" v1="0.000000" v2="0.332468"/>
+		<Element name="medal_spacetimestormmarker3.tex" u1="0.333766" u2="0.666234" v1="0.333766" v2="0.666234"/>
+		<Element name="medal_spacetimestormmarker6.tex" u1="0.000000" u2="0.332468" v1="0.333766" v2="0.666234"/>
+		<Element name="medal_spacetimestormmarker4.tex" u1="0.333766" u2="0.666234" v1="0.667532" v2="1.000000"/>
+		<Element name="medal_spacetimestormmarker0.tex" u1="0.000000" u2="0.332468" v1="0.667532" v2="1.000000"/>
+		<Element name="medal_spacetimestormmarker5.tex" u1="0.667532" u2="1.000000" v1="0.667532" v2="1.000000"/>
+	</Elements>
+</Atlas>

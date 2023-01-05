@@ -1,0 +1,55 @@
+<Atlas>
+	<Texture filename="medal_skins.tex"/>
+	<Elements>
+		<Element name="medal_statue_changeable_skin2.tex" u1="0.625000" u2="0.748239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_waterpump_skin1.tex" u1="0.375000" u2="0.498239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_blackegg_skin2.tex" u1="0.250000" u2="0.373239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_toy_chest_skin1.tex" u1="0.625000" u2="0.748239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_gugugu_skin2.tex" u1="0.000000" u2="0.123239" v1="0.716364" v2="0.857273"/>
+		<Element name="medal_statue_saltfish_skin2.tex" u1="0.625000" u2="0.748239" v1="0.716364" v2="0.857273"/>
+		<Element name="medal_statue_potting_skin6.tex" u1="0.500000" u2="0.623239" v1="0.716364" v2="0.857273"/>
+		<Element name="sanityrock_mace_skin1.tex" u1="0.750000" u2="0.873239" v1="0.716364" v2="0.857273"/>
+		<Element name="medal_fishingrod_skin1.tex" u1="0.625000" u2="0.748239" v1="0.430909" v2="0.571818"/>
+		<Element name="spices_box_skin1.tex" u1="0.125000" u2="0.248239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_gugugu_skin3.tex" u1="0.750000" u2="0.873239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_naughtybell_skin2.tex" u1="0.000000" u2="0.123239" v1="0.002727" v2="0.143636"/>
+		<Element name="medal_naughtybell_skin1.tex" u1="0.875000" u2="0.998239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_statue_saltfish_skin1.tex" u1="0.250000" u2="0.373239" v1="0.573636" v2="0.714545"/>
+		<Element name="down_filled_coat_skin1.tex" u1="0.125000" u2="0.248239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_statue_blackegg_skin1.tex" u1="0.125000" u2="0.248239" v1="0.145455" v2="0.286364"/>
+		<Element name="lureplant_rod_skin1.tex" u1="0.250000" u2="0.373239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_statue_stupidcat_skin2.tex" u1="0.500000" u2="0.623239" v1="0.573636" v2="0.714545"/>
+		<Element name="spices_box_skin3.tex" u1="0.125000" u2="0.248239" v1="0.002727" v2="0.143636"/>
+		<Element name="bearger_chest_skin1.tex" u1="0.000000" u2="0.123239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_statue_changeable_skin6.tex" u1="0.250000" u2="0.373239" v1="0.716364" v2="0.857273"/>
+		<Element name="spices_box_skin2.tex" u1="0.000000" u2="0.123239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_krampus_chest_item_skin1.tex" u1="0.750000" u2="0.873239" v1="0.288182" v2="0.429091"/>
+		<Element name="bearger_chest_skin2.tex" u1="0.375000" u2="0.498239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_statue_potting_skin3.tex" u1="0.375000" u2="0.498239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_statue_changeable_skin1.tex" u1="0.250000" u2="0.373239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_seapond_skin1.tex" u1="0.625000" u2="0.748239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_skin_staff_skin1.tex" u1="0.500000" u2="0.623239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_statue_changeable_skin3.tex" u1="0.125000" u2="0.248239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_krampus_chest_item_skin2.tex" u1="0.375000" u2="0.498239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_box_skin2.tex" u1="0.500000" u2="0.623239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_goathat_skin1.tex" u1="0.875000" u2="0.998239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_statue_saltfish_skin3.tex" u1="0.750000" u2="0.873239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_changeable_skin5.tex" u1="0.125000" u2="0.248239" v1="0.716364" v2="0.857273"/>
+		<Element name="medal_space_staff_skin1.tex" u1="0.000000" u2="0.123239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_livingroot_chest_skin1.tex" u1="0.875000" u2="0.998239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_statue_potting_skin2.tex" u1="0.125000" u2="0.248239" v1="0.859091" v2="1.000000"/>
+		<Element name="devour_staff_skin1.tex" u1="0.500000" u2="0.623239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_statue_changeable_skin4.tex" u1="0.375000" u2="0.498239" v1="0.716364" v2="0.857273"/>
+		<Element name="medal_fruit_tree_immortal_fruit_skin1.tex" u1="0.750000" u2="0.873239" v1="0.430909" v2="0.571818"/>
+		<Element name="sanityrock_mace_skin2.tex" u1="0.000000" u2="0.123239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_potting_skin5.tex" u1="0.625000" u2="0.748239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_box_skin1.tex" u1="0.000000" u2="0.123239" v1="0.288182" v2="0.429091"/>
+		<Element name="medal_cookpot_skin1.tex" u1="0.375000" u2="0.498239" v1="0.430909" v2="0.571818"/>
+		<Element name="medal_seapond_skin2.tex" u1="0.750000" u2="0.873239" v1="0.145455" v2="0.286364"/>
+		<Element name="medal_statue_potting_skin1.tex" u1="0.250000" u2="0.373239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_statue_stupidcat_skin1.tex" u1="0.875000" u2="0.998239" v1="0.573636" v2="0.714545"/>
+		<Element name="medal_statue_potting_skin4.tex" u1="0.500000" u2="0.623239" v1="0.859091" v2="1.000000"/>
+		<Element name="medal_statue_gugugu_skin1.tex" u1="0.875000" u2="0.998239" v1="0.859091" v2="1.000000"/>
+		<Element name="meteor_staff_skin1.tex" u1="0.875000" u2="0.998239" v1="0.716364" v2="0.857273"/>
+	</Elements>
+</Atlas>

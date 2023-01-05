@@ -1,0 +1,7 @@
+<Atlas>
+	<Texture filename="down_filled_coat.tex"/>
+	<Elements>
+		<Element name="down_filled_coat.tex" u1="0.000000" u2="1.000000" v1="0.515152" v2="1.000000"/>
+		<Element name="down_filled_coat_skin1.tex" u1="0.000000" u2="1.000000" v1="0.015152" v2="0.500000"/>
+	</Elements>
+</Atlas>

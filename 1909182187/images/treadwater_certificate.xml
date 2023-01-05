@@ -1,0 +1,7 @@
+<Atlas>
+	<Texture filename="treadwater_certificate.tex"/>
+	<Elements>
+		<Element name="treadwater_certificate.tex" u1="0.000000" u2="1.000000" v1="0.515152" v2="1.000000"/>
+		<Element name="treadwater_certificate_fast.tex" u1="0.000000" u2="1.000000" v1="0.015152" v2="0.500000"/>
+	</Elements>
+</Atlas>
