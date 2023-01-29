@@ -1,0 +1,41 @@
+-- local function TryPerish(item)
+--     if item:IsInLimbo() then
+--         local owner = item.components.inventoryitem ~= nil and item.components.inventoryitem.owner or nil
+--         if owner == nil or (owner ~= nil and owner:HasTag("poisonresist")) or
+--             (owner.components.container ~= nil and not owner.components.container:IsOpen() and owner:HasTag("structure")) then
+--             -- in limbo but not inventory or container?
+--             -- or in a closed chest
+--             return
+--         end
+--     end
+--     item.components.perishable:ReducePercent(TUNING.TOADSTOOL_SPORECLOUD_ROT)
+-- end
+
+-- local SPOIL_CANT_TAGS = {"small_livestock", "poisonresist"}
+-- local SPOIL_ONEOF_TAGS = {"fresh", "stale", "spoiled"}
+-- local function DoAreaSpoil(inst)
+--     local x, y, z = inst.Transform:GetWorldPosition()
+--     local ents = TheSim:FindEntities(x, y, z, inst.components.aura.radius, nil, SPOIL_CANT_TAGS, SPOIL_ONEOF_TAGS)
+--     for i, v in ipairs(ents) do
+--         TryPerish(v)
+--     end
+-- end
+
+-- AddPrefabPostInit("sporecloud", function(inst)
+--     if not TheWorld.ismastersim then
+--         return inst
+--     end
+
+--     if inst.components.aura then
+--         inst:DoTaskInTime(0, function(inst)
+--             table.insert(inst.components.aura.auraexcludetags, "poisonresist")
+--             if inst._spoiltask ~= nil then
+--                 inst._spoiltask:Cancel()
+--                 inst._spoiltask = nil
+--                 inst._spoiltask = inst:DoPeriodicTask(inst.components.aura.tickperiod, DoAreaSpoil,
+--                     inst.components.aura.tickperiod * .5)
+--             end
+--         end)
+--     end
+
+-- end)

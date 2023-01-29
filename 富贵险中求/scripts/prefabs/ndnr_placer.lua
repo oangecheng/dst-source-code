@@ -1,0 +1,12 @@
+return MakePlacer("ndnr_houndmound_placer", "houndbase", "hound_base", "idle"),
+    MakePlacer("ndnr_tallbirdnest_placer", "egg", "tallbird_egg", "nest"),
+    MakePlacer("ndnr_pigtorch_placer", "pigtorch", "pig_torch", "idle"),
+    MakePlacer("ndnr_slurtlehole_placer", "slurtle_mound", "slurtle_mound", "idle"),
+    MakePlacer("ndnr_monkeybarrel_placer", "barrel", "monkey_barrel", "idle"),
+    MakePlacer("ndnr_wobster_den_placer", "lobster_den", "lobster_den_build", "full"),
+    MakePlacer("ndnr_wobster_moonglass_land_placer", "lobster_den", "lobster_den_moonglass_build", "full"),
+    MakePlacer("ndnr_catcoonden_placer", "catcoon_den", "catcoon_den", "idle"),
+    MakePlacer("ndnr_ancient_altar_placer", "crafting_table", "crafting_table", "idle_full"),
+    MakePlacer("ndnr_meatrack_hermit_placer", "meatrack_hermit", "meatrack_hermit", "idle_empty"),
+    MakePlacer("ndnr_beebox_hermit_placer", "bee_box_hermitcrab", "bee_box_hermitcrab", "idle"),
+    MakePlacer("ndnr_archive_cookpot_placer", "cook_pot", "cookpot_archive", "idle_empty")

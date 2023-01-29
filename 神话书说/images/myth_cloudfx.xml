@@ -1,0 +1,7 @@
+<Atlas>
+	<Texture filename="myth_cloudfx.tex" />
+    <Elements>
+        <Element name="fume_over.tex" u1="0" u2="0.6245117" v1="0.6489258" v2="1" />
+        <Element name="fume_top.tex" u1="0" u2="0.6245117" v1="0.4487305" v2="0.6489258" />
+    </Elements>
+</Atlas>

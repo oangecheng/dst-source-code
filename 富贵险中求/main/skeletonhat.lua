@@ -1,0 +1,23 @@
+-- AddPrefabPostInit("skeletonhat", function(inst)
+--     if not TheWorld.ismastersim then return inst end
+--     inst:ListenForEvent("ondeconstructstructure", function(inst, caster)
+--         if caster ~= nil then
+--             local radius = 5
+--             local num = 4
+--             local pot = caster:GetPosition()
+--             for i = 1, num do
+--                 local xr = pot.x + math.floor(radius*math.cos(math.rad(i*math.floor(360/num))))
+--                 local zr = pot.z + math.floor(radius*math.sin(math.rad(i*math.floor(360/num))))
+--                 local ent = SpawnPrefab(math.random() < 0.5 and "nightmarebeak" or "crawlingnightmare")
+--                 ent.Transform:SetPosition(xr, pot.y, zr)
+--                 ent.components.combat:SetTarget(caster)
+
+--                 ent:DoTaskInTime(FRAMES, function(inst)
+--                     if inst.components.talker then
+--                         inst.components.talker:Say(NDNR_DECONSTRUCT_SKELETONHAT_NIGHTMARE[math.random(1,#NDNR_DECONSTRUCT_SKELETONHAT_NIGHTMARE)])
+--                     end
+--                 end)
+--             end
+--         end
+--     end)
+-- end)

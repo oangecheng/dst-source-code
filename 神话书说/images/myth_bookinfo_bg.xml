@@ -1,0 +1,28 @@
+<Atlas>
+	<Texture filename="myth_bookinfo_bg.tex" />
+    <Elements>
+        <Element name="quagmire_recipe_menu_bg.tex" u1="0" u2="0.6123047" v1="0.6015625" v2="1" />
+        <Element name="quagmire_recipe_menu_block.tex" u1="0.6123047" u2="0.875" v1="0.6591797" v2="1" />
+        <Element name="quagmire_recipe_menu_block_small.tex" u1="0" u2="0.2373047" v1="0.5024414" v2="0.6015625" />
+        <Element name="cookbook_known_selected.tex" u1="0.2373047" u2="0.2993164" v1="0.5395508" v2="0.6015625" />
+        <Element name="cookbook_known.tex" u1="0.2993164" u2="0.3608398" v1="0.5395508" v2="0.6015625" />
+        <Element name="unknown.tex" u1="0.3608398" u2="0.4228516" v1="0.5395508" v2="0.6015625" />
+        <Element name="unknown_selected.tex" u1="0.4228516" u2="0.4848633" v1="0.5395508" v2="0.6015625" />
+        <Element name="arrow_right_disabled.tex" u1="0.4848633" u2="0.5327148" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_left.tex" u1="0.5327148" u2="0.5810547" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_left_down.tex" u1="0.5810547" u2="0.6289063" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_left_over.tex" u1="0.6289063" u2="0.6772461" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_right.tex" u1="0.6772461" u2="0.7250977" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_right_down.tex" u1="0.7250977" u2="0.7734375" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow2_right_over.tex" u1="0.7734375" u2="0.8212891" v1="0.5512695" v2="0.6015625" />
+        <Element name="arrow_left_disabled.tex" u1="0.8212891" u2="0.8691406" v1="0.5512695" v2="0.6015625" />
+        <Element name="spinner_focus.tex" u1="0" u2="0.2231641" v1="0.466543" v2="0.4824414" />
+        <Element name="quagmire_recipe_tab_inactive.tex" u1="0.2431641" u2="0.3193359" v1="0.4643555" v2="0.5024414" />
+        <Element name="quagmire_recipe_tab_active.tex" u1="0.3193359" u2="0.3959961" v1="0.4643555" v2="0.5024414" />
+        <Element name="filter_button_active.tex" u1="0.3959961" u2="0.4282227" v1="0.4697266" v2="0.5024414" />
+        <Element name="quagmire_recipe_line_break.tex" u1="0.4302227" u2="0.6000977" v1="0.484375" v2="0.5024414" />
+        <Element name="line_short.tex" u1="0.6000977" u2="0.7338867" v1="0.4912109" v2="0.5024414" />
+        <Element name="line_veryshort.tex" u1="0.7338867" u2="0.7944336" v1="0.4916992" v2="0.5024414" />
+        <Element name="line_long.tex" u1="0" u2="0.2119141" v1="0.4472656" v2="0.456543" />
+    </Elements>
+</Atlas>
