@@ -187,6 +187,18 @@ local SPECIAL_EVENT_DEPS =
         },
     },
 
+    [SPECIAL_EVENTS.YOTR] =
+    {
+        frontend =
+        {
+            assets =
+            {
+                Asset("ANIM", "anim/dst_menu_yotr.zip"),
+                Asset("PKGREF", "sound/music_frontend_yotg.fsb"),
+            },
+        },
+    },
+
     [SPECIAL_EVENTS.YOTB] =
     {
         frontend =
@@ -206,7 +218,11 @@ local SPECIAL_EVENT_DEPS =
         {
             assets =
             {
-                Asset("ANIM", "anim/dst_menu_waxwell.zip"),
+
+                Asset("ANIM", "anim/dst_menu_lunarrifts.zip"),
+
+                Asset("PKGREF", "anim/dst_menu_wilson.zip"),
+                Asset("PKGREF", "anim/dst_menu_waxwell.zip"),
 
                 Asset("PKGREF", "anim/dst_menu_v2.zip"),
                 Asset("PKGREF", "anim/dst_menu_v2_bg.zip"),
