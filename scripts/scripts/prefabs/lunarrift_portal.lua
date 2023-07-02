@@ -57,7 +57,7 @@ local function do_portal_tiles(inst, portal_position, stage)
     end
 
     local _map = TheWorld.Map
-    local _undertile_cmp = TheWorld.components.undertile
+    local undertile = TheWorld.components.undertile
     local portal_tile_x, portal_tile_y = _map:GetTileCoordsAtPoint(ix, iy, iz)
 
     stage = stage or inst._stage
@@ -373,7 +373,7 @@ local function on_portal_removed(inst)
     local ix, iy, iz = inst.Transform:GetWorldPosition()
     local portal_tile_x, portal_tile_y = _map:GetTileCoordsAtPoint(ix, iy, iz)
 
-    local _undertile_cmp = TheWorld.components.undertile
+    local undertile = TheWorld.components.undertile
 
     inst._terraformer = inst._terraformer or make_terraformer_proxy(inst, ix, iy, iz)
     inst._terraformer:AddTerraformTask(portal_tile_x, portal_tile_y, 0, {0, 0}, true)
@@ -407,6 +407,13 @@ local function on_portal_removed(inst)
             end
         end
     end
+
+    if inst._crystals then
+        for crystal in pairs(inst._crystals) do
+            crystal.components.timer:StartTimer("do_deterraform_cleanup", (current_portal_radius - 0.5) * 2.0)
+        end
+    end
+
     TheWorld:PushEvent("ms_lunarportal_removed",inst)
 end
 
@@ -492,7 +499,7 @@ local function on_portal_load(inst, data)
     if data then
         inst._stage = data.stage or inst._stage
         if inst._stage >= TUNING.RIFT_LUNAR1_MAXSTAGE then
-            inst.components.timer:StopTimer("trynextstage")            
+            inst.components.timer:StopTimer("trynextstage")
         end
 
         -- Re-load our presentation state
@@ -607,27 +614,27 @@ local function portalfn()
     end
 
     ----------------------------------------------------------
-    local combat_cmp = inst:AddComponent("combat")
-    combat_cmp:SetDefaultDamage(TUNING.RIFT_LUNAR1_GROUNDPOUND_DAMAGE)
-    combat_cmp.playerdamagepercent = 0.5
+    local combat = inst:AddComponent("combat")
+    combat:SetDefaultDamage(TUNING.RIFT_LUNAR1_GROUNDPOUND_DAMAGE)
+    combat.playerdamagepercent = 0.5
 
     ----------------------------------------------------------
-    local groundpounder_cmp = inst:AddComponent("groundpounder")
-    table.insert(groundpounder_cmp.noTags, "lunar_aligned")
-    groundpounder_cmp.damageRings = 6
-    groundpounder_cmp.destructionRings = 0
-    groundpounder_cmp.platformPushingRings = 6
-    groundpounder_cmp.inventoryPushingRings = 6
-    groundpounder_cmp.numRings = 1
-    groundpounder_cmp.groundpoundFn = OnPortalGroundPound
+    local groundpounder = inst:AddComponent("groundpounder")
+    table.insert(groundpounder.noTags, "lunar_aligned")
+    groundpounder.damageRings = 6
+    groundpounder.destructionRings = 0
+    groundpounder.platformPushingRings = 6
+    groundpounder.inventoryPushingRings = 6
+    groundpounder.numRings = 1
+    groundpounder.groundpoundFn = OnPortalGroundPound
 
     ----------------------------------------------------------
     inst:AddComponent("inspectable")
 
     ----------------------------------------------------------
-    local timer_cmp = inst:AddComponent("timer")
-    timer_cmp:StartTimer("initialize", 0)
-    timer_cmp:StartTimer("trynextstage", TUNING.RIFT_LUNAR1_STAGEUP_BASE_TIME + TUNING.RIFT_LUNAR1_STAGEUP_RANDOM_TIME * math.random())
+    local timer = inst:AddComponent("timer")
+    timer:StartTimer("initialize", 0)
+    timer:StartTimer("trynextstage", TUNING.RIFT_LUNAR1_STAGEUP_BASE_TIME + TUNING.RIFT_LUNAR1_STAGEUP_RANDOM_TIME * math.random())
 
     ----------------------------------------------------------
     inst:ListenForEvent("timerdone", on_timer_done)

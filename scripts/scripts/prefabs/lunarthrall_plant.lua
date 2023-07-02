@@ -232,6 +232,7 @@ local function vineremoved(inst,vine,killed)
             if not killed then
                 inst.vinelimit = inst.vinelimit + 1
             end
+			break
         end
     end
 end
@@ -435,6 +436,7 @@ local function fn()
     inst.AnimState:SetBuild("lunarthrall_plant_front")
     inst.AnimState:PlayAnimation("idle_med", true)
     inst.AnimState:SetFinalOffset(1)
+    inst.scrapbook_anim = "scrapbook"
 
     inst.customPlayAnimation = customPlayAnimation
     inst.customPushAnimation = customPushAnimation
@@ -560,6 +562,12 @@ local function makeweak(inst, headplant)
     inst:AddTag("lunar_aligned")      
 end
 
+local function vine_onremoveentity(inst)
+	if inst.headplant ~= nil and inst.headplant.tails ~= nil then
+		table.removearrayvalue(inst.headplant.tails, inst)
+	end
+end
+
 local function vinefn()
     local inst = CreateEntity()
 
@@ -594,12 +602,12 @@ local function vinefn()
     inst.components.freezable:SetResistance(6)
     MakeMediumBurnableCharacter(inst)
 
-    
-
     inst.persists = false
     inst.makeweak = makeweak
 
     inst:SetStateGraph("SGlunarthrall_plant_vine")
+
+	inst.OnRemoveEntity = vine_onremoveentity
 
     return inst
 end

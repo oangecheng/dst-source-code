@@ -893,20 +893,32 @@ function PlayerController:DoControllerAltActionButton()
         obj = self:GetControllerTarget()
         if obj ~= nil then
             lmb, act = self:GetSceneItemControllerAction(obj)
+			if act ~= nil and act.action == ACTIONS.APPLYCONSTRUCTION then
+				local container = act.target ~= nil and act.target.replica.container
+				if container ~= nil and
+					container.widget ~= nil and
+					container.widget.overrideactionfn ~= nil and
+					container.widget.overrideactionfn(act.target, self.inst)
+					then
+					--e.g. rift offering has a local confirmation popup
+					return
+				end
+			end
         end
         if act == nil then
-			local rider = self.inst.replica.rider
-			if rider ~= nil and rider:IsRiding() then
-				obj = self.inst
-				act = BufferedAction(obj, obj, ACTIONS.DISMOUNT)
-			else
+			act = self:GetGroundUseSpecialAction(nil, true)
+			if act ~= nil then
 				obj = nil
-				act = self:GetGroundUseSpecialAction(nil, true)
-				if act == nil then
+				isspecial = true
+			else
+				local rider = self.inst.replica.rider
+				if rider ~= nil and rider:IsRiding() then
+					obj = self.inst
+					act = BufferedAction(obj, obj, ACTIONS.DISMOUNT)
+				else
 					self:TryAOETargeting()
 					return
 				end
-				isspecial = true
 			end
         end
     end
@@ -1026,7 +1038,7 @@ function PlayerController:OnRemoteControllerAltActionButtonPoint(actioncode, pos
 end
 
 function PlayerController:DoControllerAttackButton(target)
-    if target == nil and self:IsAOETargeting() then
+	if target == nil and (self:IsAOETargeting() or self.inst:HasTag("sitting_on_chair")) then
         return
     elseif target ~= nil then
         --Don't want to spam the controller attack button when retargetting
@@ -2307,12 +2319,7 @@ function PlayerController:OnUpdate(dt)
 					if rmb == nil and self.controller_target ~= nil then
 						lmb, rmb = self:GetSceneItemControllerAction(self.controller_target)
 					end
-					if rmb ~= nil then
-						hideactionreticuleoverride = true
-					else
-						local rider = self.inst.replica.rider
-						hideactionreticuleoverride = rider ~= nil and rider:IsRiding() or not self:HasGroundUseSpecialAction(true)
-					end
+					hideactionreticuleoverride = rmb ~= nil or not self:HasGroundUseSpecialAction(true)
 				end
 			else
 				local rmb = self:GetRightMouseAction()
@@ -2543,6 +2550,13 @@ function PlayerController:OnUpdate(dt)
     end
 end
 
+local function CheckControllerPriorityTagOrOverride(target, tag, override)
+	if override ~= nil then
+		return FunctionOrValue(override)
+	end
+	return target:HasTag(tag)
+end
+
 local function UpdateControllerAttackTarget(self, dt, x, y, z, dirx, dirz)
     if self.inst:HasTag("playerghost") or self.inst.replica.inventory:IsHeavyLifting() then
         self.controller_attack_target = nil
@@ -2618,13 +2632,13 @@ local function UpdateControllerAttackTarget(self, dt, x, y, z, dirx, dirz)
 
                         if isally then
                             score = score * .25
-                        elseif v:HasTag("epic") then
+						elseif CheckControllerPriorityTagOrOverride(v, "epic", v.controller_priority_override_is_epic) then
                             score = score * 5
-                        elseif v:HasTag("monster") then
+						elseif CheckControllerPriorityTagOrOverride(v, "monster", v.controller_priority_override_is_monster) then
                             score = score * 4
-                        end
+						end
 
-                        if v.replica.combat:GetTarget() == self.inst then
+						if v.replica.combat:GetTarget() == self.inst or FunctionOrValue(v.controller_priority_override_is_targeting_player) then
                             score = score * 6
                         end
 
@@ -2888,7 +2902,10 @@ local function UpdateControllerConflictingTargets(self)
 end
 
 function PlayerController:UpdateControllerTargets(dt)
-    if self:IsAOETargeting() or (self.inst:HasTag("weregoose") and not self.inst:HasTag("playerghost") or (self.classified and self.classified.inmightygym:value() > 0)) then
+	if self:IsAOETargeting() or
+		self.inst:HasTag("sitting_on_chair") or
+		(self.inst:HasTag("weregoose") and not self.inst:HasTag("playerghost")) or
+		(self.classified and self.classified.inmightygym:value() > 0) then
         self.controller_target = nil
         self.controller_target_age = 0
         self.controller_attack_target = nil
@@ -3014,10 +3031,13 @@ function PlayerController:OnRemotePredictWalking(x, z, isdirectwalking, isstart)
     end
 end
 
-function PlayerController:OnRemotePredictOverrideLocomote()
+function PlayerController:OnRemotePredictOverrideLocomote(dir)
 	if self.ismastersim and self:IsEnabled() and self.handler == nil then
 		if self.inst.sg:HasStateTag("overridelocomote") and not self:IsBusy() then
-			self.inst:PushEvent("locomote")
+			if self.inst.sg:HasStateTag("canrotate") then
+				self.inst.Transform:SetRotation(dir)
+			end
+			self.inst:PushEvent("locomote", { remoteoverridelocomote = true })
 		end
 	end
 end
@@ -3123,7 +3143,7 @@ function PlayerController:RemotePredictWalking(x, z, isstart)
 end
 
 function PlayerController:RemotePredictOverrideLocomote()
-	SendRPCToServer(RPC.PredictOverrideLocomote)
+	SendRPCToServer(RPC.PredictOverrideLocomote, self.inst.Transform:GetRotation())
 end
 
 function PlayerController:RemoteStopWalking()
@@ -3550,6 +3570,10 @@ function PlayerController:DoAction(buffaction, spellbook)
         self.locomotor:PushAction(buffaction, true)
     elseif self:CanLocomote() then
         self.locomotor:PreviewAction(buffaction, true)
+    end
+
+    if ThePlayer and buffaction.action == ACTIONS.LOOKAT and buffaction.target then
+        TheScrapbookPartitions:SetInspectedByCharacter(buffaction.target.prefab, ThePlayer.prefab)
     end
 end
 
@@ -4213,6 +4237,9 @@ function PlayerController:RemoteInspectItemFromInvTile(item)
             self.locomotor:PreviewAction(buffaction, true)
         end
     end
+    if ThePlayer and item then
+        TheScrapbookPartitions:SetInspectedByCharacter(item.prefab, ThePlayer.prefab)
+    end
 end
 
 function PlayerController:RemoteDropItemFromInvTile(item, single)
@@ -4325,7 +4352,7 @@ function PlayerController:OnRemoteBufferedAction()
 						self.inst.Transform:SetRotation(dir)
 					end
 					--Force us to interrupt and go to movement state immediately
-					self.inst.sg:HandleEvent({ force_idle_state = true }) --force idle state in case this tiny motion was meant to cancel an action
+					self.inst.sg:HandleEvent("locomote", { force_idle_state = true }) --force idle state in case this tiny motion was meant to cancel an action
 					self.inst.Transform:SetPosition(self.remote_vector.x, 0, self.remote_vector.z)
 				end
 			end

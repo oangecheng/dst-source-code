@@ -3,6 +3,7 @@ local RIFTPORTAL_CONST = {
     AFFINITY = {
         NONE = "NONE",
         LUNAR = "LUNAR",
+        SHADOW = "SHADOW",
         --X = "X",
     }
 }
@@ -13,7 +14,9 @@ local FALLBACK_DEFS = {
     GetNextRiftSpawnLocation = function(_map, rift_def)
         -- _map is TheWorld.Map
         local x, y, z = _map:FindBestSpawningPointForArena(rift_def.CustomAllowTest, true, nil)
-        x, y, z = _map:GetTileCenterPoint(x, y, z)
+        if x then
+            x, y, z = _map:GetTileCenterPoint(x, y, z)
+        end
         return x, z
     end,
     CustomAllowTest = function(_map, x, y, z)

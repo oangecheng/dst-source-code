@@ -388,12 +388,25 @@ end
 
 --------------------------------------------------------------------------
 
+local function GetRepairedAtriumChatterLines(inst, strtbl)
+    local stargate = inst.components.entitytracker:GetEntity("stargate")
+
+    if stargate ~= nil and
+        stargate.components.charliecutscene ~= nil and
+        stargate.components.charliecutscene:IsGateRepaired() and
+        STRINGS[strtbl.."_ATRIUM_REPAIRED"] ~= nil
+    then
+        return strtbl.."_ATRIUM_REPAIRED"
+    end
+end
+
 local function BattleCry(combat, target)
     local strtbl =
         target ~= nil and
         target:HasTag("player") and
         "STALKER_PLAYER_BATTLECRY" or
         "STALKER_BATTLECRY"
+
     return strtbl, math.random(#STRINGS[strtbl])
 end
 
@@ -403,6 +416,9 @@ local function AtriumBattleCry(combat, target)
         target:HasTag("player") and
         "STALKER_ATRIUM_PLAYER_BATTLECRY" or
         "STALKER_ATRIUM_BATTLECRY"
+
+    strtbl = GetRepairedAtriumChatterLines(combat.inst, strtbl) or strtbl
+
     return strtbl, math.random(#STRINGS[strtbl])
 end
 
@@ -414,6 +430,9 @@ end
 -- STRINGS.STALKER_ATRIUM_DEATHCRY
 local function AtriumBattleChatter(inst, id, forcetext)
     local strtbl = "STALKER_ATRIUM_"..string.upper(id)
+
+    strtbl = GetRepairedAtriumChatterLines(inst, strtbl) or strtbl
+
     inst.components.talker:Chatter(strtbl, math.random(#STRINGS[strtbl]), 2, forcetext)
 end
 
@@ -671,6 +690,7 @@ end
 local function OnSoldiersChanged(inst)
     if inst.hasshield ~= (inst.components.commander:GetNumSoldiers() > 0) then
         inst.hasshield = not inst.hasshield
+		inst._hasshield:set(inst.hasshield)
         if not inst.hasshield then
             inst.components.timer:StopTimer("channelers_cd")
             inst.components.timer:StartTimer("channelers_cd", TUNING.STALKER_CHANNELERS_CD)
@@ -1276,6 +1296,7 @@ local function common_fn(bank, build, shadowsize, canfight, atriumstalker)
     inst.AnimState:SetBuild("stalker_shadow_build")
     inst.AnimState:AddOverrideBuild(build)
     inst.AnimState:PlayAnimation("idle", true)
+    inst.scrapbook_overridebuild = build
 
     inst:AddTag("epic")
     inst:AddTag("monster")
@@ -1295,6 +1316,12 @@ local function common_fn(bank, build, shadowsize, canfight, atriumstalker)
         inst._playingmusic = false
         inst._musictask = nil
         SetMusicLevel(inst, 1)
+
+		--Lower priority to regular monster when it is shielded
+		inst._hasshield = net_bool(inst.GUID, "stalker._hasshield")
+		inst.controller_priority_override_is_epic = function()
+			return not inst._hasshield:value()
+		end
     end
 
     if canfight then

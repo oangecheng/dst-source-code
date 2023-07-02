@@ -54,15 +54,33 @@ local function do_crystal_spawnin(inst, time)
 end
 
 --------------------------------------------------------------------------
+-- An extra-safe cleanup in case the terraformer reverting fails to find & destroy us.
+local function do_deterraform_cleanup(inst)
+    if inst:IsInLimbo() then
+        inst:Remove()
+    else
+        inst.components.lootdropper:SetLoot(nil)
+        inst.components.lootdropper:SetChanceLootTable(nil)
+        inst.components.workable:Destroy(inst)
+    end
+end
+
+--------------------------------------------------------------------------
 local function on_crystal_timerdone(inst, data)
     if data.name == "finish_spawnin" then
         finish_crystal_spawnin(inst)
+    elseif data.name == "do_deterraform_cleanup" then
+        do_deterraform_cleanup(inst)
     end
 end
 
 --------------------------------------------------------------------------
 local function ShouldRecoil(inst, worker, tool, numworks)
-	if worker ~= nil and inst.components.workable:GetWorkLeft() > math.max(1, numworks) and not (tool ~= nil and tool.components.tool ~= nil and tool.components.tool:GetEffectiveness(ACTIONS.MINE) > 1) then
+	if inst.components.workable:GetWorkLeft() > math.max(1, numworks) and
+		not (worker ~= nil and (worker:HasTag("toughworker") or worker:HasTag("explosive"))) and
+		not (tool ~= nil and tool.components.tool ~= nil and tool.components.tool:CanDoToughWork())
+		then
+		--
 		local t = GetTime()
 		if inst._recoils == nil then
 			inst._recoils = {}
@@ -135,17 +153,17 @@ local function basecrystal_fn(anim_prefix, physics_size)
     end
 
     -----------------------------------------
-    local inspectable_cmp = inst:AddComponent("inspectable")
-    inspectable_cmp.nameoverride = "LUNARRIFT_CRYSTAL"
+    local inspectable = inst:AddComponent("inspectable")
+    inspectable.nameoverride = "LUNARRIFT_CRYSTAL"
 
     -----------------------------------------
     inst:AddComponent("lootdropper")
 
     -----------------------------------------
-    local workable_cmp = inst:AddComponent("workable")
-    workable_cmp:SetWorkAction(ACTIONS.MINE)
-	workable_cmp:SetShouldRecoilFn(ShouldRecoil)
-    workable_cmp.savestate = true
+    local workable = inst:AddComponent("workable")
+    workable:SetWorkAction(ACTIONS.MINE)
+	workable:SetShouldRecoilFn(ShouldRecoil)
+    workable.savestate = true
 
     -----------------------------------------
     inst:AddComponent("savedrotation")
@@ -191,7 +209,7 @@ local function on_big_crystal_worked(inst, worker, work_left)
 
         inst:Remove()
     else
-		local anim = work_left < HALF_WORK and "half" or "full"
+		local anim = work_left <= HALF_WORK and "half" or "full"
 		if not inst.AnimState:IsCurrentAnimation(anim) then
 			inst.AnimState:PlayAnimation(anim, true)
 		end

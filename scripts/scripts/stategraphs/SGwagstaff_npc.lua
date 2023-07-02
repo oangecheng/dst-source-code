@@ -280,7 +280,12 @@ local states =
 
                 if TheWorld.components.riftspawner and not TheWorld.components.riftspawner:GetLunarRiftsEnabled() then
                     inst.sg.statemem.request = 1
-                    inst.components.trader:Enable()
+					if inst.components.trader ~= nil then
+						inst.components.trader:Enable()
+					end
+					if inst.components.constructionsite ~= nil then
+						inst.components.constructionsite:SetCanConstruct(true)
+					end
                     inst.request_task = inst:DoPeriodicTask(10,inst.doplayerrequest)
                 end
             else
@@ -289,7 +294,12 @@ local states =
         end,
 
         onexit = function(inst)
-            inst.components.trader:Disable()
+			if inst.components.trader ~= nil then
+				inst.components.trader:Disable()
+			end
+			if inst.components.constructionsite ~= nil then
+				inst.components.constructionsite:SetCanConstruct(false)
+			end
             if inst.request_task then
                 inst.request_task:Cancel()
                 inst.request_task = nil
@@ -387,12 +397,13 @@ local states =
         name = "capture_emote",
         tags = {"busy"},
 
-        onenter = function(inst)
+		onenter = function(inst, norelocate)
             inst.Physics:Stop()
             inst.AnimState:PlayAnimation("dial_loop")
             inst.AnimState:PushAnimation("research", true)
 
             inst.sg:SetTimeout(15)
+			inst.sg.statemem.norelocate = norelocate
         end,
 
         ontimeout = function(inst)
@@ -402,7 +413,13 @@ local states =
         timeline =
         {
             TimeEvent(1.0, function(inst)
-                inst:PushEvent("doerode", ERODEOUT_DATA)
+				if inst.sg.statemem.norelocate then
+					local data = shallowcopy(ERODEOUT_DATA)
+					data.norelocate = true
+					inst:PushEvent("doerode", data)
+				else
+					inst:PushEvent("doerode", ERODEOUT_DATA)
+				end
             end),
         },
     },
