@@ -4,7 +4,7 @@
 
 local prefs = {}
 
-local function MakeFx(data)
+local function MakeFx(data) --不需要网络功能
 	table.insert(prefs, Prefab(
 		data.name,
 		function()
@@ -64,8 +64,133 @@ local function MakeFx(data)
 			return inst
 		end,
 		data.assets,
-		data.prefabs
+		nil
 	))
+end
+local function MakeFx2(data) --需要网络功能
+    table.insert(prefs, Prefab(
+        data.name,
+        function()
+            local inst = CreateEntity()
+
+            inst.entity:AddTransform()
+            inst.entity:AddAnimState()
+            inst.entity:AddNetwork()
+
+            inst:AddTag("FX")
+
+            if data.fn_common ~= nil then
+				data.fn_common(inst)
+			end
+
+            inst.entity:SetPristine()
+            if not TheWorld.ismastersim then
+                return inst
+            end
+
+            inst.persists = false
+
+            if data.fn_server ~= nil then
+				data.fn_server(inst)
+			end
+
+            return inst
+        end,
+        data.assets,
+        nil
+    ))
+end
+
+------
+
+local function OnRemove_followfx(inst)
+	for i, v in ipairs(inst.fx) do
+		v:Remove()
+	end
+end
+local function CreateNonNetInst(v)
+    local inst = CreateEntity()
+
+	--[[Non-networked entity]]
+	inst.entity:AddTransform()
+	inst.entity:AddAnimState()
+	inst.entity:AddFollower()
+
+	inst:AddTag("FX")
+
+	inst.persists = false
+
+    inst:AddComponent("highlightchild") --这个组件是为了同步主体的高亮，达到一致性
+
+    v.fn_anim(inst, v)
+
+	return inst
+end
+local function SpawnFollowFxForOwner(inst, owner, fxdd)
+    inst.fx = {}
+    local frame
+    for _, v in ipairs(fxdd) do
+        local fx = CreateNonNetInst(v)
+        if v.randomanim then
+            frame = frame or math.random(fx.AnimState:GetCurrentAnimationNumFrames()) - 1
+        end
+        fx.entity:SetParent(owner.entity)
+        fx.Follower:FollowSymbol(owner.GUID, v.symbol, v.x, v.y, v.z, true, nil, v.idx, v.idx2)
+        if frame ~= nil then
+            fx.AnimState:SetFrame(frame)
+        end
+        fx.components.highlightchild:SetOwner(owner)
+        table.insert(inst.fx, fx)
+    end
+	inst.OnRemoveEntity = OnRemove_followfx
+end
+local function MakeFxFollow(data) --绑定式特效
+    local function OnEntityReplicated(inst)
+		local owner = inst.entity:GetParent()
+		if owner ~= nil then
+			SpawnFollowFxForOwner(inst, owner, data.fx)
+		end
+	end
+	local function AttachToOwner(inst, owner)
+		inst.entity:SetParent(owner.entity)
+		--Dedicated server does not need to spawn the local fx
+		if not TheNet:IsDedicated() then
+			SpawnFollowFxForOwner(inst, owner, data.fx)
+		end
+	end
+
+    table.insert(prefs, Prefab(
+        data.name,
+        function()
+            local inst = CreateEntity()
+
+            inst.entity:AddTransform()
+		    inst.entity:AddNetwork()
+
+            inst:AddTag("FX")
+
+            if data.fn_common ~= nil then
+				data.fn_common(inst)
+			end
+
+            inst.entity:SetPristine()
+            if not TheWorld.ismastersim then
+                inst.OnEntityReplicated = OnEntityReplicated
+                return inst
+            end
+
+            inst.persists = false
+            inst.AttachToOwner = AttachToOwner
+
+            if data.fn_server ~= nil then
+				data.fn_server(inst)
+			end
+
+            return inst
+        end,
+        data.assets,
+        nil
+    ))
 end
 
 ---------------
@@ -76,7 +201,6 @@ end
 --     assets = {
 --         Asset("ANIM", "anim/lavaarena_sunder_armor.zip"), --官方的熔炉破甲buff特效动画
 --     },
---     prefabs = nil,
 --     fn_common = nil,
 --     fn_anim = function(inst)
 --         inst.AnimState:SetBank("lavaarena_sunder_armor")
@@ -93,7 +217,6 @@ MakeFx({ --盾击：盾反成功特效
     assets = {
         Asset("ANIM", "anim/lavaarena_beetletaur_fx.zip"), --官方的熔炉甲虫猪防御特效动画
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_beetletaur_fx")
@@ -112,7 +235,6 @@ MakeFx({ --玫瑰酥：零散的气氛烘托特效
         Asset("ANIM", "anim/winters_feast_fx.zip"),  --官方节日餐桌气氛动画模板
         Asset("ANIM", "anim/dish_lovingrosecake_fx.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("winters_feast_fx")
@@ -130,7 +252,6 @@ MakeFx({ --玫瑰酥：零散的气氛烘托特效
 --         Asset("ANIM", "anim/winters_feast_table_fx.zip"),  --官方节日餐桌食物消失动画模板
 --         Asset("ANIM", "anim/dish_lovingrosecake_fx.zip")
 --     },
---     prefabs = nil,
 --     fn_common = nil,
 --     fn_anim = function(inst)
 --         inst.AnimState:SetBank("winters_feast_table_fx")
@@ -150,7 +271,6 @@ MakeFx({ --玫瑰酥：零散的气氛烘托特效(特殊)
         Asset("ANIM", "anim/winters_feast_fx.zip"),  --官方节日餐桌气氛动画模板
         Asset("ANIM", "anim/dish_lovingrosecake2_fx.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("winters_feast_fx")
@@ -168,7 +288,6 @@ MakeFx({ --玫瑰酥：非常多的气氛烘托特效(特殊)
         Asset("ANIM", "anim/winters_feast_table_fx.zip"),  --官方节日餐桌食物消失动画模板
         Asset("ANIM", "anim/dish_lovingrosecake2_fx.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("winters_feast_table_fx")
@@ -193,7 +312,6 @@ MakeFx({ --兰草花剑：飞溅花瓣
         Asset("ANIM", "anim/impact_orchid.zip"),
         Asset("ANIM", "anim/impact.zip"), --官方击中特效动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("impact")
@@ -209,7 +327,6 @@ MakeFx({ --粉色追猎：飞溅花瓣
         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
         Asset("ANIM", "anim/skin/impact_orchid_fx_disguiser.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -225,7 +342,6 @@ MakeFx({ --铁艺兰珊：飞溅花瓣
         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
         Asset("ANIM", "anim/skin/impact_orchid_fx_marble.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -241,7 +357,6 @@ MakeFx({ --永不凋零：损坏自己庇佑玩家的特效
         Asset("ANIM", "anim/stalker_shield.zip"), --官方影织者护盾动画模板
         Asset("ANIM", "anim/neverfade_shield.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.entity:AddSoundEmitter()
@@ -267,7 +382,6 @@ MakeFx({ --永不凋零：损坏自己庇佑玩家的特效
 --     assets = {
 --         Asset("ANIM", "anim/lavaarena_firebomb.zip"), --官方熔炉燃烧瓶特效动画模板
 --     },
---     prefabs = nil,
 --     fn_common = nil,
 --     fn_anim = function(inst)
 --         inst.AnimState:SetBank("lavaarena_firebomb")
@@ -284,7 +398,6 @@ MakeFx({ --永不凋零：损坏自己庇佑玩家的特效
 --     assets = {
 --         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
 --     },
---     prefabs = nil,
 --     fn_common = nil,
 --     fn_anim = function(inst)
 --         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -302,7 +415,6 @@ MakeFx({ --贯星剑：闪光炸裂
         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
         Asset("ANIM", "anim/skin/rosorns_collector_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -319,7 +431,6 @@ MakeFx({ --落薇剪：一剪没
         Asset("ANIM", "anim/boomerang.zip"), --官方的回旋镖动画
         Asset("ANIM", "anim/skin/rosorns_marble_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("boomerang")
@@ -340,7 +451,6 @@ MakeFx({ --艾力冈的剑：燃血
         Asset("ANIM", "anim/lavaarena_boarrior_fx.zip"), --需要官方的动画模板
         Asset("ANIM", "anim/agronssword_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_boarrior_fx")
@@ -357,7 +467,6 @@ MakeFx({ --糖霜法棍：燃血
         Asset("ANIM", "anim/lavaarena_boarrior_fx.zip"), --需要官方的动画模板
         Asset("ANIM", "anim/skin/agronssword_fx_taste.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_boarrior_fx")
@@ -375,7 +484,6 @@ MakeFx({ --月折宝剑：凝血
         Asset("ANIM", "anim/lavaarena_boarrior_fx.zip"),    --需要官方的动画模板
         Asset("ANIM", "anim/refractedmoonlight_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_boarrior_fx")
@@ -392,7 +500,6 @@ MakeFx({ --月轮宝盘：光韵特效
         Asset("ANIM", "anim/terrariumchest_fx.zip"), --官方盒中泰拉箱子的特效
         Asset("ANIM", "anim/revolvedmoonlight_fx.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("terrariumchest_fx")
@@ -420,7 +527,6 @@ MakeFx({ --素白蘑菇帽：作物疾病的治愈时，消散的细菌
         Asset("ANIM", "anim/lavaarena_boarrior_fx.zip"),    --需要官方的动画模板
         Asset("ANIM", "anim/agronssword_fx.zip"),           --套用已有的贴图
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_boarrior_fx")
@@ -437,7 +543,6 @@ MakeFx({ --素白蘑菇帽：玩家身上不断冒出的孢子
         Asset("ANIM", "anim/wormwood_pollen_fx.zip"),    --需要官方的动画模板
         Asset("ANIM", "anim/residualspores_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("wormwood_pollen_fx")
@@ -463,7 +568,6 @@ MakeFx({ --芬布尔斧：击中时贴地扩散的闪电
         Asset("ANIM", "anim/fimbul_static_fx.zip"),
         Asset("ANIM", "anim/lavaarena_hammer_attack_fx.zip"), --官方熔炉锤子大招特效动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_hammer_attack_fx")
@@ -483,7 +587,6 @@ MakeFx({ --跃星杖：飘散的星星
     assets = {
         Asset("ANIM", "anim/skin/fimbul_axe_collector.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("fimbul_axe_collector")
@@ -500,7 +603,6 @@ MakeFx({ --跃星杖：炸落的星星
         Asset("ANIM", "anim/explode.zip"), --官方爆炸特效动画模板
         Asset("ANIM", "anim/skin/fimbul_axe_collector2_fx.zip"),
     },
-    prefabs = nil,
     fn_common = function(inst)
         inst.Transform:SetFourFaced()
     end,
@@ -519,7 +621,6 @@ MakeFx({ --跃星杖：扩大的星星
     assets = {
         Asset("ANIM", "anim/skin/fimbul_axe_collector3_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("fimbul_axe_collector3_fx")
@@ -540,7 +641,6 @@ MakeFx({ --跃星杖：扩大的星星
 --         Asset("ANIM", "anim/fimbul_attack_fx.zip"),
 --         Asset("ANIM", "anim/lavaarena_hammer_attack_fx.zip"), --官方熔炉锤子大招特效动画模板
 --     },
---     prefabs = nil,
 --     fn_common = nil,
 --     fn_anim = function(inst)
 --         inst.AnimState:SetBank("lavaarena_hammer_attack_fx")
@@ -558,7 +658,6 @@ MakeFx({ --重铸boss：远程飞溅攻击特效
         Asset("ANIM", "anim/fimbul_teleport_fx.zip"),
         Asset("ANIM", "anim/lavaarena_creature_teleport.zip"), --官方熔炉敌人出场特效动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_creature_teleport")
@@ -579,7 +678,6 @@ MakeFx({ --重铸boss：战吼时的爆炸
         Asset("ANIM", "anim/fimbul_explode_fx.zip"),
         Asset("ANIM", "anim/explode.zip"), --官方爆炸特效动画模板
     },
-    prefabs = nil,
     fn_common = function(inst)
         inst.Transform:SetFourFaced()
     end,
@@ -603,7 +701,6 @@ MakeFx({ --米格尔吉他：飘散的万寿菊花瓣
         Asset("ANIM", "anim/pine_needles.zip"), --官方砍树掉落松针特效
         Asset("ANIM", "anim/guitar_miguel_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("pine_needles")
@@ -616,13 +713,11 @@ MakeFx({ --米格尔吉他：飘散的万寿菊花瓣
     end,
     fn_remove = nil,
 })
-
 MakeFx({ --爆炸水果蛋糕：爆炸特效
     name = "explode_fruitcake",
     assets = {
-        Asset("ANIM", "anim/explode.zip"), --官方爆炸特效动画模板
+        Asset("ANIM", "anim/explode.zip") --官方爆炸特效动画模板
     },
-    prefabs = nil,
     fn_common = function(inst)
         inst.Transform:SetFourFaced()
     end,
@@ -640,15 +735,12 @@ MakeFx({ --爆炸水果蛋糕：爆炸特效
     end,
     fn_remove = nil,
 })
-
-table.insert(prefs, Prefab(
-    "icire_rock_fx_day",
-    function()
-        local inst = CreateEntity()
-
-        inst.entity:AddTransform()
-        inst.entity:AddAnimState()
-        inst.entity:AddNetwork()
+MakeFx2({ --风景球：落雪
+    name = "icire_rock_fx_day",
+    assets = {
+        Asset("ANIM", "anim/wintersfeastfuel.zip") --官方节日欢愉动画
+    },
+    fn_common = function(inst)
         inst.entity:AddFollower()
 
         inst.AnimState:SetBank("wintersfeastfuel")
@@ -658,23 +750,9 @@ table.insert(prefs, Prefab(
 
         local sc = 1.2
         inst.AnimState:SetScale(sc, sc, sc)
-
-        inst:AddTag("FX")
-
-        inst.entity:SetPristine()
-        if not TheWorld.ismastersim then
-            return inst
-        end
-
-        inst.persists = false
-
-        return inst
     end,
-    {
-        Asset("ANIM", "anim/wintersfeastfuel.zip") --官方节日欢愉动画
-    },
-    nil
-))
+    -- fn_server = function(inst)end
+})
 
 ------
 --尘世蜃楼
@@ -686,7 +764,6 @@ MakeFx({ --白木吉他：弹奏时的飘动音符
         Asset("ANIM", "anim/guitar_whitewood_doing_fx.zip"),
         Asset("ANIM", "anim/fx_wathgrithr_buff.zip"), --官方战歌特效动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         local anims =
@@ -704,38 +781,22 @@ MakeFx({ --白木吉他：弹奏时的飘动音符
     end,
     fn_remove = nil,
 })
-table.insert(prefs, Prefab( --幻象法杖：电光(音速起子12)
-    "pinkstaff_fx_tvplay",
-    function()
-        local inst = CreateEntity()
-
-        inst.entity:AddTransform()
-        inst.entity:AddAnimState()
-        inst.entity:AddNetwork()
-
+MakeFx2({ --幻象法杖：电光(音速起子12)
+    name = "pinkstaff_fx_tvplay",
+    assets = {
+        Asset("ANIM", "anim/skin/pinkstaff_fx_tvplay.zip")
+    },
+    fn_common = function(inst)
+        inst.entity:AddFollower()
         inst.AnimState:SetBank("pinkstaff_fx_tvplay")
         inst.AnimState:SetBuild("pinkstaff_fx_tvplay")
         inst.AnimState:PlayAnimation("idle", true)
         inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
         inst.AnimState:SetMultColour(115/255, 217/255, 255/255, 0.6)
         inst.AnimState:SetFinalOffset(1)
-
-        inst:AddTag("FX")
-
-        inst.entity:SetPristine()
-        if not TheWorld.ismastersim then
-            return inst
-        end
-
-        inst.persists = false
-
-        return inst
     end,
-    {
-        Asset("ANIM", "anim/skin/pinkstaff_fx_tvplay.zip")
-    },
-    nil
-))
+    -- fn_server = function(inst)end
+})
 
 ------
 --丰饶传说
@@ -747,7 +808,6 @@ MakeFx({ --脱壳之翅：逃脱时的茸毛特效
         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
         Asset("ANIM", "anim/boltwingout_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -757,13 +817,12 @@ MakeFx({ --脱壳之翅：逃脱时的茸毛特效
     end,
     fn_remove = nil,
 })
-MakeFx({ --脱壳之翅：逃脱时的茸毛特效（枯叶飞舞）
+MakeFx({ --枯叶飞舞：逃脱时的茸毛特效
     name = "boltwingout_fx_disguiser",
     assets = {
         Asset("ANIM", "anim/lavaarena_heal_projectile.zip"), --官方的熔炉奶杖击中特效动画
         Asset("ANIM", "anim/skin/boltwingout_fx_disguiser.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_heal_projectile")
@@ -779,7 +838,6 @@ MakeFx({ --子圭·歃：生命转移特效
         Asset("ANIM", "anim/life_trans_fx.zip"),
         Asset("ANIM", "anim/cursed_fx.zip"), --官方猴子诅咒特效动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("cursed_fx")
@@ -797,7 +855,6 @@ MakeFx({ --子圭寄生花：消失特效
         Asset("ANIM", "anim/lavaarena_boarrior_fx.zip"), --官方的动画
         Asset("ANIM", "anim/siving_boss_flower_fx.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("lavaarena_boarrior_fx")
@@ -814,7 +871,6 @@ MakeFx({ --魔音绕梁：音波特效
     assets = {
         Asset("ANIM", "anim/bearger_ring_fx.zip"), --官方的动画
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("bearger_ring_fx")
@@ -834,7 +890,6 @@ MakeFx({ --花寄语：音波特效
         Asset("ANIM", "anim/alterguardian_meteor.zip"), --官方的动画
         Asset("ANIM", "anim/siving_boss_caw_fx.zip")
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("alterguardian_meteor")
@@ -857,7 +912,6 @@ MakeFx({ --子圭石子：碎掉特效
     assets = {
         Asset("ANIM", "anim/siving_egg.zip"),
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("siving_egg")
@@ -873,7 +927,6 @@ MakeFx({ --子圭·育：基因解锁时的花火特效(蓝绿色)
     assets = {
         Asset("ANIM", "anim/table_winters_feast.zip")  --官方节日餐桌动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("table_winters_feast")
@@ -894,7 +947,6 @@ MakeFx({ --转星移：基因解锁时的花火特效(金色)
     assets = {
         Asset("ANIM", "anim/table_winters_feast.zip")  --官方节日餐桌动画模板
     },
-    prefabs = nil,
     fn_common = nil,
     fn_anim = function(inst)
         inst.AnimState:SetBank("table_winters_feast")
@@ -909,6 +961,590 @@ MakeFx({ --转星移：基因解锁时的花火特效(金色)
         inst.AnimState:SetFinalOffset(4)
     end,
     fn_remove = nil
+})
+MakeFx({ --爱汪基因诱变舱：基因解锁时的花火特效(橘色)
+    name = "siving_turn_future_unlock_fx",
+    assets = {
+        Asset("ANIM", "anim/table_winters_feast.zip")  --官方节日餐桌动画模板
+    },
+    fn_common = nil,
+    fn_anim = function(inst)
+        inst.AnimState:SetBank("table_winters_feast")
+        inst.AnimState:SetBuild("siving_boss_flower_fx")
+        inst.AnimState:PlayAnimation("place", false)
+        inst.AnimState:OverrideSymbol("glow_2", "table_winters_feast", "glow_2")
+        inst.AnimState:OverrideSymbol("sprks", "table_winters_feast", "sprks")
+        inst.AnimState:SetMultColour(255/255, 179/255, 109/255, 1)
+        inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+        inst.AnimState:SetLightOverride(1)
+        inst.AnimState:SetScale(1.2, 1.2)
+        inst.AnimState:SetFinalOffset(4)
+    end,
+    fn_remove = nil
+})
+MakeFx({ --爱喵基因诱变舱：基因解锁时的花火特效(淡粉色)
+    name = "siving_turn_future2_unlock_fx",
+    assets = {
+        Asset("ANIM", "anim/table_winters_feast.zip")  --官方节日餐桌动画模板
+    },
+    fn_common = nil,
+    fn_anim = function(inst)
+        inst.AnimState:SetBank("table_winters_feast")
+        inst.AnimState:SetBuild("siving_boss_flower_fx")
+        inst.AnimState:PlayAnimation("place", false)
+        inst.AnimState:OverrideSymbol("glow_2", "table_winters_feast", "glow_2")
+        inst.AnimState:OverrideSymbol("sprks", "table_winters_feast", "sprks")
+        inst.AnimState:SetMultColour(255/255, 160/255, 221/255, 1)
+        inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+        inst.AnimState:SetLightOverride(1)
+        inst.AnimState:SetScale(1.2, 1.2)
+        inst.AnimState:SetFinalOffset(4)
+    end,
+    fn_remove = nil
+})
+MakeFx({ --旅星猫：投射路径特效
+    name = "siving_feather_real_collector_flyfx",
+    assets = {
+        Asset("ANIM", "anim/gold_nugget.zip"), --官方金块动画
+        Asset("ANIM", "anim/skin/siving_feather_collector_fx.zip")
+    },
+    fn_common = nil,
+    fn_anim = function(inst)
+        inst.AnimState:SetBank("goldnugget")
+        inst.AnimState:SetBuild("siving_feather_collector_fx")
+        inst.AnimState:PlayAnimation("sparkle")
+        inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+        inst.AnimState:SetFinalOffset(1)
+        inst.AnimState:SetFrame(math.random( math.floor(inst.AnimState:GetCurrentAnimationNumFrames()/2) ) - 1)
+
+        if math.random() < 0.4 then
+            inst.AnimState:OverrideSymbol("sparkle", "siving_feather_collector_fx", "star2")
+        end
+
+        local rand = math.random()
+        if rand < 0.2 then
+            inst.AnimState:SetMultColour(82/255, 243/255, 255/255, 1)
+        elseif rand < 0.4 then
+            inst.AnimState:SetMultColour(81/255, 105/255, 165/255, 1)
+        end
+    end,
+    fn_remove = nil
+})
+MakeFx({ --流星猫：投射路径特效
+    name = "siving_feather_fake_collector_flyfx",
+    assets = {
+        Asset("ANIM", "anim/gold_nugget.zip"), --官方金块动画
+        Asset("ANIM", "anim/skin/siving_feather_collector_fx.zip")
+    },
+    fn_common = nil,
+    fn_anim = function(inst)
+        inst.AnimState:SetBank("goldnugget")
+        inst.AnimState:SetBuild("siving_feather_collector_fx")
+        inst.AnimState:PlayAnimation("sparkle")
+        inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+        inst.AnimState:SetFinalOffset(1)
+        inst.AnimState:SetFrame(math.random( math.floor(inst.AnimState:GetCurrentAnimationNumFrames()/2) ) - 1)
+
+        if math.random() < 0.6 then
+            inst.AnimState:OverrideSymbol("sparkle", "siving_feather_collector_fx", "star2")
+        end
+
+        local rand = math.random()
+        if rand < 0.2 then
+            inst.AnimState:SetMultColour(255/255, 213/255, 85/255, 1)
+        elseif rand < 0.4 then
+            inst.AnimState:SetMultColour(141/255, 125/255, 66/255, 1)
+        end
+    end,
+    fn_remove = nil
+})
+
+------
+
+local anims_kitcoon = {
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop",
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop",
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop",
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop",
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop",  "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_pst" },
+    "emote_lick", "emote_lick", "emote_lick", "distress", "emote_stretch", "emote_stretch", "emote_stretch",
+    { "walk_pre", "walk_pst" },
+    { "jump_pre", "jump_loop", "jump_pst" },
+    { "jump_pre", "jump_loop", "jump_loop", "jump_pst" },
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop",
+    "idle_loop", "idle_loop", "idle_loop", "idle_loop", "idle_loop"
+}
+local anims_bird = {
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "caw", { "caw", "caw" }, { "caw", "caw", "caw" },
+    "peck", { "peck", "peck" }, { "peck", "peck", "peck" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "flap_pre", "flap_loop", "flap_post" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_post" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_loop", "flap_loop", "flap_post" },
+    "hop", "hop", "hop", "hop", "hop", "switch", "switch", "switch", "switch",
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop",  "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle"
+}
+local anims_bird2 = {
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "caw", { "caw", "caw" }, { "caw", "caw", "caw" },
+    { "flap_pre", "flap_loop", "flap_post" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_post" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_loop", "flap_loop", "flap_post" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "hop", "hop", "hop", "hop", "hop", "switch", "switch", "switch", "switch",
+    "hit", "hit", "hit", "attack", "attack", "attack", "attack", "attack",
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop",  "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle"
+}
+local anims_buzzard = {
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "caw", { "caw", "caw" }, { "caw", "caw", "caw" },
+    "peck", { "peck", "peck" }, { "peck", "peck", "peck" },
+    { "flap_pre", "flap_loop", "flap_pst" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_pst" },
+    { "flap_pre", "flap_loop", "flap_loop", "flap_loop", "flap_loop", "flap_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "hop", "hop", "hop", "hop", "hop", "taunt", "taunt", "taunt", "taunt", "taunt",
+    "hit", "hit", "hit", "atk", "atk", "atk", "atk", "atk",
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop",  "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle"
+}
+local anims_smallbird = {
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    "idle_blink", "idle_blink", "idle_blink", "idle_blink", "idle_blink", "idle_blink", "idle_blink",
+    "atk", "atk", "atk",
+    "eat", "eat", "eat", "eat", "eat",
+    "call", { "call", "call" }, { "call", "call" },
+    "meep", { "meep", "meep" }, { "meep", "meep" },
+    "hit", { "hit", "hit" }, { "hit", "hit", "hit" }, { "hit", "hit", "hit", "hit" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_loop", "sleep_loop",  "sleep_pst" },
+    { "sleep_pre", "sleep_loop", "sleep_loop", "sleep_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle",
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle", "idle", "idle", "idle" },
+    { "idle", "idle_blink", "idle_blink", "idle" },
+    { "idle", "idle_blink", "idle_blink", "idle" },
+    { "idle", "idle_blink", "idle_blink", "idle" },
+    { "idle", "idle_blink", "idle_blink", "idle" },
+    { "walk_pre", "walk_loop", "walk_pst" },
+    { "walk_pre", "walk_loop", "walk_loop", "walk_pst" },
+    { "walk_pre", "walk_loop", "walk_loop", "walk_pst" },
+    { "walk_pre", "walk_loop", "walk_loop", "walk_pst" },
+    { "walk_pre", "walk_loop", "walk_loop", "walk_loop", "walk_pst" },
+    "idle", "idle", "idle", "idle", "idle", "idle", "idle"
+}
+
+------随机仿sg的动画
+local function DoSgAnim(inst)
+    if inst.skin_l_anims then
+        local anim = nil
+        local keys = inst.skin_l_keys or {}
+
+        if keys.x == nil then
+            keys.x = math.random(#inst.skin_l_anims)
+        end
+        anim = inst.skin_l_anims[keys.x]
+        if type(anim) == "table" then
+            if keys.y == nil then
+                keys.y = 1
+            else
+                keys.y = keys.y + 1
+            end
+            anim = anim[keys.y]
+            if anim == nil then
+                inst.skin_l_keys = {}
+                DoSgAnim(inst)
+                return
+            end
+        else
+            keys = {}
+        end
+        inst.skin_l_keys = keys
+        inst.AnimState:PlayAnimation(anim, false)
+    end
+end
+local function SetSgSkinAnim(inst, anims)
+    if inst.skin_l_anims == nil then
+        inst:ListenForEvent("animover", DoSgAnim) --看起来被装备后，动画会自动暂停。所以我也不用主动关闭监听了
+    end
+    inst.skin_l_anims = anims
+    -- DoSgAnim(inst)
+end
+-- local function CancelSgSkinAnim(inst)
+--     inst.skin_l_anims = nil
+--     inst.skin_l_keys = nil
+--     inst:RemoveEventCallback("animover", DoSgAnim)
+-- end
+
+local function SetAnim_base(inst, data)
+    inst.AnimState:SetBank(data.bank or data.build)
+    inst.AnimState:SetBuild(data.build)
+    if data.animpush ~= nil then
+        inst.AnimState:PlayAnimation(data.anim)
+        inst.AnimState:PushAnimation(data.animpush, data.isloop)
+    else
+        inst.AnimState:PlayAnimation(data.anim, data.isloop)
+    end
+end
+local function SetAnim_cat(inst, data)
+    inst.Transform:SetSixFaced()
+    inst.AnimState:SetBank("kitcoon")
+    inst.AnimState:SetBuild(data.build)
+    inst.AnimState:PlayAnimation("idle_loop")
+    SetSgSkinAnim(inst, anims_kitcoon)
+end
+local function SetAnim_bird(inst, data)
+    inst.entity:AddFollower()
+    if data.face == 4 then
+        inst.Transform:SetFourFaced()
+    else
+        inst.Transform:SetTwoFaced()
+    end
+    inst.AnimState:SetBank(data.bank or "crow")
+    inst.AnimState:SetBuild(data.build)
+    inst.AnimState:PlayAnimation(data.anim or "land")
+    SetSgSkinAnim(inst, data.sg or anims_bird)
+end
+local function SetAnim_tallbirdegg(inst, data)
+    inst.AnimState:SetBank("egg")
+    inst.AnimState:SetBuild("tallbird_egg")
+    inst.AnimState:PlayAnimation(data.anim, true)
+    inst.AnimState:HideSymbol("shdw")
+end
+
+MakeFxFollow({ --旅星猫：蓝色猫猫
+    name = "sivfea_real_collector_fofx",
+    assets = {
+        Asset("ANIM", "anim/skin/siving_feather_real_collector.zip"),
+        Asset("ANIM", "anim/kitcoon_basic.zip"),  --官方猫咪动画模板
+        Asset("ANIM", "anim/kitcoon_emotes.zip"),
+        Asset("ANIM", "anim/kitcoon_jump.zip")
+    },
+    fx = { {
+        fn_anim = SetAnim_cat, symbol = "lantern_overlay", x = 18, y = -12, z = 0, randomanim = nil,
+        build = "siving_feather_real_collector"
+    } }
+})
+MakeFxFollow({ --流星猫：棕色猫猫
+    name = "sivfea_fake_collector_fofx",
+    assets = {
+        Asset("ANIM", "anim/skin/siving_feather_fake_collector.zip"),
+        Asset("ANIM", "anim/kitcoon_basic.zip"),  --官方猫咪动画模板
+        Asset("ANIM", "anim/kitcoon_emotes.zip"),
+        Asset("ANIM", "anim/kitcoon_jump.zip")
+    },
+    fx = { {
+        fn_anim = SetAnim_cat, symbol = "lantern_overlay", x = 18, y = -12, z = 0, randomanim = nil,
+        build = "siving_feather_fake_collector"
+    } }
+})
+MakeFxFollow({ --巫酋血骨面
+    name = "sivmask_era_fofx",
+    assets = {
+        Asset("ANIM", "anim/skin/siving_mask_gold_era.zip")
+    },
+    fx = {
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 0,
+            build = "siving_mask_gold_era", anim = "idle1", isloop = true
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 1,
+            build = "siving_mask_gold_era", anim = "idle2", isloop = true
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 2,
+            build = "siving_mask_gold_era", anim = "idle3", isloop = true
+        }
+    }
+})
+MakeFxFollow({ --巫酋毒骨面
+    name = "sivmask_era2_fofx",
+    assets = {
+        Asset("ANIM", "anim/skin/siving_mask_gold_era2.zip")
+    },
+    fx = {
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 0,
+            build = "siving_mask_gold_era2", anim = "idle1", isloop = true
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 1,
+            build = "siving_mask_gold_era2", anim = "idle2", isloop = true
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 2,
+            build = "siving_mask_gold_era2", anim = "idle3", isloop = true
+        }
+    }
+})
+
+--各种普通小猫咪
+local cats = {
+    "kitcoon_forest", "kitcoon_savanna", "kitcoon_deciduous",
+    "kitcoon_marsh", "kitcoon_grass", "kitcoon_rocky",
+    "kitcoon_desert", "kitcoon_moon", "kitcoon_yot"
+}
+for _,v in pairs(cats) do
+    MakeFxFollow({
+        name = v.."_l_fofx",
+        assets = {
+            Asset("ANIM", "anim/"..v.."_build.zip"),
+            Asset("ANIM", "anim/kitcoon_basic.zip"),  --官方猫咪动画模板
+            Asset("ANIM", "anim/kitcoon_emotes.zip"),
+            Asset("ANIM", "anim/kitcoon_jump.zip")
+        },
+        fx = { { fn_anim = SetAnim_cat, x = -10, y = -148, z = 0, randomanim = nil, build = v.."_build", symbol = "swap_hat" } }
+    })
+end
+cats = nil
+
+MakeFxFollow({ --乌鸦
+    name = "crow_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/crow_build.zip")
+    },
+    fx = { { build = "crow_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --红雀
+    name = "robin_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/robin_build.zip")
+    },
+    fx = { { build = "robin_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --雪雀
+    name = "robin_winter_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/robin_winter_build.zip")
+    },
+    fx = { { build = "robin_winter_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --金丝雀
+    name = "canary_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/canary_build.zip")
+    },
+    fx = { { build = "canary_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --鸽子
+    name = "quagmire_pigeon_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/quagmire_pigeon_build.zip")
+    },
+    fx = { { build = "quagmire_pigeon_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --海鹦鹉
+    name = "puffin_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/crow.zip"),
+        Asset("ANIM", "anim/puffin_build.zip")
+    },
+    fx = { { build = "puffin_build", x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat" } }
+})
+MakeFxFollow({ --月盲乌鸦
+    name = "bird_mutant_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/mutated_crow.zip"),
+        Asset("ANIM", "anim/bird_mutant_build.zip")
+    },
+    fx = { {
+        bank = "mutated_crow", build = "bird_mutant_build", face = 4, sg = anims_bird2,
+        x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat"
+    } }
+})
+MakeFxFollow({ --奇形鸟
+    name = "bird_mutant_spitter_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/mutated_robin.zip"),
+        Asset("ANIM", "anim/bird_mutant_spitter_build.zip")
+    },
+    fx = { {
+        bank = "mutated_robin", build = "bird_mutant_spitter_build", face = 4, sg = anims_bird2,
+        x = -20, y = -148, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat"
+    } }
+})
+MakeFxFollow({ --秃鹫
+    name = "buzzard_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/buzzard_build.zip"),
+        Asset("ANIM", "anim/buzzard_basic.zip")
+    },
+    fx = { {
+        bank = "buzzard", build = "buzzard_build", face = 4, sg = anims_buzzard,
+        x = -10, y = -143, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat"
+    } }
+})
+MakeFxFollow({ --小高脚鸟
+    name = "smallbird_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/smallbird_basic.zip")
+    },
+    fx = { {
+        bank = "smallbird", build = "smallbird_basic", face = 4, sg = anims_smallbird, anim = "hatch",
+        x = -10, y = -138, z = 0, fn_anim = SetAnim_bird, symbol = "swap_hat"
+    } }
+})
+MakeFxFollow({ --便便
+    name = "poop_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/poop.zip"),
+        Asset("ANIM", "anim/flies.zip")
+    },
+    fx = {
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 0, x = -10, y = -130, z = 0,
+            build = "poop", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 1, x = -20, y = -130, z = 0,
+            build = "poop", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 2, x = -15, y = -130, z = 0,
+            build = "poop", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", x = -10, y = -60, z = 0,
+            build = "flies", anim = "swarm_pre", animpush = "swarm_loop", isloop = true
+        }
+    }
+})
+MakeFxFollow({ --鸟粪
+    name = "guano_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/guano.zip"),
+        Asset("ANIM", "anim/flies.zip")
+    },
+    fx = {
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 0, x = -10, y = -130, z = 0,
+            build = "guano", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 1, x = -20, y = -130, z = 0,
+            build = "guano", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 2, x = -15, y = -130, z = 0,
+            build = "guano", anim = "dump", animpush = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", x = -10, y = -60, z = 0,
+            build = "flies", anim = "swarm_pre", animpush = "swarm_loop", isloop = true
+        }
+    }
+})
+MakeFxFollow({ --腐烂物
+    name = "spoiled_food_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/spoiled_food.zip")
+    },
+    fx = {
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 0, x = 0, y = -140, z = 0,
+            bank = "spoiled", build = "spoiled_food", anim = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 1, x = -10, y = -140, z = 0,
+            bank = "spoiled", build = "spoiled_food", anim = "idle", isloop = nil
+        },
+        {
+            fn_anim = SetAnim_base, symbol = "swap_hat", idx = 2, x = -10, y = -140, z = 0,
+            bank = "spoiled", build = "spoiled_food", anim = "idle", isloop = nil
+        }
+    }
+})
+MakeFxFollow({ --高脚鸟蛋
+    name = "tallbirdegg1_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/tallbird_egg.zip")
+    },
+    fx = {
+        { anim = "idle_happy", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 0, x = -10, y = -145, z = 0 },
+        { anim = "idle_happy", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 1, x = -20, y = -145, z = 0 },
+        { anim = "idle_happy", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 2, x = -20, y = -145, z = 0 }
+    }
+})
+MakeFxFollow({ --高脚鸟蛋（热）
+    name = "tallbirdegg2_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/tallbird_egg.zip")
+    },
+    fx = {
+        { anim = "idle_hot", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 0, x = -10, y = -145, z = 0 },
+        { anim = "idle_hot", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 1, x = -20, y = -145, z = 0 },
+        { anim = "idle_hot", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 2, x = -20, y = -145, z = 0 }
+    }
+})
+MakeFxFollow({ --高脚鸟蛋（冷）
+    name = "tallbirdegg3_l_fofx",
+    assets = {
+        Asset("ANIM", "anim/tallbird_egg.zip")
+    },
+    fx = {
+        { anim = "idle_cold", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 0, x = -10, y = -145, z = 0 },
+        { anim = "idle_cold", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 1, x = -20, y = -145, z = 0 },
+        { anim = "idle_cold", fn_anim = SetAnim_tallbirdegg, symbol = "swap_hat", idx = 2, x = -20, y = -145, z = 0 }
+    }
 })
 
 ---------------

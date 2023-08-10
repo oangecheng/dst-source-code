@@ -343,6 +343,23 @@ if CONFIGS_LEGION.DRESSUP then
 end
 
 --------------------------------------------------------------------------
+--[[ 让地毯类建筑能摆更远 ]]
+--------------------------------------------------------------------------
+
+local build_dist_old = ACTIONS.BUILD.extra_arrive_dist
+ACTIONS.BUILD.extra_arrive_dist = function(doer, dest, bufferedaction)
+    if bufferedaction and bufferedaction.recipe then
+        if
+            string.len(bufferedaction.recipe) > 7 and
+            string.sub(bufferedaction.recipe, 1, 7) == "carpet_"
+        then
+            return 4
+        end
+    end
+    return build_dist_old and build_dist_old(doer, dest, bufferedaction) or 0
+end
+
+--------------------------------------------------------------------------
 --[[ 玩具彩蛋生成 ]]
 --------------------------------------------------------------------------
 

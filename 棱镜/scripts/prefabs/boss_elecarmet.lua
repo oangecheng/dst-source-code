@@ -1,5 +1,4 @@
-local assets =
-{
+local assets = {
 	--正常状态的贴图
     Asset("ANIM", "anim/elecarmet_normal1.zip"),
     Asset("ANIM", "anim/elecarmet_normal2.zip"),
@@ -14,9 +13,7 @@ local assets =
 
     Asset("ANIM", "anim/lavaarena_boarrior_basic.zip"),	--必须注册这个官方的boss动画压缩包才行
 }
-
-local prefabs =
-{
+local prefabs = {
 	"fimbul_axe",
     "elecourmaline",
     "tourmalinecore",
@@ -39,8 +36,7 @@ local prefabs =
 
 local brain = require "brains/elecarmetbrain"
 
-SetSharedLootTable( 'elecarmet',
-{
+SetSharedLootTable('elecarmet', {
 	{"fimbul_axe",       1.00},
     {"fimbul_axe",       0.33},
     {"tourmalinecore",   0.10},

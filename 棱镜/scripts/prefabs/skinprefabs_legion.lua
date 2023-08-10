@@ -19,13 +19,6 @@ for skin_name,skin_data in pairs(SKINS_LEGION) do
 			-- granted_items = nil,	--关联皮肤
 		}))
 	end
-
-	if skin_data.placer ~= nil then
-		table.insert(prefs, MakePlacer(
-			skin_data.placer.name, skin_data.placer.bank, skin_data.placer.build, skin_data.placer.anim, nil,
-			nil, nil, nil, nil, nil, skin_data.placer.fn_init
-		))
-	end
 end
 
 return unpack(prefs)

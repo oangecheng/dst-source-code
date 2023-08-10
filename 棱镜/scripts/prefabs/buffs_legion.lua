@@ -641,7 +641,7 @@ local function StartOilFlowing(buff, inst)
                     local angle = inst.Transform:GetRotation() + 20 - math.random()*40
                     local theta = (angle+180)*DEGREES
                     poop.Transform:SetPosition(x1, y1+0.5, z1)
-                    --SetMotorVel()会一直给加速度，SetVel()则会受到摩擦阻力和重力影响
+                    --Tip：SetMotorVel()会一直给加速度，SetVel()则会受到摩擦阻力和重力影响
                     poop.Physics:SetVel(2.5*math.cos(theta), 2, -2.5*math.sin(theta))
 
                     if inst:HasTag("player") then
@@ -674,6 +674,7 @@ local function StartOilFlowing(buff, inst)
                     if inst.components.hunger:IsStarving() then
                         buff.components.debuff:Stop()
                     end
+                    inst:PushEvent("on_poop", { doer = buff, hungerdelta = -3.5, item = poop })
                 end
             end
             return
@@ -727,7 +728,13 @@ MakeBuff({
             target.task_l_magicwarble = target:DoPeriodicTask(0.9, function(v)
                 if v.components.inventory ~= nil then
                     if v.components.health == nil or not v.components.health:IsDead() then
-                        v.components.inventory:DropEquipped(false)
+                        -- v.components.inventory:DropEquipped(false)
+                        local inv = v.components.inventory
+                        for slot, item in pairs(inv.equipslots) do
+                            if slot ~= EQUIPSLOTS.BEARD then --可不能把威尔逊的“胡子”给吼下来了
+                                inv:DropItem(item, true, true)
+                            end
+                        end
                     end
                 end
             end, 1)

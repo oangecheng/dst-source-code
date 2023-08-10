@@ -371,7 +371,7 @@ local function Fn_mat_item()
     inst.components.edible.hungervalue = 0
 
     inst:AddComponent("deployable")
-    inst.components.deployable.ondeploy = function(inst, pt, deployer)
+    inst.components.deployable.ondeploy = function(inst, pt, deployer, rot)
         local tree = SpawnPrefab("mat_whitewood")
         if tree ~= nil then
             tree.Transform:SetPosition(pt:Get())
@@ -405,8 +405,6 @@ table.insert(prefs, Prefab(
         "mat_whitewood"
     }
 ))
-
-table.insert(prefs, MakePlacer("mat_whitewood_item_placer", "mat_whitewood", "mat_whitewood", "idle1", true))
 
 -----
 

@@ -476,9 +476,9 @@ local assets_beetlehat = {
 local function OnEquip_beetlehat(inst, owner)
     -- local skindata = inst.components.skinedlegion:GetSkinedData()
     -- if skindata ~= nil and skindata.equip ~= nil then
-    --     HAT_ONEQUIP_L(inst, owner, skindata.equip.build, skindata.equip.file)
+    --     HAT_L_ON(inst, owner, skindata.equip.build, skindata.equip.file)
     -- else
-        HAT_ONEQUIP_L(inst, owner, "hat_elepheetle", "swap_hat")
+        HAT_L_ON(inst, owner, "hat_elepheetle", "swap_hat")
     -- end
 
     if owner:HasTag("equipmentmodel") then --假人！
@@ -504,7 +504,7 @@ local function OnEquip_beetlehat(inst, owner)
     AddTag_legion(owner, "burden_ignor_l", inst.prefab) --免疫装备减速 棱镜tag
 end
 local function OnUnequip_beetlehat(inst, owner)
-    HAT_ONUNEQUIP_L(inst, owner)
+    HAT_L_OFF(inst, owner)
 
     if owner:HasTag("equipmentmodel") then --假人！
         return

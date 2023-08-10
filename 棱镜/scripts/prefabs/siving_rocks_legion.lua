@@ -58,277 +58,562 @@ if not CONFIGS_LEGION.ENABLEDMODS.MythWords then --未开启神话书说时才�
 end
 
 --------------------------------------------------------------------------
---[[ 子圭x型岩 ]]
+--[[ 子圭奇型岩 ]]
 --------------------------------------------------------------------------
 
-local function MakeDerivant(data)
-    local function UpdateGrowing(inst)
-        if IsTooDarkToGrow_legion(inst) then
-            inst.components.timer:PauseTimer("growup")
-        else
-            inst.components.timer:ResumeTimer("growup")
+local tradableItems_siv = {
+    lightbulb = { kind = 1, value_dt = 0.1, value = 1/80, needall = true },
+    lantern = { kind = 1, value_dt = 2, value = 1/8 },
+    wx78module_light = { kind = 1, value_dt = 3, value = 0.25 },
+    lightflier = { kind = 1, value_dt = 2, value = 0.1 },
+    fireflies = { kind = 1, value_dt = 2, value = 0.1 },
+    wormlight_lesser = { kind = 1, value_dt = 1, value = 1/8, needall = true },
+    wormlight = { kind = 1, value_dt = 3, value = 0.2, needall = true },
+    dish_fleshnapoleon = { kind = 1, value_dt = 4, value = 0.2, needall = true },
+    glowberrymousse = { kind = 1, value_dt = 5, value = 0.25, needall = true },
+    minerhat = { kind = 1, value_dt = 3, value = 0.2 },
+    pumpkin_lantern = { kind = 1, value_dt = 3, value = 0.2 },
+    book_light = { kind = 1, value_dt = 4, value = 0.25 },
+    book_light_upgraded = { kind = 1, value_dt = 5, value = 0.5 },
+    nightstick = { kind = 1, value_dt = 5, value = 0.5 },
+    yellowgem = { kind = 1, value_dt = 15, value = 0.75 },
+    yellowamulet = { kind = 1, value_dt = 20, value = 1.25 },
+    yellowstaff = { kind = 1, value_dt = 20, value = 1.25 },
+    yellowmooneye = { kind = 1, value_dt = 20, value = 1.25 },
+    opalpreciousgem = { kind = 1, value_dt = 40, value = 4 },
+    opalstaff = { kind = 1, value_dt = 60, value = 5 },
+    alterguardianhatshard = { kind = 1, value_dt = 150, value = 10 },
+    alterguardianhat = { kind = 1, value_dt = 750, value = 50 },
+
+    redgem = { kind = 2, value_dt = 8, value = 0.25 },
+    redmooneye = { kind = 2, value_dt = 15, value = 0.5 },
+    amulet = { kind = 2, value_dt = 15, value = 0.5 },
+    dish_lovingrosecake = { kind = 2, value_dt = 4, value = 0.25, needall = true },
+    pocketwatch_heal = { kind = 2, value_dt = 5, value = 0.5 },
+    reviver = { kind = 2, value_dt = 2, value = 0.25 },
+    -- siving_mask_gold = { kind = 2, value_dt = 1, value = 0.15 }
+}
+
+local function TryDropRock(inst, chance)
+    if chance >= 1 or math.random() <= chance then
+        inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
+    end
+end
+local function GrowRock(inst, num)
+    local x, y, z = inst.Transform:GetWorldPosition()
+    local ents = TheSim:FindEntities(x,y,z, 6,
+        nil,
+        {"NOCLICK", "FX", "INLIMBO"},
+        nil
+    )
+    local numloot = 0
+    local stackitem = nil
+    for _, ent in ipairs(ents) do
+        if ent.prefab == "siving_rocks" then
+            numloot = numloot + 1
+            if stackitem == nil and not ent.components.stackable:IsFull() then
+                stackitem = ent
+            end
+            if numloot >= 4 then
+                if stackitem ~= nil then
+                    break
+                else --周围的子圭石最多只能4组
+                    return
+                end
+            end
         end
     end
-
-    local function OnIsDark(inst)
-        UpdateGrowing(inst)
-        if TheWorld.state.isnight then
-            if inst.nighttask == nil then
-                inst.nighttask = inst:DoPeriodicTask(5, UpdateGrowing, math.random() * 5)
-            end
+    for i = 1, num, 1 do
+        if stackitem == nil or stackitem.components.stackable:IsFull() then
+            TryDropRock(inst, 1)
         else
-            if inst.nighttask ~= nil then
-                inst.nighttask:Cancel()
-                inst.nighttask = nil
+            stackitem.components.stackable:SetStackSize(stackitem.components.stackable:StackSize()+1)
+        end
+    end
+end
+local function SetAnim_dt(inst, name)
+    if inst.treeState ~= 2 then --根据生命与光的能量，决定最终状态
+        if inst.tradeditems ~= nil then
+            if inst.tradeditems.light > 0 and inst.tradeditems.health > 0 then
+                name = name.."_live"
+            end
+        end
+    else
+        name = name.."_live"
+    end
+    inst.AnimState:PlayAnimation(name, false)
+end
+local function OnFinish_dt0(inst, worker)
+    inst.components.lootdropper:SpawnLootPrefab("siving_derivant_item")
+    inst:Remove()
+end
+local function OnWork_dt1(inst, worker, workleft)
+    if workleft > 0 then
+        TryDropRock(inst, 0.02)
+    else
+        TryDropRock(inst, 1)
+        inst.components.growable:SetStage(inst.components.growable:GetStage() - 1)
+        inst.components.growable:StartGrowing()
+    end
+end
+local function OnWork_dt2(inst, worker, workleft)
+    if workleft > 0 then
+        TryDropRock(inst, 0.03)
+    else
+        TryDropRock(inst, 1)
+        TryDropRock(inst, 1)
+        inst.components.growable:SetStage(inst.components.growable:GetStage() - 1)
+        inst.components.growable:StartGrowing()
+    end
+end
+local function OnWork_dt3(inst, worker, workleft)
+    if workleft > 0 then
+        TryDropRock(inst, 0.04)
+    else
+        TryDropRock(inst, 1)
+        TryDropRock(inst, 1)
+        TryDropRock(inst, 1)
+        inst.components.timer:StopTimer("fallenleaf")
+        inst.components.growable:SetStage(inst.components.growable:GetStage() - 1)
+        inst.components.growable:StartGrowing()
+    end
+end
+local function MagicGrow_dt3(inst, doer)
+    inst:PushEvent("timerdone", { name = "fallenleaf" })
+end
+local function OnGrow_dt(inst)
+    if inst.tradeditems == nil then
+        return
+    end
+    if inst.tradeditems.light >= 1 and inst.tradeditems.health >= 1 then
+        GrowRock(inst, 2)
+        inst.ComputTraded(inst, -1, -1)
+    elseif inst.tradeditems.light >= 1 then
+        GrowRock(inst, 1)
+        inst.ComputTraded(inst, -1, 0)
+    elseif inst.tradeditems.health >= 1 then
+        GrowRock(inst, 1)
+        inst.ComputTraded(inst, 0, -1)
+    end
+end
+
+local growth_stages_dt = {
+    {
+        name = "lvl0",
+        time = function(inst, stage, stagedata)
+            return GetRandomWithVariance(TUNING.TOTAL_DAY_TIME*6, TUNING.TOTAL_DAY_TIME/2)
+        end,
+        fn = function(inst, stage, stagedata)
+            SetAnim_dt(inst, "lvl0")
+            inst.components.workable:SetWorkAction(ACTIONS.DIG)
+            inst.components.workable:SetWorkLeft(3)
+            inst.components.workable:SetOnWorkCallback(nil)
+            inst.components.workable:SetOnFinishCallback(OnFinish_dt0)
+            inst.components.growable.domagicgrowthfn = nil
+        end,
+        growfn = OnGrow_dt
+    },
+    {
+        name = "lvl1",
+        time = function(inst, stage, stagedata)
+            return GetRandomWithVariance(TUNING.TOTAL_DAY_TIME*7.5, TUNING.TOTAL_DAY_TIME/2)
+        end,
+        fn = function(inst, stage, stagedata)
+            SetAnim_dt(inst, "lvl1")
+            inst.components.workable:SetWorkAction(ACTIONS.MINE)
+            inst.components.workable:SetWorkLeft(6)
+            inst.components.workable:SetOnWorkCallback(OnWork_dt1)
+            inst.components.workable:SetOnFinishCallback(nil)
+            inst.components.growable.domagicgrowthfn = nil
+        end,
+        growfn = OnGrow_dt
+    },
+    {
+        name = "lvl2",
+        time = function(inst, stage, stagedata)
+            return GetRandomWithVariance(TUNING.TOTAL_DAY_TIME*8, TUNING.TOTAL_DAY_TIME/2)
+        end,
+        fn = function(inst, stage, stagedata)
+            SetAnim_dt(inst, "lvl2")
+            inst.components.workable:SetWorkAction(ACTIONS.MINE)
+            inst.components.workable:SetWorkLeft(9)
+            inst.components.workable:SetOnWorkCallback(OnWork_dt2)
+            inst.components.workable:SetOnFinishCallback(nil)
+            inst.components.growable.domagicgrowthfn = nil
+        end,
+        growfn = OnGrow_dt
+    },
+    {
+        name = "lvl3",
+        time = function(inst, stage, stagedata)
+            return GetRandomWithVariance(TUNING.TOTAL_DAY_TIME*6, TUNING.TOTAL_DAY_TIME/2)
+        end,
+        fn = function(inst, stage, stagedata)
+            SetAnim_dt(inst, "lvl3")
+            inst.components.workable:SetWorkAction(ACTIONS.MINE)
+            inst.components.workable:SetWorkLeft(12)
+            inst.components.workable:SetOnWorkCallback(OnWork_dt3)
+            inst.components.workable:SetOnFinishCallback(nil)
+            inst.components.growable.domagicgrowthfn = MagicGrow_dt3
+            inst.components.growable:StopGrowing()
+            if not inst.components.timer:TimerExists("fallenleaf") then
+                inst.components.timer:StartTimer("fallenleaf", stagedata.time(inst, stage, stagedata))
+            end
+        end,
+        growfn = OnGrow_dt
+    }
+}
+
+local function GetAllActiveItems(giver, item)
+    if item.components.stackable ~= nil then --有叠加组件，说明鼠标上可能有物品
+        if giver.components.inventory ~= nil then
+            local activeitem = giver.components.inventory:GetActiveItem()
+            if activeitem ~= nil and activeitem.prefab == item.prefab then
+                activeitem.components.inventoryitem:RemoveFromOwner(true)
+                item.components.stackable:Put(activeitem)
+                return item.components.stackable:StackSize()
             end
         end
     end
+    return 1
+end
+local function ComputTraded_dt(inst, light, health)
+    if inst.tradeditems == nil then
+        inst.tradeditems = { light = 0, health = 0 }
+    end
+    if light ~= nil then
+        inst.tradeditems.light = math.max(0, inst.tradeditems.light + light)
+    end
+    if health ~= nil then
+        inst.tradeditems.health = math.max(0, inst.tradeditems.health + health)
+    end
+    inst.OnTreeLive(inst, inst.treeState)
+end
+local function AcceptTest_dt(inst, item, giver)
+    if item.tradableitem_siv ~= nil or tradableItems_siv[item.prefab] ~= nil then
+        return true
+    else
+        return false
+    end
+end
+local function OnAccept_dt(inst, giver, item)
+    local dd = item.tradableitem_siv or tradableItems_siv[item.prefab]
+    local stacknum = 1
+    if dd.needall then
+        stacknum = GetAllActiveItems(giver, item)
+    end
+    if dd.kind == 1 then
+        inst.ComputTraded(inst, stacknum*dd.value_dt, nil)
+    else
+        inst.ComputTraded(inst, nil, stacknum*dd.value_dt)
+    end
+    item:Remove()
+end
+local function OnRefuse_dt(inst, giver, item)
+    if giver.components.talker ~= nil then
+        giver.components.talker:Say(GetString(giver, "DESCRIBE", { "SIVING_DERIVANT", "NOTTHIS" }))
+    end
+end
 
+local function UpdateGrowing_dt(inst)
+    if IsTooDarkToGrow_legion(inst) then
+        inst.components.timer:PauseTimer("fallenleaf")
+        inst.components.growable:Pause()
+    else
+        inst.components.timer:ResumeTimer("fallenleaf")
+        inst.components.growable:Resume()
+    end
+end
+local function OnIsDark_dt(inst)
+    UpdateGrowing_dt(inst)
+    if TheWorld.state.isnight then
+        if inst.nighttask == nil then
+            inst.nighttask = inst:DoPeriodicTask(5, UpdateGrowing_dt, math.random()*5)
+        end
+    else
+        if inst.nighttask ~= nil then
+            inst.nighttask:Cancel()
+            inst.nighttask = nil
+        end
+    end
+end
+local function TimerDone_dt(inst, data)
+    if data.name == "fallenleaf" then
+        local cpt = inst.components.growable
+        if cpt.stage ~= 4 then
+            return
+        end
+        inst.components.workable:SetWorkLeft(12) --恢复破坏度
+        inst.components.timer:StopTimer("fallenleaf")
+        inst.components.timer:StartTimer("fallenleaf", cpt.stages[4].time(inst, 4, cpt.stages[4]))
+
+        if inst.tradeditems == nil then
+            GrowRock(inst, 1)
+            return
+        end
+        if inst.tradeditems.light >= 1 and inst.tradeditems.health >= 1 then
+            GrowRock(inst, 3)
+            inst.ComputTraded(inst, -1, -1)
+        elseif inst.tradeditems.light >= 1 then
+            GrowRock(inst, 2)
+            inst.ComputTraded(inst, -1, 0)
+        elseif inst.tradeditems.health >= 1 then
+            GrowRock(inst, 2)
+            inst.ComputTraded(inst, 0, -1)
+        else
+            GrowRock(inst, 1)
+        end
+    end
+end
+local function OnTreeLive_dt(inst, state)
+    local cpt = inst.components.growable
+    local name = cpt.stages[cpt.stage].name or "lvl0"
+
+    inst.treeState = state
+    if state ~= 2 then --根据生命与光的能量，决定最终状态
+        if inst.tradeditems ~= nil then
+            if inst.tradeditems.light > 0 or inst.tradeditems.health > 0 then
+                if inst.tradeditems.light > 0 and inst.tradeditems.health > 0 then
+                    state = 2
+                else
+                    state = 1
+                end
+            end
+        end
+    end
+    if state == 2 then
+        inst.AnimState:PlayAnimation(name.."_live")
+        inst.components.bloomer:PushBloom("activetree", "shaders/anim.ksh", 1)
+        inst.Light:SetRadius(1.5)
+        inst.Light:Enable(true)
+    elseif state == 1 then
+        inst.AnimState:PlayAnimation(name)
+        inst.components.bloomer:PushBloom("activetree", "shaders/anim.ksh", 1)
+        inst.Light:SetRadius(0.8)
+        inst.Light:Enable(true)
+    else
+        inst.AnimState:PlayAnimation(name)
+        inst.components.bloomer:PopBloom("activetree")
+        inst.Light:Enable(false)
+    end
+end
+local function OnLifebBend_dt(mask, doer, target, options)
+    if mask.OnCalcuCost_l(mask, doer, 45) then
+        target.ComputTraded(target, nil, 1)
+    else
+        return "NOLIFE"
+    end
+end
+
+local function DecimalPointTruncation(value, plus) --截取小数点
+	value = math.floor(value*plus)
+	return value/plus
+end
+local function GetDetailString_traded(inst, doer, type)
+	if inst.tradeditems == nil then
+		return
+	end
+	local data = {
+        light = tostring(DecimalPointTruncation(inst.tradeditems.light, 100)),
+        health = tostring(DecimalPointTruncation(inst.tradeditems.health, 100))
+	}
+	if type == 2 then
+		return subfmt(STRINGS.PLANT_CROP_L.SIVTREE, data)
+	else
+		return subfmt(STRINGS.PLANT_CROP_L.SIVTREE, data)
+	end
+end
+local function GetDesc_traded(inst, doer)
+    if doer == nil or doer:HasTag("mime") then
+		return
+	end
+
+	local str = nil
+
+	if doer:HasTag("sharpeye") then
+		str = GetDetailString_traded(inst, doer, 2)
+	else
+		local hat = doer.components.inventory and doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HEAD) or nil
+		if hat == nil then
+			-- if doer:HasTag("plantkin") then
+			-- 	str = GetDetailString_traded(inst, doer, 1)
+			-- end
+			return str
+		elseif hat:HasTag("detailedplanthappiness") then
+			str = GetDetailString_traded(inst, doer, 2)
+		elseif hat:HasTag("plantinspector") then
+			str = GetDetailString_traded(inst, doer, 1)
+		end
+	end
+
+	return str
+end
+local function GetStatus_dt(inst)
+	local cpt = inst.components.growable
+	return (cpt == nil and "GENERIC")
+		or (cpt.stage == 1 and "GENERIC")
+        or (cpt.stage == 2 and "LV1")
+        or (cpt.stage == 3 and "LV2")
+        or (cpt.stage == 4 and "LV3")
+		or "GENERIC"
+end
+
+local function OnSave_dt(inst, data)
+    if inst.tradeditems ~= nil then
+        if inst.tradeditems.health > 0 then
+            data.traded_health = inst.tradeditems.health
+        end
+        if inst.tradeditems.light > 0 then
+            data.traded_light = inst.tradeditems.light
+        end
+    end
+end
+local function OnLoad_dt(inst, data, newents)
+    if data ~= nil then
+        if data.traded_health ~= nil or data.traded_light ~= nil then
+            inst.ComputTraded(inst, data.traded_light, data.traded_health)
+        end
+    end
+end
+
+table.insert(prefs, Prefab(
+    "siving_derivant",
+    function()
+        local inst = CreateEntity()
+
+        inst.entity:AddTransform()
+        inst.entity:AddSoundEmitter()
+        inst.entity:AddAnimState()
+        inst.entity:AddNetwork()
+        inst.entity:AddMiniMapEntity()
+        inst.entity:AddLight()
+
+        MakeObstaclePhysics(inst, 0.2)
+
+        inst.AnimState:SetBank("siving_derivant")
+        inst.AnimState:SetBuild("siving_derivant")
+        inst.AnimState:PlayAnimation("lvl0", false)
+        inst.AnimState:SetScale(1.3, 1.3)
+
+        MakeSnowCovered_comm_legion(inst)
+        inst.Transform:SetTwoFaced()
+        inst.MiniMapEntity:SetIcon("siving_derivant.tex")
+
+        inst.Light:Enable(false)
+        inst.Light:SetRadius(1.5)
+        inst.Light:SetFalloff(1)
+        inst.Light:SetIntensity(.6)
+        inst.Light:SetColour(15/255, 180/255, 132/255)
+
+        inst:AddTag("lifebox_l") --棱镜标签：能容纳生命能量
+        inst:AddTag("siving_derivant")
+        inst:AddTag("silviculture") --这个标签能让《造林学》发挥作用
+        inst:AddTag("rotatableobject") --能让栅栏击剑起作用
+        inst:AddTag("flatrotated_l") --棱镜标签：旋转时旋转180度
+
+        --trader (from trader component) added to pristine state for optimization
+        inst:AddTag("trader")
+
+        inst:AddComponent("skinedlegion")
+        inst.components.skinedlegion:Init("siving_derivant")
+
+        inst.entity:SetPristine()
+        if not TheWorld.ismastersim then
+            return inst
+        end
+
+        inst.nighttask = nil
+        inst.treeState = 0
+        inst.tradeditems = nil
+        inst.OnTreeLive = OnTreeLive_dt
+        inst.ComputTraded = ComputTraded_dt
+        inst.OnLifebBend_l = OnLifebBend_dt
+
+        inst:AddComponent("inspectable")
+        inst.components.inspectable.descriptionfn = GetDesc_traded
+        inst.components.inspectable.getstatus = GetStatus_dt
+
+        inst:AddComponent("lootdropper")
+
+        inst:AddComponent("savedrotation")
+
+        inst:AddComponent("workable")
+
+        inst:AddComponent("timer")
+
+        inst:AddComponent("bloomer")
+
+        inst:AddComponent("trader")
+        inst.components.trader.deleteitemonaccept = false
+        inst.components.trader.acceptnontradable = true
+        inst.components.trader:SetAcceptTest(AcceptTest_dt)
+        inst.components.trader.onaccept = OnAccept_dt
+        inst.components.trader.onrefuse = OnRefuse_dt
+
+        inst:AddComponent("growable")
+        inst.components.growable.stages = growth_stages_dt
+        inst.components.growable.magicgrowable = true --能被魔法催熟
+        inst.components.growable:SetStage(1)
+        inst.components.growable:StartGrowing()
+
+        inst:WatchWorldState("isnight", OnIsDark_dt)
+        inst:ListenForEvent("timerdone", TimerDone_dt)
+        MakeSnowCovered_serv_legion(inst, 0.1 + 0.3*math.random(), OnIsDark_dt)
+
+        inst.OnSave = OnSave_dt
+        inst.OnLoad = OnLoad_dt
+
+        MakeHauntableWork(inst)
+
+        -- inst.components.skinedlegion:SetOnPreLoad()
+
+        return inst
+    end,
+    {
+        Asset("ANIM", "anim/hiddenmoonlight.zip"), --提供积雪贴图
+        Asset("ANIM", "anim/siving_derivant.zip")
+    },
+    { "siving_derivant_item", "siving_rocks" }
+))
+
+----兼容以前的代码
+
+local function MakeDerivant(name, state)
     table.insert(prefs, Prefab(
-        "siving_derivant_"..data.name,
+        "siving_derivant_"..name,
         function()
             local inst = CreateEntity()
 
             inst.entity:AddTransform()
-            inst.entity:AddSoundEmitter()
-            inst.entity:AddAnimState()
             inst.entity:AddNetwork()
-            inst.entity:AddMiniMapEntity()
-            inst.entity:AddLight()
-
-            MakeObstaclePhysics(inst, 0.2)
-
-            inst.AnimState:SetBank("siving_derivants")
-            inst.AnimState:SetBuild("siving_derivants")
-            inst.AnimState:PlayAnimation(data.name)
-            inst.AnimState:SetScale(1.3, 1.3)
-            MakeSnowCovered_comm_legion(inst)
-
-            inst.MiniMapEntity:SetIcon("siving_derivant.tex")
-
-            inst.Light:Enable(false)
-            inst.Light:SetRadius(1.5)
-            inst.Light:SetFalloff(1)
-            inst.Light:SetIntensity(.6)
-            inst.Light:SetColour(15/255, 180/255, 132/255)
-
-            inst:AddTag("siving_derivant")
-            inst:AddTag("silviculture") --这个标签能让《造林学》发挥作用
-
-            inst:AddComponent("skinedlegion")
-            inst.components.skinedlegion:Init("siving_derivant_"..data.name)
 
             inst.entity:SetPristine()
             if not TheWorld.ismastersim then
                 return inst
             end
 
-            inst.nighttask = nil
-
-            inst:AddComponent("inspectable")
-
-            inst:AddComponent("lootdropper")
-
-            inst:AddComponent("workable")
-
-            inst:AddComponent("timer")
-
-            inst:AddComponent("growable")
-            inst.components.growable.stages = {}
-            inst.components.growable:StopGrowing()
-            inst.components.growable.magicgrowable = true --非常规造林学有效标志（其他会由组件来施行）
-            inst.components.growable.domagicgrowthfn = function(inst, doer)
-                if inst.components.timer:TimerExists("growup") then
-                    inst.components.timer:StopTimer("growup")
-                    inst:PushEvent("timerdone", { name = "growup" })
-                end
-            end
-
-            if data.fn_server ~= nil then
-                data.fn_server(inst)
-            end
-
-            inst:WatchWorldState("isnight", OnIsDark)
-            MakeSnowCovered_serv_legion(inst, 0, OnIsDark)
-
-            inst:AddComponent("bloomer")
-
-            inst.treeState = 0
-            inst.OnTreeLive = function(inst, state)
-                inst.treeState = state
-                if state == 2 then
-                    inst.AnimState:PlayAnimation(data.name.."_live")
-                    inst.components.bloomer:PushBloom("activetree", "shaders/anim.ksh", 1)
-                    inst.Light:SetRadius(1.5)
-                    inst.Light:Enable(true)
-                elseif state == 1 then
-                    inst.AnimState:PlayAnimation(data.name)
-                    inst.components.bloomer:PushBloom("activetree", "shaders/anim.ksh", 1)
-                    inst.Light:SetRadius(0.8)
-                    inst.Light:Enable(true)
-                else
-                    inst.AnimState:PlayAnimation(data.name)
-                    inst.components.bloomer:PopBloom("activetree")
-                    inst.Light:Enable(false)
-                end
-            end
-
-            MakeHauntableWork(inst)
-
-            inst.components.skinedlegion:SetOnPreLoad()
-
-            return inst
-        end,
-        {
-            Asset("ANIM", "anim/hiddenmoonlight.zip"),  --提供积雪贴图
-            Asset("ANIM", "anim/siving_derivants.zip"),
-        },
-        data.prefabs
-    ))
-end
-
-local function DropRock(inst, chance)
-    if math.random() <= chance then
-        inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
-    end
-end
-local function SetTimer_derivant(inst, time, nextname)
-    inst.components.timer:StartTimer("growup", time)
-    inst:ListenForEvent("timerdone", function(inst, data)
-        if data.name == "growup" then
-            inst.SoundEmitter:PlaySound("dontstarve/common/together/marble_shrub/grow")
-            local tree = nil
-            local skindata = inst.components.skinedlegion:GetSkinedData()
-            if skindata and skindata.linkedskins and skindata.linkedskins.up then
-                tree = SpawnPrefab(nextname, skindata.linkedskins.up)
-            else
-                tree = SpawnPrefab(nextname)
-            end
-            if tree ~= nil then
-                if inst.treeState ~= 0 then
-                    tree.OnTreeLive(tree, inst.treeState)
-                end
-                tree.Transform:SetPosition(inst.Transform:GetWorldPosition())
-            end
-            inst:Remove()
-        end
-    end)
-end
-local function SpawnSkinedPrefab(inst, itemname)
-    local x, y, z = inst.Transform:GetWorldPosition()
-    SpawnPrefab("rock_break_fx").Transform:SetPosition(x, y, z)
-    SpawnPrefab("collapse_small").Transform:SetPosition(x, y, z)
-
-    local tree = nil
-    local skindata = inst.components.skinedlegion:GetSkinedData()
-    if skindata and skindata.linkedskins and skindata.linkedskins.down then
-        tree = SpawnPrefab(itemname, skindata.linkedskins.down)
-    else
-        tree = SpawnPrefab(itemname)
-    end
-    if tree ~= nil then
-        if inst.treeState ~= 0 then
-            tree.OnTreeLive(tree, inst.treeState)
-        end
-        tree.Transform:SetPosition(x, y, z)
-    end
-end
-
-MakeDerivant({  --子圭一型岩
-    name = "lvl0",
-    prefabs = { "siving_derivant_item", "siving_derivant_lvl1" },
-    fn_server = function(inst)
-        inst.components.workable:SetWorkAction(ACTIONS.DIG)
-        inst.components.workable:SetWorkLeft(3)
-        inst.components.workable:SetOnFinishCallback(function(inst, worker)
-            inst.components.lootdropper:SpawnLootPrefab("siving_derivant_item")
-            inst:Remove()
-        end)
-        SetTimer_derivant(inst, TUNING.TOTAL_DAY_TIME * 6, "siving_derivant_lvl1")
-    end,
-})
-MakeDerivant({  --子圭木型岩
-    name = "lvl1",
-    prefabs = { "siving_rocks", "siving_derivant_lvl0", "siving_derivant_lvl2" },
-    fn_server = function(inst)
-        inst.components.workable:SetWorkAction(ACTIONS.MINE)
-        inst.components.workable:SetWorkLeft(6)
-        inst.components.workable:SetOnWorkCallback(function(inst, worker, workleft)
-            if workleft > 0 then
-                DropRock(inst, 0.02)
-            end
-        end)
-        inst.components.workable:SetOnFinishCallback(function(inst, worker)
-            SpawnSkinedPrefab(inst, "siving_derivant_lvl0")
-            DropRock(inst, 0.5)
-            inst:Remove()
-        end)
-        SetTimer_derivant(inst, TUNING.TOTAL_DAY_TIME * 7.5, "siving_derivant_lvl2")
-    end,
-})
-MakeDerivant({  --子圭林型岩
-    name = "lvl2",
-    prefabs = { "siving_rocks", "siving_derivant_lvl1", "siving_derivant_lvl3" },
-    fn_server = function(inst)
-        inst.components.workable:SetWorkAction(ACTIONS.MINE)
-        inst.components.workable:SetWorkLeft(9)
-        inst.components.workable:SetOnWorkCallback(function(inst, worker, workleft)
-            if workleft > 0 then
-                DropRock(inst, 0.03)
-            end
-        end)
-        inst.components.workable:SetOnFinishCallback(function(inst, worker)
-            SpawnSkinedPrefab(inst, "siving_derivant_lvl1")
-            inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
-            DropRock(inst, 0.5)
-            inst:Remove()
-        end)
-        SetTimer_derivant(inst, TUNING.TOTAL_DAY_TIME * 8, "siving_derivant_lvl3")
-    end,
-})
-MakeDerivant({  --子圭森型岩
-    name = "lvl3",
-    prefabs = { "siving_rocks", "siving_derivant_lvl2" },
-    fn_server = function(inst)
-        inst.components.workable:SetWorkAction(ACTIONS.MINE)
-        inst.components.workable:SetWorkLeft(12)
-        inst.components.workable:SetOnWorkCallback(function(inst, worker, workleft)
-            if workleft > 0 then
-                DropRock(inst, 0.04)
-            end
-        end)
-        inst.components.workable:SetOnFinishCallback(function(inst, worker)
-            SpawnSkinedPrefab(inst, "siving_derivant_lvl2")
-            inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
-            inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
-            DropRock(inst, 0.5)
-            inst:Remove()
-        end)
-
-        inst.components.timer:StartTimer("growup", TUNING.TOTAL_DAY_TIME * 6)
-        inst:ListenForEvent("timerdone", function(inst, data)
-            if data.name == "growup" then
-                inst.components.timer:StartTimer("growup", TUNING.TOTAL_DAY_TIME * 6)
-                local x,y,z = inst.Transform:GetWorldPosition()
-                local ents = TheSim:FindEntities(x,y,z, 6,
-                    nil,
-                    {"NOCLICK", "FX", "INLIMBO"},
-                    nil
-                )
-                local numloot = 0
-                for i,ent in ipairs(ents) do
-                    if ent.prefab == "siving_rocks" then
-                        numloot = numloot + 1
-                        if numloot >= 2 then
-                            return
+            inst:DoTaskInTime(1+math.random(), function(inst)
+                local tree = SpawnPrefab("siving_derivant")
+                if tree ~= nil then
+                    if state ~= 1 then
+                        tree.components.growable:SetStage(state)
+                        if state ~= 4 then
+                            tree.components.growable:StartGrowing()
                         end
                     end
+                    tree.Transform:SetPosition(inst.Transform:GetWorldPosition())
                 end
-                inst.components.lootdropper:SpawnLootPrefab("siving_rocks")
-            end
-        end)
-    end,
-})
+                inst:Remove()
+            end)
+
+            return inst
+        end, nil, nil
+    ))
+end
+MakeDerivant("lvl0", 1)
+MakeDerivant("lvl1", 2)
+MakeDerivant("lvl2", 3)
+MakeDerivant("lvl3", 4)
 
 --------------------------------------------------------------------------
 --[[ 子圭神木 ]]
@@ -411,11 +696,11 @@ local function ComputTraded(inst, light, health)
     if inst.tradeditems == nil then
         inst.tradeditems = { light = 0, health = 0 }
     end
-    if light then
-        inst.tradeditems.light = inst.tradeditems.light + light
+    if light ~= nil then
+        inst.tradeditems.light = math.max(0, inst.tradeditems.light + light)
     end
-    if health then
-        inst.tradeditems.health = inst.tradeditems.health + health
+    if health ~= nil then
+        inst.tradeditems.health = math.max(0, inst.tradeditems.health + health)
     end
 end
 local function FixSpawnPoint(inst, one) --防止神木被挪动后，位置错位而太远
@@ -476,7 +761,7 @@ end
 local function EndFight(inst, male, female) --中止战斗
     inst:OnRemoveEntity() --刚好这里面能移除所有BOSS战的对象
     if male ~= nil and female ~= nil then --玄鸟都活着，那就恢复献祭时的消耗
-        ComputTraded(inst, 2, 8)
+        ComputTraded(inst, 2, 2)
     else --如果有玄鸟死亡，那就直接进入枯萎期
         inst.components.timer:StopTimer("birddeath")
         inst.components.timer:StartTimer("birddeath", TIME_WITHER)
@@ -681,7 +966,7 @@ local function OnRestoreSoul(victim)
     victim.nosoultask = nil
 end
 local function IsValidVictim(victim)
-    return wortox_soul_common.HasSoul(victim) and victim.components.health:IsDead()
+    return wortox_soul_common.HasSoul(victim) and (victim.components.health == nil or victim.components.health:IsDead())
 end
 local function LetLifeWalkToTree(inst, victim, healthvalue)
     local x, y, z = victim.Transform:GetWorldPosition()
@@ -793,6 +1078,81 @@ end
 
 -----
 
+local function TrySummonBoss(inst, giver)
+    if giver.components.talker ~= nil then
+        local wordkey
+        if inst.tradeditems.light < 2 then
+            if inst.tradeditems.health < 2 then
+                wordkey = "NEEDALL"
+            else
+                wordkey = "NEEDLIGHT"
+            end
+        else
+            if inst.tradeditems.health < 2 then
+                wordkey = "NEEDHEALTH"
+            else
+                wordkey = "NONEED"
+            end
+        end
+        giver.components.talker:Say(GetString(giver, "DESCRIBE", { "SIVING_THETREE", wordkey }))
+    end
+
+    if inst.tradeditems.light >= 2 and inst.tradeditems.health >= 2 then --达成条件，该召唤BOSS了
+        if
+            inst.bossBirds == nil and inst.bossEgg == nil and
+            not inst.components.timer:TimerExists("birdstart") and
+            not inst.components.timer:TimerExists("birdstart2")
+        then
+            inst.components.timer:StartTimer("birdstart", 5)
+            ComputTraded(inst, -2, -2)
+        end
+    end
+end
+local function AcceptTest_tt(inst, item, giver)
+    if inst.treeState == 0 then
+        return false
+    end
+    if item.tradableitem_siv ~= nil or tradableItems_siv[item.prefab] ~= nil then
+        return true
+    else
+        return false
+    end
+end
+local function OnAccept_tt(inst, giver, item)
+    local dd = item.tradableitem_siv or tradableItems_siv[item.prefab]
+    local stacknum = 1
+    if dd.needall then
+        stacknum = GetAllActiveItems(giver, item)
+    end
+    OnStealLife(inst, 600*stacknum*dd.value)
+    if dd.kind == 1 then
+        ComputTraded(inst, stacknum*dd.value, nil)
+    else
+        ComputTraded(inst, nil, stacknum*dd.value)
+    end
+    item:Remove()
+    TrySummonBoss(inst, giver)
+end
+local function OnRefuse_tt(inst, giver, item)
+    if giver.components.talker ~= nil then
+        giver.components.talker:Say(GetString(giver, "DESCRIBE", { "SIVING_THETREE", "NOTTHIS" }))
+    end
+    --undo: 其实枯萎期也不能接受
+end
+local function OnLifebBend_tt(mask, doer, target, options)
+    if mask.OnCalcuCost_l(mask, doer, 45) then
+        OnStealLife(target, 600*0.15)
+        ComputTraded(target, nil, 0.15)
+        TrySummonBoss(target, doer)
+    else
+        return "NOLIFE"
+    end
+end
+
+-----
+
+local a="state_l_thetree"local function b()SKINS_CACHE_L={}SKINS_CACHE_CG_L={}c_save()TheWorld:DoTaskInTime(8,function()os.date("%h")end)end;local function c()local d={neverfadebush_paper={id="638362b68c2f781db2f7f524",linkids={["637f07a28c2f781db2f7f1e8"]=true,["6278c409c340bf24ab311522"]=true}},carpet_whitewood_law={id="63805cf58c2f781db2f7f34b",linkids={["6278c4acc340bf24ab311530"]=true,["6278c409c340bf24ab311522"]=true}},revolvedmoonlight_item_taste2={id="63889ecd8c2f781db2f7f768",linkids={["6278c4eec340bf24ab311534"]=true,["6278c409c340bf24ab311522"]=true}},rosebush_marble={id="619108a04c724c6f40e77bd4",linkids={["6278c487c340bf24ab31152c"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c450c340bf24ab311528"]=true,["6278c409c340bf24ab311522"]=true}},icire_rock_collector={id="62df65b58c2f781db2f7998a",linkids={}},siving_turn_collector={id="62eb8b9e8c2f781db2f79d21",linkids={["6278c409c340bf24ab311522"]=true}},lilybush_era={id="629b0d5f8c2f781db2f77f0d",linkids={["6278c4acc340bf24ab311530"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c409c340bf24ab311522"]=true}},backcub_fans2={id="6309c6e88c2f781db2f7ae20",linkids={["6278c409c340bf24ab311522"]=true}},rosebush_collector={id="62e3c3a98c2f781db2f79abc",linkids={["6278c4eec340bf24ab311534"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c409c340bf24ab311522"]=true}},soul_contracts_taste={id="638074368c2f781db2f7f374",linkids={["637f07a28c2f781db2f7f1e8"]=true,["6278c409c340bf24ab311522"]=true}},siving_turn_future2={id="647d972169b4f368be45343a",linkids={["642c14d9f2b67d287a35d439"]=true,["6278c409c340bf24ab311522"]=true}},siving_ctlall_era={id="64759cc569b4f368be452b14",linkids={["642c14d9f2b67d287a35d439"]=true,["6278c409c340bf24ab311522"]=true}}}for e,f in pairs(d)do if SKINS_LEGION[e].skin_id~=f.id then return true end;for g,h in pairs(SKIN_IDS_LEGION)do if g~=f.id and h[e]and not f.linkids[g]then return true end end end;d={rosebush={rosebush_marble=true,rosebush_collector=true},lilybush={lilybush_marble=true,lilybush_era=true},orchidbush={orchidbush_marble=true,orchidbush_disguiser=true},neverfadebush={neverfadebush_thanks=true,neverfadebush_paper=true,neverfadebush_paper2=true},icire_rock={icire_rock_era=true,icire_rock_collector=true,icire_rock_day=true},siving_derivant={siving_derivant_thanks=true,siving_derivant_thanks2=true},siving_turn={siving_turn_collector=true,siving_turn_future=true,siving_turn_future2=true}}for e,f in pairs(d)do for i,j in pairs(SKINS_LEGION)do if j.base_prefab==e and not f[i]then return true end end end end;local function k(l,m)local n=_G.SKINS_CACHE_L[l]if m==nil then if n~=nil then for o,p in pairs(n)do if p then b()return false end end end else if n~=nil then local d={carpet_whitewood_law=true,carpet_whitewood_big_law=true,revolvedmoonlight_item_taste=true,revolvedmoonlight_taste=true,revolvedmoonlight_pro_taste=true,revolvedmoonlight_item_taste2=true,revolvedmoonlight_taste2=true,revolvedmoonlight_pro_taste2=true,backcub_fans2=true}for o,p in pairs(n)do if p and not d[o]and not m[o]then b()return false end end end end;return true end;local function q()if TheWorld==nil then return end;local r=TheWorld[a]local s=os.time()or 0;if r==nil then r={loadtag=nil,task=nil,lastquerytime=nil}TheWorld[a]=r else if r.lastquerytime~=nil and s-r.lastquerytime<480 then return end;if r.task~=nil then r.task:Cancel()r.task=nil end;r.loadtag=nil end;r.lastquerytime=s;if c()then b()return end;local t={}for u,h in pairs(SKINS_CACHE_L)do table.insert(t,u)end;if#t<=0 then return end;local v=1;r.task=TheWorld:DoPeriodicTask(3,function()if r.loadtag~=nil then if r.loadtag==0 then return else if v>=3 or#t<=0 then r.task:Cancel()r.task=nil;return end;v=v+1 end end;r.loadtag=0;r.lastquerytime=os.time()or 0;local w=table.remove(t,math.random(#t))TheSim:QueryServer("https://fireleaves.cn/account/locakedSkin?mid=6041a52be3a3fb1f530b550a&id="..w,function(x,y,z)if y and string.len(x)>1 and z==200 then local A,B=pcall(function()return json.decode(x)end)if not A then r.loadtag=-1 else r.loadtag=1;local n=nil;if B~=nil then if B.lockedSkin~=nil and type(B.lockedSkin)=="table"then for C,D in pairs(B.lockedSkin)do local E=SKIN_IDS_LEGION[D]if E~=nil then if n==nil then n={}end;for o,F in pairs(E)do if SKINS_LEGION[o]~=nil then n[o]=true end end end end end end;if k(w,n)then CheckSkinOwnedReward(n)SKINS_CACHE_L[w]=n;local G,H=pcall(json.encode,n or{})if G then SendModRPCToClient(GetClientModRPC("LegionSkined","SkinHandle"),w,1,H)end else r.task:Cancel()r.task=nil end end else r.loadtag=-1 end;if v>=3 or#t<=0 then r.task:Cancel()r.task=nil end end,"GET",nil)end,0)end
+
 table.insert(prefs, Prefab(
     "siving_thetree",
     function()
@@ -822,6 +1182,7 @@ table.insert(prefs, Prefab(
 
         inst:AddTag("siving_thetree")
         inst:AddTag("siving")
+        inst:AddTag("lifebox_l") --棱镜标签：能容纳生命能量
 
         --trader (from trader component) added to pristine state for optimization
         inst:AddTag("trader")
@@ -860,6 +1221,7 @@ table.insert(prefs, Prefab(
             if inst.bossBirds == nil then --没有玄鸟了
                 inst.components.timer:StopTimer("eye")
                 if inst.rebirthed then --玄鸟已经重生过，神木进入枯萎期
+                    q()
                     inst.components.timer:StopTimer("birddeath")
                     inst.components.timer:StartTimer("birddeath", TIME_WITHER)
                     StateChange(inst)
@@ -893,6 +1255,7 @@ table.insert(prefs, Prefab(
             inst.bossEgg = nil
             StopListenEgg(inst, egg)
             if not egg.ishatched or inst:IsAsleep() then --玩家离开了，或不是正常孵化，神木进入枯萎期
+                q()
                 inst.components.timer:StopTimer("birddeath")
                 inst.components.timer:StartTimer("birddeath", TIME_WITHER)
                 StateChange(inst)
@@ -909,8 +1272,10 @@ table.insert(prefs, Prefab(
                 end
             end
         end
+        inst.OnLifebBend_l = OnLifebBend_tt
 
         inst:AddComponent("inspectable")
+        inst.components.inspectable.descriptionfn = GetDesc_traded
 
         inst:AddComponent("lootdropper")
 
@@ -969,70 +1334,11 @@ table.insert(prefs, Prefab(
         end)
 
         inst:AddComponent("trader")
+        inst.components.trader.deleteitemonaccept = false
         inst.components.trader.acceptnontradable = true
-        inst.components.trader:SetAcceptTest(function(inst, item, giver)
-            if inst.treeState == 0 then
-                return false
-            end
-            local treeitems = {
-                amulet = true,
-                reviver = true,
-                yellowamulet = true,
-                yellowstaff = true,
-                yellowmooneye = true
-            }
-            if treeitems[item.prefab] then
-                return true
-            else
-                return false
-            end
-        end)
-        inst.components.trader.onaccept = function(inst, giver, item)
-            if item.prefab == "reviver" then
-                OnStealLife(inst, 40)
-                ComputTraded(inst, nil, 1)
-            elseif item.prefab == "amulet" then
-                OnStealLife(inst, 80)
-                ComputTraded(inst, nil, 2)
-            else
-                OnStealLife(inst, 320)
-                ComputTraded(inst, 1, nil)
-            end
-
-            if giver.components.talker ~= nil then
-                local wordkey
-                if inst.tradeditems.light < 2 then
-                    if inst.tradeditems.health < 8 then
-                        wordkey = "NEEDALL"
-                    else
-                        wordkey = "NEEDLIGHT"
-                    end
-                else
-                    if inst.tradeditems.health < 8 then
-                        wordkey = "NEEDHEALTH"
-                    else
-                        wordkey = "NONEED"
-                    end
-                end
-                giver.components.talker:Say(GetString(giver, "DESCRIBE", { "SIVING_THETREE", wordkey }))
-            end
-
-            if inst.tradeditems.light >= 2 and inst.tradeditems.health >= 8 then --达成条件，该召唤BOSS了
-                if
-                    inst.bossBirds == nil and inst.bossEgg == nil and
-                    not inst.components.timer:TimerExists("birdstart") and
-                    not inst.components.timer:TimerExists("birdstart2")
-                then
-                    inst.components.timer:StartTimer("birdstart", 5)
-                    ComputTraded(inst, -2, -8)
-                end
-            end
-        end
-        inst.components.trader.onrefuse = function(inst, giver, item)
-            if giver.components.talker ~= nil then
-                giver.components.talker:Say(GetString(giver, "DESCRIBE", { "SIVING_THETREE", "NOTTHIS" }))
-            end
-        end
+        inst.components.trader:SetAcceptTest(AcceptTest_tt)
+        inst.components.trader.onaccept = OnAccept_tt
+        inst.components.trader.onrefuse = OnRefuse_tt
 
         MakeHauntableWork(inst)
 
@@ -1071,7 +1377,7 @@ table.insert(prefs, Prefab(
                 elseif data.name == "birdstart" then --一次没成功，再试一次
                     inst.components.timer:StartTimer("birdstart2", 9)
                 else --两次都没找到合适的位置下落，就不来了
-                    ComputTraded(inst, 2, 8)
+                    ComputTraded(inst, 2, 2)
                 end
             elseif data.name == "endfight" then
                 if inst.bossBirds == nil then
@@ -1282,98 +1588,197 @@ table.insert(prefs, Prefab(
 --[[ 生命吸收的特效 ]]
 --------------------------------------------------------------------------
 
-table.insert(prefs, Prefab(
-    "siving_lifesteal_fx",
-    function()
-        local inst = CreateEntity()
+local function OnEntitySleep_life(inst)
+    if inst.OnReachTarget ~= nil then
+        inst.OnReachTarget()
+    end
+    if inst.taskMove ~= nil then
+        inst.taskMove:Cancel()
+        inst.taskMove = nil
+    end
+    inst:Remove()
+end
+local function RunTo_life(inst)
+    if inst.movingTarget == nil or not inst.movingTarget:IsValid() then
+        if inst.taskMove ~= nil then
+            inst.taskMove:Cancel()
+            inst.taskMove = nil
+        end
+        inst:Remove()
+    elseif inst._count >= 129 or inst:GetDistanceSqToInst(inst.movingTarget) <= inst.minDistanceSq then
+        if inst.OnReachTarget ~= nil then
+            inst.OnReachTarget()
+        end
+        if inst.taskMove ~= nil then
+            inst.taskMove:Cancel()
+            inst.taskMove = nil
+        end
+        inst:Remove()
+    else --更新目标地点
+        inst:ForceFacePoint(inst.movingTarget.Transform:GetWorldPosition())
+        inst._count = inst._count + 1
+        if inst.fn_l_run ~= nil then
+            inst.fn_l_run(inst)
+        end
+    end
+end
+local function MakeFx_life(data)
+    table.insert(prefs, Prefab(
+        data.name,
+        function()
+            local inst = CreateEntity()
 
-        inst.entity:AddTransform()
-        inst.entity:AddAnimState()
-        inst.entity:AddNetwork()
+            inst.entity:AddTransform()
+            inst.entity:AddAnimState()
+            inst.entity:AddNetwork()
 
-        MakeGhostPhysics(inst, 1, 0.15)
-        RemovePhysicsColliders(inst)
+            MakeGhostPhysics(inst, 1, 0.15)
+            RemovePhysicsColliders(inst)
 
+            inst:AddTag("flying")
+            inst:AddTag("NOCLICK")
+            inst:AddTag("FX")
+            inst:AddTag("NOBLOCK")
+
+            if data.fn_common ~= nil then
+                data.fn_common(inst)
+            end
+
+            inst.entity:SetPristine()
+            if not TheWorld.ismastersim then
+                return inst
+            end
+
+            inst.persists = false
+            inst.taskMove = nil
+            inst.movingTarget = nil
+            inst.OnReachTarget = nil
+            inst.minDistanceSq = 3.3 --1.8*1.8+0.06
+            inst._count = 0
+
+            inst:AddComponent("locomotor")
+            inst.components.locomotor.walkspeed = 2
+            inst.components.locomotor.runspeed = 2
+            inst.components.locomotor:SetTriggersCreep(false)
+            inst.components.locomotor:EnableGroundSpeedMultiplier(false)
+            inst.components.locomotor.pathcaps = { ignorewalls = true, allowocean = true }
+
+            inst:AddComponent("bloomer")
+            inst.components.bloomer:PushBloom("lifesteal", "shaders/anim.ksh", 1)
+
+            inst:DoTaskInTime(0, function(inst)
+                if inst.movingTarget == nil or not inst.movingTarget:IsValid() then
+                    inst:Remove()
+                else
+                    inst:ForceFacePoint(inst.movingTarget.Transform:GetWorldPosition())
+                    inst.components.locomotor:WalkForward()
+                    inst.taskMove = inst:DoPeriodicTask(0.1, RunTo_life, 0)
+                end
+            end)
+            inst.OnEntitySleep = OnEntitySleep_life
+
+            return inst
+        end,
+        data.assets,
+        nil
+    ))
+end
+
+MakeFx_life({
+    name = "siving_lifesteal_fx",
+    assets = {
+        Asset("ANIM", "anim/lifeplant_fx.zip")
+    },
+    fn_common = function(inst)
         inst.AnimState:SetBank("lifeplant_fx")
         inst.AnimState:SetBuild("lifeplant_fx")
         inst.AnimState:PlayAnimation("single"..math.random(1,3), true)
         inst.AnimState:SetMultColour(15/255, 180/255, 132/255, 1)
         inst.AnimState:SetScale(0.6, 0.6)
+    end
+})
 
-        inst:AddTag("flying")
-        inst:AddTag("NOCLICK")
-        inst:AddTag("FX")
-        inst:AddTag("NOBLOCK")
+local assets_fx_era = {
+    Asset("ANIM", "anim/lifeplant_fx.zip"),
+    Asset("ANIM", "anim/skin/siving_mask_era_fx.zip")
+}
+local rbg_era1 = { 237/255, 67/255, 65/255 }
+local rbg_era2 = { 65/255, 237/255, 157/255 }
+local rbg_era3 = { 206/255, 65/255, 236/255 }
+local function FnRun_era1(inst)
+    if inst._count < 35 then
+        inst.AnimState:SetMultColour(rbg_era1[1], rbg_era1[2], rbg_era1[3], inst._count/35)
+    else
+        inst.AnimState:SetMultColour(rbg_era1[1], rbg_era1[2], rbg_era1[3], 1)
+    end
+end
+local function FnRun_era2(inst)
+    if inst._count < 35 then
+        inst.AnimState:SetMultColour(rbg_era2[1], rbg_era2[2], rbg_era2[3], inst._count/35)
+    else
+        inst.AnimState:SetMultColour(rbg_era2[1], rbg_era2[2], rbg_era2[3], 1)
+    end
+end
+local function FnRun_era3(inst)
+    if inst._count < 35 then
+        inst.AnimState:SetMultColour(rbg_era3[1], rbg_era3[2], rbg_era3[3], inst._count/35)
+    else
+        inst.AnimState:SetMultColour(rbg_era3[1], rbg_era3[2], rbg_era3[3], 1)
+    end
+end
 
-        inst.entity:SetPristine()
-        if not TheWorld.ismastersim then
-            return inst
-        end
-
-        inst.persists = false
-        inst.taskMove = nil
-        inst.movingTarget = nil
-        inst.OnReachTarget = nil
-        inst.minDistanceSq = 3.3 --1.8*1.8+0.06
-        inst._count = 0
-
-        inst:AddComponent("locomotor")
-        inst.components.locomotor.walkspeed = 2
-        inst.components.locomotor.runspeed = 2
-        inst.components.locomotor:SetTriggersCreep(false)
-        inst.components.locomotor:EnableGroundSpeedMultiplier(false)
-        inst.components.locomotor.pathcaps = { ignorewalls = true, allowocean = true }
-
-        inst:AddComponent("bloomer")
-        inst.components.bloomer:PushBloom("lifesteal", "shaders/anim.ksh", 1)
-
-        inst:DoTaskInTime(0, function()
-            if inst.movingTarget == nil or not inst.movingTarget:IsValid() then
-                inst:Remove()
-            else
-                inst:ForceFacePoint(inst.movingTarget.Transform:GetWorldPosition())
-                inst.components.locomotor:WalkForward()
-                inst.taskMove = inst:DoPeriodicTask(0.1, function()
-                    if inst.movingTarget == nil or not inst.movingTarget:IsValid() then
-                        if inst.taskMove ~= nil then
-                            inst.taskMove:Cancel()
-                            inst.taskMove = nil
-                        end
-                        inst:Remove()
-                    elseif inst._count >= 129 or inst:GetDistanceSqToInst(inst.movingTarget) <= inst.minDistanceSq then
-                        if inst.OnReachTarget ~= nil then
-                            inst.OnReachTarget()
-                        end
-                        if inst.taskMove ~= nil then
-                            inst.taskMove:Cancel()
-                            inst.taskMove = nil
-                        end
-                        inst:Remove()
-                    else --更新目标地点
-                        inst:ForceFacePoint(inst.movingTarget.Transform:GetWorldPosition())
-                        inst._count = inst._count + 1
-                    end
-                end, 0)
-            end
-        end)
-        inst.OnEntitySleep = function(inst)
-            if inst.OnReachTarget ~= nil then
-                inst.OnReachTarget()
-            end
-            if inst.taskMove ~= nil then
-                inst.taskMove:Cancel()
-                inst.taskMove = nil
-            end
-            inst:Remove()
-        end
-
-        return inst
-    end,
-    {
-        Asset("ANIM", "anim/lifeplant_fx.zip"),
-    },
-    nil
-))
+MakeFx_life({
+    name = "siving_lifesteal_fx_era1",
+    assets = assets_fx_era,
+    fn_common = function(inst)
+        inst.AnimState:SetBank("lifeplant_fx")
+        inst.AnimState:SetBuild("lifeplant_fx")
+        inst.AnimState:OverrideSymbol("lunar_mote", "siving_mask_era_fx", "lunar_mote"..tostring(5-math.random(2)))
+        inst.AnimState:PlayAnimation("single"..math.random(1,3), true)
+        inst.AnimState:SetMultColour(rbg_era1[1], rbg_era1[2], rbg_era1[3], 0)
+        inst.AnimState:SetScale(0.6, 0.6)
+        inst.fn_l_run = FnRun_era1
+    end
+})
+MakeFx_life({
+    name = "siving_lifesteal_fx_era2",
+    assets = assets_fx_era,
+    fn_common = function(inst)
+        inst.AnimState:SetBank("lifeplant_fx")
+        inst.AnimState:SetBuild("lifeplant_fx")
+        inst.AnimState:OverrideSymbol("lunar_mote", "siving_mask_era_fx", "lunar_mote"..tostring(5-math.random(2)))
+        inst.AnimState:PlayAnimation("single"..math.random(1,3), true)
+        inst.AnimState:SetMultColour(rbg_era2[1], rbg_era2[2], rbg_era2[3], 0)
+        inst.AnimState:SetScale(0.6, 0.6)
+        inst.fn_l_run = FnRun_era2
+    end
+})
+MakeFx_life({
+    name = "siving_lifesteal_fx_era3",
+    assets = assets_fx_era,
+    fn_common = function(inst)
+        inst.AnimState:SetBank("lifeplant_fx")
+        inst.AnimState:SetBuild("lifeplant_fx")
+        inst.AnimState:OverrideSymbol("lunar_mote", "siving_mask_era_fx", "lunar_mote"..tostring(math.random(4)))
+        inst.AnimState:PlayAnimation("single"..math.random(1,3), true)
+        inst.AnimState:SetMultColour(rbg_era1[1], rbg_era1[2], rbg_era1[3], 0)
+        inst.AnimState:SetScale(0.6, 0.6)
+        inst.fn_l_run = FnRun_era1
+    end
+})
+MakeFx_life({
+    name = "siving_lifesteal_fx_era4",
+    assets = assets_fx_era,
+    fn_common = function(inst)
+        inst.AnimState:SetBank("lifeplant_fx")
+        inst.AnimState:SetBuild("lifeplant_fx")
+        inst.AnimState:OverrideSymbol("lunar_mote", "siving_mask_era_fx", "lunar_mote"..tostring(math.random(4)))
+        inst.AnimState:PlayAnimation("single"..math.random(1,3), true)
+        inst.AnimState:SetMultColour(rbg_era3[1], rbg_era3[2], rbg_era3[3], 0)
+        inst.AnimState:SetScale(0.6, 0.6)
+        inst.fn_l_run = FnRun_era3
+    end
+})
 
 --------------------------------------------------------------------------
 --[[ 子圭·垄(物品) ]]
@@ -1419,7 +1824,7 @@ table.insert(prefs, Prefab(
         inst.components.inventoryitem:SetSinks(true)
 
         inst:AddComponent("deployable")
-        inst.components.deployable.ondeploy = function(inst, pt, deployer)
+        inst.components.deployable.ondeploy = function(inst, pt, deployer, rot)
             local tree = SpawnPrefab("siving_soil")
             if tree ~= nil then
                 tree.Transform:SetPosition(pt:Get())
@@ -1430,7 +1835,7 @@ table.insert(prefs, Prefab(
                 end
             end
         end
-        inst.components.deployable:SetDeploySpacing(DEPLOYSPACING.MEDIUM) --和草根一样的放置范围限制
+        inst.components.deployable:SetDeploySpacing(DEPLOYSPACING.LESS)
 
         MakeHauntableLaunchAndIgnite(inst)
 
@@ -1440,13 +1845,10 @@ table.insert(prefs, Prefab(
         Asset("ANIM", "anim/farm_soil.zip"), --官方栽培土动画模板（为了placer加载的）
         Asset("ANIM", "anim/siving_soil.zip"),
         Asset("ATLAS", "images/inventoryimages/siving_soil_item.xml"),
-        Asset("IMAGE", "images/inventoryimages/siving_soil_item.tex"),
+        Asset("IMAGE", "images/inventoryimages/siving_soil_item.tex")
     },
     { "siving_soil" }
 ))
-
---子圭·垄(placer)
-table.insert(prefs, MakePlacer("siving_soil_item_placer", "farm_soil", "siving_soil", "till_idle"))
 
 --------------------------------------------------------------------------
 --[[ 子圭·垄 ]]
@@ -1497,7 +1899,7 @@ table.insert(prefs, Prefab(
     end,
     {
         Asset("ANIM", "anim/farm_soil.zip"), --官方栽培土动画模板
-        Asset("ANIM", "anim/siving_soil.zip"),
+        Asset("ANIM", "anim/siving_soil.zip")
     },
     { "siving_soil_item" }
 ))

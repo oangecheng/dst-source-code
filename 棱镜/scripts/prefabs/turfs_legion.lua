@@ -11,7 +11,7 @@ local prefabs =
 }
 
 local function make_turf(tile, data)
-    local function ondeploy(inst, pt, deployer)
+    local function ondeploy(inst, pt, deployer, rot)
         if deployer ~= nil and deployer.SoundEmitter ~= nil then
             deployer.SoundEmitter:PlaySound("dontstarve/wilson/dig")
         end

@@ -25,6 +25,7 @@ local GeneTrans = Class(function(self, inst)
 		skinname = "siving_turn", bloom = true, unlockfx = "siving_turn_unlock_fx"
 	}
 	self.fx = nil
+	self.fn_setanim = nil
 end)
 
 local function SetLight(self, islight)
@@ -46,18 +47,17 @@ local function SetLight(self, islight)
 end
 local function SpawnFx(self)
 	self.fx = SpawnPrefab(self.fxdata.prefab)
-
 	local skindata = self.inst.components.skinedlegion:GetSkinedData()
 	if skindata ~= nil and skindata.fn_fruit ~= nil then
 		skindata.fn_fruit(self)
 	end
-
 	self.fx.entity:SetParent(self.inst.entity)
 	-- self.fx.entity:AddFollower()
 	self.fx.Follower:FollowSymbol(
 		self.inst.GUID, self.fxdata.symbol, --TIP: 跟随通道时，默认跟随通道文件夹里ID=0的
 		self.fxdata.x, self.fxdata.y, self.fxdata.z
 	)
+	self.fx.components.highlightchild:SetOwner(self.inst)
 end
 local function SetAnims(self) --有果子时设置各种动画
 	--设置本体的动画
@@ -75,6 +75,9 @@ local function SetAnims(self) --有果子时设置各种动画
 	--设置果实的动画
 	if self.fx == nil or not self.fx:IsValid() then
 		SpawnFx(self)
+	end
+	if self.fn_setanim ~= nil then
+		self.fn_setanim(self, true)
 	end
 	self.fx.AnimState:OverrideSymbol("swap", self.seeddata.swap.build, self.seeddata.swap.file)
 	if self.seeddata.swap.symboltype == "3" then
@@ -129,6 +132,9 @@ local function OnPickedFn(inst, doer)
 			cpt.fx:Remove()
 			cpt.fx = nil
 		end
+		if cpt.fn_setanim ~= nil then
+			cpt.fn_setanim(cpt, false)
+		end
 		if cpt.energytime <= 0 then
 			inst.AnimState:PlayAnimation("idle", false)
 		else
@@ -140,6 +146,15 @@ local function OnPickedFn(inst, doer)
 		cpt:UpdateFxProgress()
 	end
 	cpt:TriggerPickable(false)
+end
+
+function GeneTrans:SetTransTime()
+	self.timedata.all = self.seeddata.time or TUNING.TOTAL_DAY_TIME
+	if self.seeddata.genekey ~= nil then --特殊植物
+		self.timedata.all = self.timedata.all * (CONFIGS_LEGION.TRANSTIMESPEC or 1)
+	else --普通作物
+		self.timedata.all = self.timedata.all * (CONFIGS_LEGION.TRANSTIMECROP or 1)
+	end
 end
 
 function GeneTrans:SpawnStackDrop(name, num, pos, doer, items)
@@ -169,7 +184,10 @@ function GeneTrans:SpawnStackDrop(name, num, pos, doer, items)
 			if doer ~= nil and doer.components.inventory ~= nil then
 				doer.components.inventory:GiveItem(item, nil, pos)
 			else
-				if not item:HasTag("heavy") then --巨大作物不知道为啥不能弹射
+				if item:HasTag("heavy") then --巨大作物不知道为啥不能弹射
+					local x, y, z = GetCalculatedPos_legion(pos.x, pos.y, pos.z, 0.5+1.8*math.random())
+					item.Transform:SetPosition(x, y, z)
+				else
 					item.components.inventoryitem:OnDropped(true)
 				end
 			end
@@ -251,15 +269,7 @@ function GeneTrans:SetUp(seeds, doer)
 	if self.seed ~= nil then --已有种子
 		if self.seednum > 0 then --还有在转化的
 			if self.seed ~= seeds.prefab then --正在转化的和要放入的不一样
-				--拿下已有的种子，准备放入新种子了
-				self:SpawnStackDrop(self.seed, self.seednum, self.inst:GetPosition(), doer, nil)
-				self.seed = nil
-				self.seeddata = nil
-				self.seednum = 0
-				self.timedata.start = nil
-				self.timedata.all = nil
-				self.timedata.pass = nil
-				-- return false, "GROWING"
+				return false, "GROWING"
 			end
 		end
 	end
@@ -280,16 +290,24 @@ function GeneTrans:SetUp(seeds, doer)
 	-- inst.SoundEmitter:PlaySound("dontstarve/halloween_2018/madscience_machine/idle_LP", "loop")
 
 	--删除种子实体
-	-- if doer ~= nil and doer.components.inventory ~= nil then
-	-- 	local item = doer.components.inventory:RemoveItem(seeds, true, false)
-	-- 	item:Remove()
-	-- else
-	-- 	seeds:Remove()
-	-- end
 	seeds:Remove()
 
+	--寻找周围的相同实体，一并放上去
+	local x, y, z = self.inst.Transform:GetWorldPosition()
+	local ents = TheSim:FindEntities(x, y, z, 6, { "_inventoryitem" }, { "NOCLICK", "INLIMBO" })
+	for _, ent in ipairs(ents) do
+		if ent.prefab == self.seed then
+			if ent.components.stackable ~= nil then
+				self.seednum = self.seednum + ent.components.stackable:StackSize()
+			else
+				self.seednum = self.seednum + 1
+			end
+			ent:Remove()
+		end
+	end
+
 	--开始基因转化
-	self.timedata.all = self.seeddata.time or TUNING.TOTAL_DAY_TIME
+	self:SetTransTime()
 	self:StartTransing()
 	self:UpdateFxProgress()
 	if self.energytime > 0 then
@@ -297,6 +315,50 @@ function GeneTrans:SetUp(seeds, doer)
 	end
 
     return true
+end
+
+function GeneTrans:ClearAll(doer, mustdrop, initanim) --恢复原始状态
+	if mustdrop then
+		doer = nil
+	end
+
+	--原始物品
+	if self.seednum > 0 then
+		self:SpawnStackDrop(self.seed, self.seednum, self.inst:GetPosition(), doer, nil)
+	end
+	--转化产物
+	GetLootFruit(self, doer, nil)
+
+	--数据初始化
+	if self.taskgrow ~= nil then
+		self.taskgrow:Cancel()
+		self.taskgrow = nil
+	end
+	self.timedata.start = nil
+	self.timedata.all = nil
+	self.timedata.pass = nil
+	self.seed = nil
+	self.seeddata = nil
+	self.seednum = 0
+	self.fruitnum = 0
+	SetLight(self, false)
+	self:TriggerPickable(false)
+
+	if initanim then
+		if self.energytime <= 0 or self.fx == nil then
+			self.AnimState:PlayAnimation("idle", false)
+		else
+			self.AnimState:PlayAnimation("on_to_idle")
+			self.AnimState:PushAnimation("idle", false)
+		end
+	end
+	if self.fx ~= nil then
+		self.fx:Remove()
+		self.fx = nil
+	end
+	if self.fn_setanim ~= nil then
+		self.fn_setanim(self, false)
+	end
 end
 
 function GeneTrans:CostEnergy(cost)
@@ -568,7 +630,7 @@ function GeneTrans:OnLoad(data, newents)
 
 		if self.seednum > 0 then --还有需要转化的，所以继续判定时间
 			local dt = data.time_dt or 0
-			self.timedata.all = self.seeddata.time or TUNING.TOTAL_DAY_TIME
+			self:SetTransTime()
 			self.timedata.pass = data.time_pass or 0
 			if dt > 0 or self.timedata.pass > 0 then --有多余的时间：循环更新
 				self:LongUpdate(dt, 0)
@@ -646,6 +708,68 @@ function GeneTrans:UnlockGene(items, doer)
 	end
 
 	return true
+end
+
+local function DecimalPointTruncation(value, plus) --截取小数点
+	value = math.floor(value*plus)
+	return value/plus
+end
+local function GetDetailString(self, doer, type)
+	if self.seed == nil then
+		return
+	end
+
+	local data = {
+		name = STRINGS.NAMES[string.upper(self.seed)] or self.seed,
+		seednum = tostring(self.seednum),
+		fruitnum = tostring(self.fruitnum),
+		timepass = 0,
+		timeall = 0,
+		power = tostring(DecimalPointTruncation(self.energytime/TUNING.TOTAL_DAY_TIME, 10))
+	}
+
+	if type == 2 then
+		if self.timedata.pass ~= nil then
+			data.timepass = DecimalPointTruncation(self.timedata.pass/TUNING.TOTAL_DAY_TIME, 10)
+		end
+		if self.timedata.all ~= nil then
+			data.timeall = DecimalPointTruncation(self.timedata.all/TUNING.TOTAL_DAY_TIME, 10)
+		end
+		data.timepass = tostring(data.timepass)
+		data.timeall = tostring(data.timeall)
+		return subfmt(STRINGS.PLANT_CROP_L.TURN_D2, data)
+	else
+		return subfmt(STRINGS.PLANT_CROP_L.TURN_D1, data)
+	end
+end
+function GeneTrans:SayDetail(doer, dotalk) --介绍细节
+	if doer == nil or doer:HasTag("mime") then
+		return
+	end
+
+	local str = nil
+
+	if doer:HasTag("sharpeye") then
+		str = GetDetailString(self, doer, 2)
+	else
+		local hat = doer.components.inventory and doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HEAD) or nil
+		if hat == nil then
+			-- if doer:HasTag("plantkin") then
+			-- 	str = GetDetailString(self, doer, 1)
+			-- end
+			return str
+		elseif hat:HasTag("detailedplanthappiness") then
+			str = GetDetailString(self, doer, 2)
+		elseif hat:HasTag("plantinspector") then
+			str = GetDetailString(self, doer, 1)
+		end
+	end
+
+	if dotalk and str ~= nil and doer.components.talker ~= nil then
+		doer.components.talker:Say(str)
+	end
+
+	return str
 end
 
 return GeneTrans

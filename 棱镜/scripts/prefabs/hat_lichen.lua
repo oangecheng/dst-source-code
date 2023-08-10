@@ -19,16 +19,16 @@ local function lichen_equip(inst, owner)    --装备时
     local skindata = inst.components.skinedlegion:GetSkinedData()
     if skindata ~= nil and skindata.equip ~= nil then
         if skindata.equip.isopenhat then
-            HAT_OPENTOP_ONEQUIP_L(inst, owner, skindata.equip.build, skindata.equip.file)
+            HAT_L_ON_OPENTOP(inst, owner, skindata.equip.build, skindata.equip.file)
         else
-            HAT_ONEQUIP_L(inst, owner, skindata.equip.build, skindata.equip.file)
+            HAT_L_ON(inst, owner, skindata.equip.build, skindata.equip.file)
         end
         if skindata.equip.lightcolor ~= nil then
             local rgb = skindata.equip.lightcolor
             inst._light.Light:SetColour(rgb.r, rgb.g, rgb.b)
         end
     else
-        HAT_OPENTOP_ONEQUIP_L(inst, owner, "hat_lichen", "swap_hat")
+        HAT_L_ON_OPENTOP(inst, owner, "hat_lichen", "swap_hat")
     end
 
     -- owner:AddTag("ignoreMeat")  --添加忽略带着肉的标签
@@ -38,7 +38,7 @@ local function lichen_equip(inst, owner)    --装备时
 end
 
 local function lichen_unequip(inst, owner)  --卸下时
-    HAT_ONUNEQUIP_L(inst, owner)
+    HAT_L_OFF(inst, owner)
 
     -- owner:RemoveTag("ignoreMeat")    --移除忽略带肉的标签
 

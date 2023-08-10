@@ -8,7 +8,7 @@ AddRoom("SivingSource",
 		countstaticlayouts={["SivingCenter"] = 1}, -- using a static layout because this can force it to be in the center of the room
 		countprefabs =	--必定会出现对应数量的物品的表
 		{
-			siving_derivant_lvl0 = function () return math.random(0, 1) end,
+			siving_derivant = function () return math.random(0, 1) end,
 			siving_derivant_lvl1 = function () return math.random(0, 2) end,
 			siving_derivant_lvl2 = function () return math.random(1, 2) end,
 			siving_derivant_lvl3 = function () return math.random(2, 3) end,

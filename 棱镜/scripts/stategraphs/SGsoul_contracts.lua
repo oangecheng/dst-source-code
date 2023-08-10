@@ -126,7 +126,7 @@ local states =
                     inst.AnimState:PlayAnimation("proximity_loop", true)
                 end
 
-                --暗影秘典的声音真难听
+                --暗影秘典的声音不太符合契约
                 -- if not inst.SoundEmitter:PlayingSound("idlesound") then
                 --     inst.SoundEmitter:PlaySound("dontstarve/common/together/book_maxwell/active_LP", "idlesound", 0.5)
                 -- end

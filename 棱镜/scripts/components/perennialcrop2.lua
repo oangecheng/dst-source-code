@@ -482,9 +482,9 @@ function PerennialCrop2:DoGrowth(skip) --生长到下一阶段
 			if self.numfruit == nil or self.numfruit <= 1 then --如果只有1个，有机会继续变多
 				local num = 1
 				local rand = math.random()
-				if rand < 0.35 then --50%几率2果实
+				if rand < 0.35 then --35%几率2果实
 					num = num + 1
-				elseif rand < 0.5 then --35%几率3果实
+				elseif rand < 0.5 then --15%几率3果实
 					num = num + 2
 				end
 				self.numfruit = num

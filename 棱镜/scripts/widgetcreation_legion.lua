@@ -151,6 +151,7 @@ params.revolvedmoonlight = {
         side_align_tip = 160,
     },
     type = "chest_l",
+    lowpriorityselection = true
 }
 for y = 2, 1, -1 do
     for x = 0, 2 do
@@ -167,7 +168,8 @@ params.revolvedmoonlight_pro = {
         pos = Vector3(0, -150, 0),
         side_align_tip = 160,
     },
-    type = "chest_l"
+    type = "chest_l",
+    lowpriorityselection = true
 }
 for y = 0, 2 do --                                                    x轴基础               y轴基础
     table.insert(params.revolvedmoonlight_pro.widget.slotpos, Vector3(-122      , (-77*y) + 80 - (y*2), 0))
@@ -189,7 +191,8 @@ local function MakeSkin_revolvedmoonlight(data)
             pos = Vector3(0, -150, 0),
             side_align_tip = 160
         },
-        type = "chest_l"
+        type = "chest_l",
+        lowpriorityselection = true
     }
     for y = 2, 1, -1 do
         for x = 0, 2 do
@@ -208,7 +211,8 @@ local function MakeSkin_revolvedmoonlight(data)
             pos = Vector3(0, -150, 0),
             side_align_tip = 160
         },
-        type = "chest_l"
+        type = "chest_l",
+        lowpriorityselection = true
     }
     for y = 0, 2 do --                                    x轴基础               y轴基础
         table.insert(params[name].widget.slotpos, Vector3(-122      , (-77*y) + 80 - (y*2), 0))
@@ -376,6 +380,8 @@ end
 function params.plant_nepenthes_l.itemtestfn(container, item, slot)
     if item.prefab == "fruitflyfruit" then
         return not item:HasTag("fruitflyfruit") --没有 fruitflyfruit 就代表是枯萎了
+    elseif item.prefab == "glommerflower" then
+		return not item:HasTag("glommerflower") --没有 glommerflower 就代表是枯萎了
     end
     return not (item:HasTag("irreplaceable") or item:HasTag("nobundling") or item:HasTag("nodigest_l"))
 end

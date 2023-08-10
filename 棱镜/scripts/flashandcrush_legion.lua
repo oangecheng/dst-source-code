@@ -66,11 +66,12 @@ local IsServer = TheNet:GetIsServer() or TheNet:IsDedicated()
 --监听函数修改工具，超强der大佬写滴！
 local upvaluehelper = require "hua_upvaluehelper"
 
+_G.RegistMiniMapImage_legion("elecourmaline")
+_G.RegistMiniMapImage_legion("soul_contracts")
+
 --------------------------------------------------------------------------
 --[[ 电气石重铸台相关 ]]
 --------------------------------------------------------------------------
-
-_G.RegistMiniMapImage_legion("elecourmaline")
 
 if _G.CONFIGS_LEGION.TECHUNLOCK == "lootdropper" then
     AddRecipe2(

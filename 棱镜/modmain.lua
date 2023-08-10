@@ -1,10 +1,55 @@
 --------------------------------------------------------------------------
---[[ Update Logs ]]--[[ 更新说明 ]]
+--[[ Encoding Tips ]]--[[ 编码小贴士 ]]
 --------------------------------------------------------------------------
 
---[[
+--[[ Follower组件讲解 Tip:
+    ▷ inst.entity:AddFollower() 使用这个添加该组件
+    ▷ inst.Follower:FollowSymbol(owner.GUID, "swap_object", nil, nil, nil, true, nil, 0, 3)
+        1、参数分别为 实体ID，跟随通道名，偏移量x，偏移量y，偏移量z，是否替换贴图位置，未知，默认贴图下标，连续替换的贴图下标
+        2、例子中的意思就是 inst 这个实体跟随 owner 的 swap_object 通道，并替换位置 0到3 的通道内贴图
+    ▷ inst.Follower:FollowSymbol(owner.GUID, "swap_body", nil, nil, nil, true, nil, 5)
+        1、例子中的意思就是 inst 这个实体跟随 owner 的 swap_body 通道，并替换位置为 5 的通道内贴图
+        2、如果最后两个参数都不填写，就代表把所有位置的贴图都替换掉
+    ▷ inst.Follower:StopFollowing() 让 inst 停止跟随通道
+]]--
 
-]]
+--[[ RPC使用讲解 Tip:
+    !!!所有参数建议弄成数字类型或者字符类型
+
+    【客户端发送请求给服务器】SendModRPCToServer(GetModRPC("LegionMsg", "operate"), 参数2, 参数3, ...)
+    【服务器监听与响应请求】
+        AddModRPCHandler("LegionMsg", "operate", function(player, 参数2, ...) --第一个参数固定为发起请求的玩家
+            --做你想做的
+        end)
+
+    【服务端发送请求给客户端】SendModRPCToClient(GetClientModRPC("LegionMsg", "operate"), 玩家ID, 参数2, 参数3, ...)
+    --若 玩家ID 为table，则服务端会向table里的全部玩家ID都发送请求
+    【客户端监听与响应请求】
+        AddClientModRPCHandler("LegionMsg", "operate", function(参数2, ...) --通过 ThePlayer 确定客户端玩家
+            --做你想做的
+        end)
+]]--
+
+--[[ 给玩家实体增加已有皮肤获取与管理机制 Tip：
+    TheNet:GetIsMasterSimulation()  --是否为服务器世界(主机+云服)
+    TheNet:GetIsServer()            --是否为主机世界(玩家本地电脑开的，既跑进程，也要运行ui)
+    TheNet:IsDedicated()            --是否为云服世界(只跑进程，不运行ui)
+    TheShard:IsSecondary()          --是否为副世界(所以，not TheShard:IsSecondary() 就能确定是主世界了)
+    TheShard:GetShardId()           --获取当前世界的ID
+
+    世界分为3种
+        1、主世界(运行主服务器代码，与客户端通信)、
+        2、副世界(运行副服务器代码，与客户端通信)、
+        3、客户端世界(运行客户端代码，与当前所处的服务器世界通信)
+    例如，1个玩家用本地电脑开无洞穴存档，则世界有主世界(与房主客户端世界是同一个)、客户端(其他玩家的各有一个)。
+        开了含洞穴的本地存档或云服存档，则世界有主世界(主机或云服)、洞穴世界(副世界)、客户端(所有玩家各有一个)
+    modmain会在每个世界都加载一次
+
+    TheWorld.ismastersim        --是否为服务器世界(主机+云服。本质上就是 TheNet:GetIsMasterSimulation())
+    TheWorld.ismastershard      --是否为主世界(本质上就是 TheWorld.ismastersim and not TheShard:IsSecondary())
+    TheNet:GetIsServer() or TheNet:IsDedicated() --是否为非客户端世界，这个是最精确的判定方式
+    not TheNet:IsDedicated()    --这个方式也能判定客户端，但是无法排除客户端和服务端为一体的世界的情况
+]]--
 
 --------------------------------------------------------------------------
 --[[ Globals ]]--[[ 全局 ]]
@@ -19,6 +64,7 @@ local _G = GLOBAL
 --------------------------------------------------------------------------
 
 PrefabFiles = {
+    "bush_legion",              --棱镜灌木丛
     "hat_lichen",               --苔衣发卡
     "backcub",                  --靠背熊
     "ingredients_legion",       --食材
@@ -32,6 +78,7 @@ PrefabFiles = {
     "shield_legion",            --盾类武器
     "carpet_legion",            --地毯
     "foods_cookpot",            --料理
+    "placer_legion",            --大多数的placer
 }
 
 Assets = {
@@ -119,13 +166,7 @@ local IsServer = TheNet:GetIsServer() or TheNet:IsDedicated()
 --------------------------------------------------------------------------
 
 _G.CONFIGS_LEGION = {
-    ENABLEDMODS = {},
-    PEPEPEPEPEY = false,
-    FOOOODDDERY = false,
-    RAINONMEEEY = false,
-    GGGGRREEANY = false,
-    THEFASTESTY = false,
-    DUSTTODUSTY = false
+    ENABLEDMODS = {}
 }
 
 _G.CONFIGS_LEGION.FLOWERWEAPONSCHANCE = GetModConfigData("FlowerWeaponsChance")
@@ -147,6 +188,9 @@ _G.CONFIGS_LEGION.SIVINGROOTTEX = GetModConfigData("SivingRootTex") --设置子�
 _G.CONFIGS_LEGION.PHOENIXBATTLEDIFFICULTY = GetModConfigData("PhoenixBattleDifficulty") --设置玄鸟战斗难度
 _G.CONFIGS_LEGION.SIVFEASTRENGTH = GetModConfigData("SivFeaStrength") --设置子圭·翰强度
 _G.CONFIGS_LEGION.DIGESTEDITEMMSG = GetModConfigData("DigestedItemMsg") --巨食草消化提醒
+_G.CONFIGS_LEGION.TRANSTIMECROP = GetModConfigData("TransTimeCrop") --普通作物转成异种的时间
+_G.CONFIGS_LEGION.TRANSTIMESPEC = GetModConfigData("TransTimeSpec") --特殊植物转成异种的时间倍率
+_G.CONFIGS_LEGION.SIVSOLTOMEDAL = GetModConfigData("SivSolToMedal") --子圭·垄兼容能力勋章的作物
 
 _G.CONFIGS_LEGION.TECHUNLOCK = GetModConfigData("TechUnlock") --设置新道具的科技解锁方式 "lootdropper" "prototyper"
 
@@ -887,30 +931,10 @@ AddSimPostInit(function()
             isnoskin = true, buildfile = "aip_wizard_hat", buildsymbol = "swap_hat"
         }
         DRESSUP_DATA["aip_horse_head"] = { --马头
-            isnoskin = true,
-            buildfn = function(dressup, item, buildskin)
-                local itemswap = {}
-
-                itemswap["swap_hat"] = dressup:GetDressData(
-                    buildskin, "aip_horse_head", "swap_hat", item.GUID, "swap"
-                )
-                dressup:SetDressTopCover(itemswap)
-
-                return itemswap
-            end
+            isnoskin = true, isfullhead = true, buildfile = "aip_horse_head", buildsymbol = "swap_hat"
         }
         DRESSUP_DATA["aip_som"] = { --谜之声
-            isnoskin = true,
-            buildfn = function(dressup, item, buildskin)
-                local itemswap = {}
-
-                itemswap["swap_hat"] = dressup:GetDressData(
-                    buildskin, "aip_som", "swap_hat", item.GUID, "swap"
-                )
-                dressup:SetDressTopCover(itemswap)
-
-                return itemswap
-            end
+            isnoskin = true, isfullhead = true, buildfile = "aip_som", buildsymbol = "swap_hat"
         }
         DRESSUP_DATA["aip_blue_glasses"] = { --岚色眼镜
             isnoskin = true, isopentop = true,
@@ -1137,15 +1161,7 @@ AddSimPostInit(function()
                 end
             }
             DRESSUP_DATA["hat_blue_crystal"] = { --蓝晶帽
-                isnoskin = true,
-                buildfn = function(dressup, item, buildskin)
-                    local itemswap = {}
-                    itemswap["swap_hat"] = dressup:GetDressData(
-                        nil, "hat_blue_crystal", "swap_hat", item.GUID, "swap"
-                    )
-                    dressup:SetDressTopCover(itemswap)
-                    return itemswap
-                end
+                isnoskin = true, isfullhead = true, buildfile = "hat_blue_crystal", buildsymbol = "swap_hat"
             }
             DRESSUP_DATA["medal_tentaclespike"] = { --活性触手尖刺
                 isnoskin = true,

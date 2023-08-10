@@ -46,10 +46,10 @@ end
 local function onequip(inst, owner) --佩戴
     local skindata = inst.components.skinedlegion:GetSkinedData()
     if skindata ~= nil and skindata.equip ~= nil then
-        HAT_ONEQUIP_L(inst, owner, skindata.equip.build, skindata.equip.file)
+        HAT_L_ON(inst, owner, skindata.equip.build, skindata.equip.file)
         owner.scarf_skin_l = skindata.equip.build
     else
-        HAT_ONEQUIP_L(inst, owner, "hat_cowboy", "swap_hat")
+        HAT_L_ON(inst, owner, "hat_cowboy", "swap_hat")
         owner.scarf_skin_l = nil
     end
 
@@ -95,7 +95,7 @@ local function onequip(inst, owner) --佩戴
 end
 
 local function onunequip(inst, owner)   --卸下
-    HAT_ONUNEQUIP_L(inst, owner)
+    HAT_L_OFF(inst, owner)
     owner.scarf_skin_l = nil
 
     if owner:HasTag("player") then

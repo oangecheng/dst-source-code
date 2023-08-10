@@ -1,5 +1,4 @@
 local prefabFiles = {
-    "bush_flowers",             --花的灌木丛
     "rosorns",                  --玫瑰刺
     "lileaves",                 --蹄莲叶
     "orchitwigs",               --兰花絮
@@ -103,17 +102,6 @@ if IsServer then
         end
     end
 
-    AddPrefabPostInit("stagehand", function(inst)    --通过api重写桌之手的功能
-        inst.bushCreater =
-        {
-            name = "rosebush",
-            chance = 0.1,
-        }
-
-        inst:WatchWorldState("israining", onisraining)  --监听天气状态，刚下雨时、雨停时都会触发函数，就是说总共会触发两次
-        onisraining(inst, TheWorld.state.israining)  --只有这两个参数，不能多加，多加没用
-    end)
-
     AddPrefabPostInit("gravestone", function(inst)    --通过api重写墓碑的功能
         inst.bushCreater =
         {
@@ -124,7 +112,6 @@ if IsServer then
         inst:WatchWorldState("israining", onisraining)
         onisraining(inst, TheWorld.state.israining)
     end)
-
     AddPrefabPostInit("pond", function(inst)    --通过api重写青蛙池塘的功能
         inst.bushCreater =
         {
@@ -134,6 +121,35 @@ if IsServer then
 
         inst:WatchWorldState("israining", onisraining)
         onisraining(inst, TheWorld.state.israining)
+    end)
+
+    local function OnDeath_hedge(inst)
+        local dropnum = 0
+        if TheWorld then
+            if TheWorld.deathcount_l_hedgehound == nil then
+                TheWorld.deathcount_l_hedgehound = 1
+            else
+                TheWorld.deathcount_l_hedgehound = TheWorld.deathcount_l_hedgehound + 1
+                if TheWorld.deathcount_l_hedgehound >= 6 then
+                    dropnum = 1
+                    TheWorld.deathcount_l_hedgehound = nil
+                end
+            end
+        end
+        if math.random() < 0.1 then
+            dropnum = dropnum + 1
+        end
+        if dropnum > 0 then
+            for i = 1, dropnum, 1 do
+                local loot = SpawnPrefab("cutted_rosebush")
+                if loot ~= nil then
+                    inst.components.lootdropper:FlingItem(loot)
+                end
+            end
+        end
+    end
+    AddPrefabPostInit("hedgehound", function(inst)
+        inst:ListenForEvent("death", OnDeath_hedge)
     end)
 end
 

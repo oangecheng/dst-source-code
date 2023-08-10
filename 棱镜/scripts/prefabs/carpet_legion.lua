@@ -62,12 +62,6 @@ local function MakeCarpet(data)
 		data.assets,
 		data.prefabs
 	))
-
-    table.insert(prefs, MakePlacer(
-        name_prefab.."_placer",
-        name_base, name_base, data.size == 2 and "idle_big" or "idle", true,
-        nil, nil, nil, 90, nil, Skined_SetBuildPlacer_legion
-    ))
 end
 
 local function MakeCarpets(data)

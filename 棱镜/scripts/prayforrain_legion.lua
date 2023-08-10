@@ -45,6 +45,7 @@ end
 -----
 
 local _G = GLOBAL
+local IsServer = TheNet:GetIsServer() or TheNet:IsDedicated()
 
 --------------------------------------------------------------------------
 --[[ 基础 ]]
@@ -117,11 +118,18 @@ AddRecipe2(
 --[[ 修改鱼人，使其可以掉落鱼鳞 ]]
 --------------------------------------------------------------------------
 
-AddPrefabPostInit("merm", function(inst)
-    if TheWorld.ismastersim then
-        inst.components.lootdropper:AddChanceLoot("merm_scales", 0.10)
-    end
-end)
+if IsServer then
+    AddPrefabPostInit("merm", function(inst)
+        if inst.components.lootdropper ~= nil then
+            inst.components.lootdropper:AddChanceLoot("merm_scales", 0.1)
+        end
+    end)
+    AddPrefabPostInit("mermguard", function(inst)
+        if inst.components.lootdropper ~= nil then
+            inst.components.lootdropper:AddChanceLoot("merm_scales", 0.1)
+        end
+    end)
+end
 
 --------------------------------------------------------------------------
 --[[ 修改人物SG，行走与战斗时，需要切换道具时自动切换 ]]

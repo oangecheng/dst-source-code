@@ -15,7 +15,7 @@ local S___WATHGRITHR = STRINGS.CHARACTERS.WATHGRITHR   --瓦丝格蕾的台词
 local S_______WEBBER = STRINGS.CHARACTERS.WEBBER       --韦伯的台词
 local S_______WINONA = STRINGS.CHARACTERS.WINONA       --薇诺娜的台词
 local S________WARLY = STRINGS.CHARACTERS.WARLY        --沃利的台词
-local S_______WORTOX = STRINGS.CHARACTERS.WORTOX       --沃托克斯的台词
+local S_______WORTOX = STRINGS.CHARACTERS.WORTOX       --沃拓克斯的台词
 local S_____WORMWOOD = STRINGS.CHARACTERS.WORMWOOD     --沃姆伍德的台词
 local S_________WURT = STRINGS.CHARACTERS.WURT         --沃特的台词
 local S_______WALTER = STRINGS.CHARACTERS.WALTER       --沃尔特的台词
@@ -223,7 +223,7 @@ S______GENERIC.DESCRIBE.DUG_ORCHIDBUSH = "我从山中来，带着兰花草。"
 --S_______WEBBER.DESCRIBE.DUG_ORCHIDBUSH = "Yaaay! Popsicle, popsicle!"
 --S_______WINONA.DESCRIBE.DUG_ORCHIDBUSH = "Great to cool off after some hard physical labor."
 
-S_NAMES.CUTTED_ORCHIDBUSH = "兰草种耔"
+S_NAMES.CUTTED_ORCHIDBUSH = "兰草种籽"
 S______GENERIC.DESCRIBE.CUTTED_ORCHIDBUSH = "这是植物很常见的繁殖方式。"
 --S_______WILLOW.DESCRIBE.CUTTED_ORCHIDBUSH = "This is the opposite of burning."
 --S_____WOLFGANG.DESCRIBE.CUTTED_ORCHIDBUSH = "Wolfgang can eat in one bite!"
@@ -1822,7 +1822,7 @@ S_________WURT.DESCRIBE.SIVING_ROCKS = "我在我的故乡见过。"
 S_______WALTER.DESCRIBE.SIVING_ROCKS = "啊哈，物种大发现！"
 S________WANDA.DESCRIBE.SIVING_ROCKS = "在阳光下，它很耀眼。"
 
-S_NAMES.SIVING_DERIVANT_ITEM = "未种下的子圭一型岩"
+S_NAMES.SIVING_DERIVANT_ITEM = "子圭奇型岩"
 S______GENERIC.DESCRIBE.SIVING_DERIVANT_ITEM = "我倒想看看它会长成什么样。"
 -- S_______WILLOW.DESCRIBE.SIVING_DERIVANT_ITEM = ""
 -- S_____WOLFGANG.DESCRIBE.SIVING_DERIVANT_ITEM = ""
@@ -1834,223 +1834,226 @@ S______WAXWELL.DESCRIBE.SIVING_DERIVANT_ITEM = "费尽心思从怪鸟那里抢�
 S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT_ITEM = "难道是世界树的衍生物？！"
 -- S_______WEBBER.DESCRIBE.SIVING_DERIVANT_ITEM = ""
 -- S_______WINONA.DESCRIBE.SIVING_DERIVANT_ITEM = ""
--- S_______WORTOX.DESCRIBE.SIVING_DERIVANT_ITEM = ""
+S_______WORTOX.DESCRIBE.SIVING_DERIVANT_ITEM = "不好的回忆涌现我脑海。"
 S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT_ITEM = "石头朋友的孩子，还在睡觉呢。"
 -- S________WARLY.DESCRIBE.SIVING_DERIVANT_ITEM = ""
 S_________WURT.DESCRIBE.SIVING_DERIVANT_ITEM = "这是它的种子，需要种土里。"
 -- S_______WALTER.DESCRIBE.SIVING_DERIVANT_ITEM = ""
 -- S________WANDA.DESCRIBE.SIVING_DERIVANT_ITEM = ""
 
-S_NAMES.SIVING_DERIVANT_LVL0 = "子圭一型岩"
-S______GENERIC.DESCRIBE.SIVING_DERIVANT_LVL0 = "没看出在生长的痕迹。"
--- S_______WILLOW.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S_____WOLFGANG.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S________WENDY.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S_________WX78.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
-S_WICKERBOTTOM.DESCRIBE.SIVING_DERIVANT_LVL0 = "值得研究一番。"
--- S_______WOODIE.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S______WAXWELL.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
-S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT_LVL0 = "希望它能长成世界树。"
--- S_______WEBBER.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S_______WINONA.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
--- S_______WORTOX.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
-S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT_LVL0 = "石头朋友的孩子，它醒了。"
--- S________WARLY.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
-S_________WURT.DESCRIBE.SIVING_DERIVANT_LVL0 = "种下去就等着吧，格洛噗。"
--- S_______WALTER.DESCRIBE.SIVING_DERIVANT_LVL0 = ""
-S________WANDA.DESCRIBE.SIVING_DERIVANT_LVL0 = "它需要的可不止一点时间。"
-
-S_NAMES.SIVING_DERIVANT_LVL1 = "子圭木型岩"
-S______GENERIC.DESCRIBE.SIVING_DERIVANT_LVL1 = "谢天谢地，终于长一小截了。"
--- S_______WILLOW.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_____WOLFGANG.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
-S________WENDY.DESCRIBE.SIVING_DERIVANT_LVL1 = "真是充满希望。"
--- S_________WX78.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
-S_WICKERBOTTOM.DESCRIBE.SIVING_DERIVANT_LVL1 = "不错，值得继续观察。"
--- S_______WOODIE.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S______WAXWELL.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_______WEBBER.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_______WINONA.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_______WORTOX.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
-S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT_LVL1 = "它很健康地在长高呢。"
--- S________WARLY.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_________WURT.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
--- S_______WALTER.DESCRIBE.SIVING_DERIVANT_LVL1 = ""
-S________WANDA.DESCRIBE.SIVING_DERIVANT_LVL1 = "它需要不止一点时间来继续生长。"
-
-S_NAMES.SIVING_DERIVANT_LVL2 = "子圭林型岩"
-S______GENERIC.DESCRIBE.SIVING_DERIVANT_LVL2 = "真棒，长得还不错。"
--- S_______WILLOW.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S_____WOLFGANG.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S________WENDY.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S_________WX78.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
-S_WICKERBOTTOM.DESCRIBE.SIVING_DERIVANT_LVL2 = "我会继续研究下去的。"
--- S_______WOODIE.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S______WAXWELL.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S_______WEBBER.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S_______WINONA.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
--- S_______WORTOX.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
-S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT_LVL2 = "个头都比我高了。"
--- S________WARLY.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
-S_________WURT.DESCRIBE.SIVING_DERIVANT_LVL2 = "我从来没种活过，噗噜！"
--- S_______WALTER.DESCRIBE.SIVING_DERIVANT_LVL2 = ""
-S________WANDA.DESCRIBE.SIVING_DERIVANT_LVL2 = "这时间对我来说就是一小会。"
-
-S_NAMES.SIVING_DERIVANT_LVL3 = "子圭森型岩"
-S______GENERIC.DESCRIBE.SIVING_DERIVANT_LVL3 = "这石头长得很茂盛。"
-S_______WILLOW.DESCRIBE.SIVING_DERIVANT_LVL3 = "又没法烧，差评。"
--- S_____WOLFGANG.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
--- S________WENDY.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
--- S_________WX78.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
-S_WICKERBOTTOM.DESCRIBE.SIVING_DERIVANT_LVL3 = "应该是它的最终形态了。"
-S_______WOODIE.DESCRIBE.SIVING_DERIVANT_LVL3 = "它可不吃斧头那一套。"
--- S______WAXWELL.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
--- S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
--- S_______WEBBER.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
--- S_______WINONA.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
-S_______WORTOX.DESCRIBE.SIVING_DERIVANT_LVL3 = "长得再好也是没有灵魂的家伙。"
-S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT_LVL3 = "成熟的石头朋友了。"
-S________WARLY.DESCRIBE.SIVING_DERIVANT_LVL3 = "这里啥都有，最不缺的就是奇怪。"
-S_________WURT.DESCRIBE.SIVING_DERIVANT_LVL3 = "故乡的森林深处，都是这玩意。"
--- S_______WALTER.DESCRIBE.SIVING_DERIVANT_LVL3 = ""
-S________WANDA.DESCRIBE.SIVING_DERIVANT_LVL3 = "真神奇啊，但我见怪不怪了。"
+S_NAMES.SIVING_DERIVANT = "子圭奇型岩"
+S______GENERIC.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "没看出在生长的痕迹。",
+    LV1 = "谢天谢地，终于长一小截了。",
+    LV2 = "真棒，长得还不错。",
+    LV3 = "这石头长得很茂盛。",
+    NOTTHIS = "它需要的是生命与光耀的能量。"
+}
+S_______WILLOW.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "又没法烧，差评。",
+    LV1 = "又没法烧，差评。",
+    LV2 = "又没法烧，差评。",
+    LV3 = "又没法烧，差评。",
+    NOTTHIS = "切，不要算了。"
+}
+S________WENDY.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "快快长大吧。",
+    LV1 = "真是充满希望。",
+    LV2 = "真是充满希望。",
+    LV3 = "真是充满希望。",
+    NOTTHIS = "它渴求生命，又追寻光明。"
+}
+S_WICKERBOTTOM.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "值得研究一番。",
+    LV1 = "不错，值得继续观察。",
+    LV2 = "我会继续研究下去的。",
+    LV3 = "应该是它的最终形态了。",
+    NOTTHIS = "生命与光耀的纯化能量，是它能利用的。"
+}
+S_______WOODIE.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "有点像树桩。",
+    LV1 = "它可不吃斧头那一套。",
+    LV2 = "它可不吃斧头那一套。",
+    LV3 = "露西天真地以为这是树。",
+    NOTTHIS = "树的生长需要什么呢？"
+}
+S___WATHGRITHR.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "希望它能长成世界树那么大。",
+    LV1 = "希望它能长成世界树那么大。",
+    LV2 = "希望它能长成世界树那么大。",
+    LV3 = "看来长不到世界树那么大了。",
+    NOTTHIS = "接受战士的赠礼是你的荣幸。"
+}
+S_______WORTOX.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "关于它，有一段惨烈而神秘的历史……",
+    LV1 = "那是几千年前发生的，我听一个老家伙说的。她如今还在……算了先不说她……",
+    LV2 = "当时世上蟹人兴旺繁盛，直到绿火流星划过天际，伴随着巨大的地震，它来了……",
+    LV3 = "这东西靠生命来繁衍自己，方圆百里没有生物能活下来，于是蟹人站了出来……",
+    NOTTHIS = "我有种不详的预感。"
+}
+S_____WORMWOOD.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "小石头朋友。",
+    LV1 = "健康地在长高。",
+    LV2 = "个头都比我高了。",
+    LV3 = "它变心了。",
+    NOTTHIS = "不要。"
+}
+S________WARLY.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "这里啥都有，最不缺的就是奇怪。",
+    LV1 = "这里啥都有，最不缺的就是奇怪。",
+    LV2 = "这里啥都有，最不缺的就是奇怪。",
+    LV3 = "这里啥都有，最不缺的就是奇怪。",
+    NOTTHIS = "石头树和我一样挑食。"
+}
+S_________WURT.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "种下去就等着吧，格洛噗。",
+    LV1 = "我从来没种活过，噗噜！",
+    LV2 = "我从来没种活过，噗噜！",
+    LV3 = "故乡的森林深处，都是这玩意。",
+    NOTTHIS = "不要就是不要。"
+}
+S________WANDA.DESCRIBE.SIVING_DERIVANT = {
+    GENERIC = "它需要的可不止一点时间。",
+    LV1 = "它需要很多时间来继续生长。",
+    LV2 = "这时间对我来说就是一小会。",
+    LV3 = "真神奇啊，但我见怪不怪了。",
+    NOTTHIS = "我还有很多机会来试错。"
+}
 
 S_NAMES.SIVING_THETREE = "子圭神木岩"
 S______GENERIC.DESCRIBE.SIVING_THETREE = {
     GENERIC = "我整个生命都拜倒在它的神秘威严之下。",
-    NEEDALL = "它说它需要黄宝石制品和告密的心。",
-    NEEDLIGHT = "它说它还需要黄宝石制品。",
-    NEEDHEALTH = "它说它还需要告密的心。",
+    NEEDALL = "它说它需要生命与光耀的能量。",
+    NEEDLIGHT = "它说它还需要光耀的能量。",
+    NEEDHEALTH = "它说它还需要生命的能量。",
     NONEED = "看来都已经准备好了。",
     NOTTHIS = "它不要这个。"
 }
 S_______WILLOW.DESCRIBE.SIVING_THETREE = {
     GENERIC = "它不能燃烧，但它能燃烧生命之火。",
-    NEEDALL = "哼，居然找本姑娘要黄宝石制品和告密的心。",
-    NEEDLIGHT = "居然还要这么贵重的黄宝石制品。",
-    NEEDHEALTH = "为了告密的心，手都弄痛了，结果它还要？！",
+    NEEDALL = "它说它需要生命与光耀的能量。",
+    NEEDLIGHT = "它说它还需要光耀的能量。",
+    NEEDHEALTH = "它说它还需要生命的能量。",
     NONEED = "本姑娘的任务终于结束了。",
     NOTTHIS = "不要算了。"
 }
 S_____WOLFGANG.DESCRIBE.SIVING_THETREE = {
     GENERIC = "沃尔夫冈不应该离氪石这么近。",
-    NEEDALL = "它想要沃尔夫冈的黄宝石制品和告密的心。",
-    NEEDLIGHT = "它还想要沃尔夫冈的黄宝石制品。",
-    NEEDHEALTH = "它还想要沃尔夫冈的告密的心。",
-    NONEED = "它不再需要沃尔夫冈了。",
+    NEEDALL = "它的强大来自于生命与光耀的能量。",
+    NEEDLIGHT = "沃尔夫冈还需要光耀的能量。",
+    NEEDHEALTH = "沃尔夫冈还需要生命的能量。",
+    NONEED = "它答应了要给沃尔夫冈强大的力量！",
     NOTTHIS = "它看不起沃尔夫冈的东西吗。"
 }
 S________WENDY.DESCRIBE.SIVING_THETREE = {
     GENERIC = "它正牵着我，和平地走向死亡，真是欣慰。",
-    NEEDALL = "献祭仪式需要黄宝石制品和告密的心。",
-    NEEDLIGHT = "献祭过程还要黄宝石制品。",
-    NEEDHEALTH = "献祭过程还要告密的心。",
+    NEEDALL = "献祭仪式需要生命与光耀的物品。",
+    NEEDLIGHT = "献祭过程还要光耀的物品。",
+    NEEDHEALTH = "献祭过程还要生命的物品。",
     NONEED = "所有物品都准备好了，开始吧。",
     NOTTHIS = "这是多余的献祭物品。"
 }
 S_________WX78.DESCRIBE.SIVING_THETREE = {
     GENERIC = "它渴望夺取生命。",
-    NEEDALL = "它要黄宝石制品和告密的心干嘛？",
-    NEEDLIGHT = "黄宝石制品，我为啥要给它这个。",
-    NEEDHEALTH = "告密的心，我为啥要给它这个。",
+    NEEDALL = "它要生命与光耀的能量干嘛？",
+    NEEDLIGHT = "光耀的能量，我为啥要给它这个。",
+    NEEDHEALTH = "生命的能量，我为啥要给它这个。",
     NONEED = "希望能给我更厉害的芯片。",
     NOTTHIS = "没用的东西。"
 }
 S_WICKERBOTTOM.DESCRIBE.SIVING_THETREE = {
     GENERIC = "危险！它有一股宛如黑洞般的生命吸引力。",
-    NEEDALL = "黄宝石制品和告密的心，它居然能和我心灵感应。",
-    NEEDLIGHT = "还要黄宝石制品，不懂这个外星生物的意图。",
-    NEEDHEALTH = "还要告密的心，不懂这个外星生物的意图。",
+    NEEDALL = "生命与光耀的能量，它居然能和我心灵感应。",
+    NEEDLIGHT = "还要光耀的能量，不懂这个外星生物的意图。",
+    NEEDHEALTH = "还要生命的能量，不懂这个外星生物的意图。",
     NONEED = "完毕，希望接下来的是知识的盛宴。",
     NOTTHIS = "不需要这个。"
 }
 S_______WOODIE.DESCRIBE.SIVING_THETREE = {
     GENERIC = "露西，别想着砍它了，听我的没错。",
-    NEEDALL = "黄宝石制品和告密的心，我要按照指示做吗，露西？",
-    NEEDLIGHT = "要求真多，还要黄宝石制品。",
-    NEEDHEALTH = "要求真多，还要告密的心。",
+    NEEDALL = "生命与光耀的能量，我要按照指示做吗，露西？",
+    NEEDLIGHT = "要求真多，还要光耀的能量。",
+    NEEDHEALTH = "要求真多，还要生命的能量。",
     NONEED = "完工了，它要创造一片森林给我砍吗？",
     NOTTHIS = "它不要这个。"
 }
 S______WAXWELL.DESCRIBE.SIVING_THETREE = {
     GENERIC = "看起来不像查理的作品。",
-    NEEDALL = "神秘的石树需要黄宝石制品和告密的心，真可疑。",
-    NEEDLIGHT = "可疑的石树还要黄宝石制品。",
-    NEEDHEALTH = "可疑的石树还要告密的心。",
+    NEEDALL = "神秘的石树需要生命与光耀的能量，真可疑。",
+    NEEDLIGHT = "可疑的石树还要光耀的能量。",
+    NEEDHEALTH = "可疑的石树还要生命的能量。",
     NONEED = "已经结束了。",
     NOTTHIS = "不是这个。"
 }
 S___WATHGRITHR.DESCRIBE.SIVING_THETREE = {
     GENERIC = "青光闪过，神树永恒！",
-    NEEDALL = "神树欲求黄宝石制品和告密的心，我马上再去找。",
-    NEEDLIGHT = "神树还需要黄宝石制品。",
-    NEEDHEALTH = "神树还需要告密的心。",
+    NEEDALL = "神树欲求生命与光耀的能量，我马上再去找。",
+    NEEDLIGHT = "神树还需要光耀的能量。",
+    NEEDHEALTH = "神树还需要生命的能量。",
     NONEED = "我已经准备好接受神树的恩赐了！",
     NOTTHIS = "神树的要求很明确。"
 }
 S_______WEBBER.DESCRIBE.SIVING_THETREE = {
     GENERIC = "好想爬上去玩玩。",
-    NEEDALL = "黄宝石玩具和告密心心，这两是啥来着？",
-    NEEDLIGHT = "黄宝石玩具不好找呀，还要吗。",
-    NEEDHEALTH = "告密心心不好做呀，还要吗。",
+    NEEDALL = "生命与光耀的能量，这两是啥来着？",
+    NEEDLIGHT = "光耀的能量不好找呀，还要吗。",
+    NEEDHEALTH = "生命的能量不好弄呀，还要吗。",
     NONEED = "大功告成，我们要大玩一番！",
     NOTTHIS = "不能用其他的代替吗？"
 }
 S_______WINONA.DESCRIBE.SIVING_THETREE = {
     GENERIC = "看看，多精美的纹路。",
-    NEEDALL = "黄宝石制品和告密的心，它居然有自己的要求？！",
-    NEEDLIGHT = "它还想吸收黄宝石制品。",
-    NEEDHEALTH = "它还想吸收告密的心。",
+    NEEDALL = "生命与光耀的能量，它居然有自己的要求？！",
+    NEEDLIGHT = "它还想吸收光耀的能量。",
+    NEEDHEALTH = "它还想吸收生命的能量。",
     NONEED = "改造完毕，会发生什么呢？",
     NOTTHIS = "它不会想要这个的。"
 }
 S_______WORTOX.DESCRIBE.SIVING_THETREE = {
     GENERIC = "这鬼东西想要我的命，但明明我的灵魂更好吃。",
-    NEEDALL = "这鬼东西跟我说它要黄宝石制品和告密的心。",
-    NEEDLIGHT = "这鬼东西说它还要黄宝石制品。",
-    NEEDHEALTH = "这鬼东西说它还要告密的心。",
+    NEEDALL = "这鬼东西跟我说它要生命与光耀的能量。",
+    NEEDLIGHT = "这鬼东西说它还要光耀的能量。",
+    NEEDHEALTH = "这鬼东西说它还要生命的能量。",
     NONEED = "居然被摆了一道，我得赶紧溜了！",
     NOTTHIS = "亲，这是不对的。"
 }
 S_____WORMWOOD.DESCRIBE.SIVING_THETREE = {
     GENERIC = "这还算朋友吗？",
-    NEEDALL = "它要黄色亮晶晶和心。",
-    NEEDLIGHT = "还要黄色亮晶晶。",
-    NEEDHEALTH = "还要心。",
-    NONEED = "完成了。",
-    NOTTHIS = "不要。"
+    NEEDALL = "它要光与气。",
+    NEEDLIGHT = "还要光。",
+    NEEDHEALTH = "还要气。",
+    NONEED = "树帮助树！",
+    NOTTHIS = "不要，好吧。"
 }
 S________WARLY.DESCRIBE.SIVING_THETREE = {
     GENERIC = "我的生命和我做的料理一样鲜美。",
-    NEEDALL = "它说黄宝石制品和告密的心是终极盛宴的秘方。",
-    NEEDLIGHT = "终极盛宴还需黄宝石制品。",
-    NEEDHEALTH = "终极盛宴还需告密的心。",
+    NEEDALL = "它说生命与光耀的能量是终极盛宴的秘方。",
+    NEEDLIGHT = "终极盛宴还需光耀的能量。",
+    NEEDHEALTH = "终极盛宴还需生命的能量。",
     NONEED = "终极盛宴会是什么样子呢？我太好奇啦！",
     NOTTHIS = "我可不是来捣乱的。"
 }
 S_________WURT.DESCRIBE.SIVING_THETREE = {
     GENERIC = "为什么它不像家乡的一样安全，格浪噗？",
-    NEEDALL = "黄宝石制品和告密的心，我应该在哪见过。",
-    NEEDLIGHT = "它在向我索要黄宝石制品，嗝浪淌。",
-    NEEDHEALTH = "它在向我索要告密的心，嗝浪淌。",
+    NEEDALL = "生命与光耀的能量，我应该在哪见过。",
+    NEEDLIGHT = "它在向我索要光耀的能量，嗝浪淌。",
+    NEEDHEALTH = "它在向我索要生命的能量，嗝浪淌。",
     NONEED = "它说要让我见识生命的力量，浮浪特。",
     NOTTHIS = "呱，给错了。"
 }
 S_______WALTER.DESCRIBE.SIVING_THETREE = {
     GENERIC = "离真相越近，往往就越危险。",
-    NEEDALL = "需黄宝石制品和告密的心，它是在给我下达命令吗？",
-    NEEDLIGHT = "它说还需要黄宝石制品才能拯救它。",
-    NEEDHEALTH = "它说还需要告密的心才能拯救它。",
+    NEEDALL = "需生命与光耀的能量，它是在给我下达命令吗？",
+    NEEDLIGHT = "它说还需要光耀的能量才能拯救它。",
+    NEEDHEALTH = "它说还需要生命的能量才能拯救它。",
     NONEED = "我拯救了你，记得送我一块奖章。",
     NOTTHIS = "这种错误我不该犯。"
 }
 S________WANDA.DESCRIBE.SIVING_THETREE = {
     GENERIC = "一靠近它我就感到自己的时间在流逝。",
-    NEEDALL = "我知道它要什么，黄宝石制品和告密的心！",
-    NEEDLIGHT = "黄宝石制品，看来我又要重蹈覆辙了。",
-    NEEDHEALTH = "告密的心，我只是想试试另一个结局。",
+    NEEDALL = "我知道它要什么，生命与光耀的能量！",
+    NEEDLIGHT = "光耀的能量，看来我又要重蹈覆辙了。",
+    NEEDHEALTH = "生命的能量，我只是想试试另一个结局。",
     NONEED = "轻车熟路，我已准备好了很多次。",
     NOTTHIS = "看来不行，我只是想试试。"
 }
@@ -2322,7 +2325,16 @@ STRINGS.PLANT_CROP_L = {
     FLORESCENCE = "花期",
     SEEDS = "异种",
     DIGEST = "【{doer}】向{eater}投喂了{items}。",
-    DIGESTSELF = "{eater}消化了{items}。"
+    DIGESTSELF = "{eater}消化了{items}。",
+    TURN_D1 = "【{name}】{seednum}转化中；能量{power}天。",
+    TURN_D2 = "【{name}】{seednum}转化中，{fruitnum}已完成；当前{timepass}/{timeall}天；能量{power}天。",
+    CTL1_1 = "含水量{mo}。",
+    CTL2_1 = "含水量{mo}/{mo_max}。",
+    CTL1_2 = "1号肥{n1}，2号肥{n2}，3号肥{n3}。",
+    CTL2_2 = "1号肥{n1}/{nu_max}，2号肥{n2}/{nu_max}，3号肥{n3}/{nu_max}。",
+    CTL1_3 = "含水量{mo}；1号肥{n1}，2号肥{n2}，3号肥{n3}。",
+    CTL2_3 = "含水量{mo}/{mo_max}；1号肥{n1}/{nu_max}，2号肥{n2}/{nu_max}，3号肥{n3}/{nu_max}。",
+    SIVTREE = "生命能量{health}，光耀能量{light}。"
 }
 S_NAMES.PLANT_CARROT_L = "芾萝卜"
 S_NAMES.PLANT_CORN_L = "玉米杆"
@@ -3569,7 +3581,7 @@ local SURVIVAL_TIPS = { --介绍探险技巧
     "靠背熊真是太可爱了，恨不得天天撸它的毛，而且它还特别喜欢趴我背上。虽然在背上时我看不到它在干嘛，但是非常温暖。诶？我的曼德拉草汤和冰激凌去哪了……",
 }
 local LORE_TIPS = { --介绍故事背景
-    "传言沙漠里藏着一位女巫，也许有天我能找到她，听她娓娓道来那悲惨的故事。",
+    "传言一位女巫在沙漠里隐居，也许有天我能找到她，听她娓娓道来那悲惨的故事。",
     "天外飞仙，噬命以滋养玄鸟。蟹类倾族所有，移至洞坑，炸其入地脉，遂不见天日。",
     "莱克阿米特每次被打败都会反思，精进技巧提升力量，至今没人知道它的上限到底在哪。",
     "灵魂契约和众多无辜灵魂签下了不平等契约，唯独与其主人不会签订协议，大概是他还有利用价值吧……",
@@ -3581,13 +3593,13 @@ local CONTROL_TIPS_NOT_CONSOLE = { --介绍键鼠控制
 }
 
 for i,str in ipairs(SURVIVAL_TIPS) do
-    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜】“"..str.."”-W")
+    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜·笔记】“"..str.."”-W")
 end
 for i,str in ipairs(LORE_TIPS) do
-    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜】"..str)
+    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜·背景】"..str)
 end
 for i,str in ipairs(CONTROL_TIPS_NOT_CONSOLE) do
-    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜】"..str)
+    AddLoadingTip(STRINGS.UI.LOADING_SCREEN_OTHER_TIPS, "TIP_L"..tostring(i), "【棱镜·技巧】"..str)
 end
 
 SURVIVAL_TIPS = nil
@@ -3895,7 +3907,8 @@ STRINGS.ACTIONS.RC_SKILL_L = {
 STRINGS.ACTIONS.LIFEBEND = {
     GENERIC = "恢复生机",
     REVIVE = "以命换命",
-    CURE = "治愈"
+    CURE = "治愈",
+    GIVE = "传递生命"
 }
 S______GENERIC.ACTIONFAIL.LIFEBEND = {
     NOLIFE = "我给不了更多生命了。",

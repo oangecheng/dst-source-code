@@ -90,7 +90,7 @@ local ingredients_legion = {
                 end)
 
                 inst:AddComponent("deployable")
-                inst.components.deployable.ondeploy = function(me, pt, deployer)
+                inst.components.deployable.ondeploy = function(me, pt, deployer, rot)
                     local names = {"shyerrytree1_planted", "shyerrytree3_planted"}
                     local tree = SpawnPrefab(names[math.random(#names)])
                     if tree ~= nil then
@@ -190,7 +190,6 @@ local ingredients_legion = {
         },
     }
 }
-table.insert(prefs, MakePlacer("shyerry_placer", "shyerrytree1", "shyerrytree1", "placer"))
 
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
@@ -596,7 +595,7 @@ local function MakeIngredient(name, data)
             inst:AddComponent("deployable")
             inst.components.deployable:SetDeployMode(DEPLOYMODE.CUSTOM) -- use inst._custom_candeploy_fn
             inst.components.deployable.restrictedtag = "plantkin"
-            inst.components.deployable.ondeploy = function(inst, pt, deployer) --, rot)
+            inst.components.deployable.ondeploy = function(inst, pt, deployer, rot)
                 local plant = SpawnPrefab(inst.components.farmplantable.plant)
                 plant.Transform:SetPosition(pt.x, 0, pt.z)
                 plant:PushEvent("on_planted", {in_soil = false, doer = deployer, seed = inst})

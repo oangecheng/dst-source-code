@@ -40,6 +40,38 @@ local function OnReroll(inst)
     end
     self.itemlist = {}
 end
+local function EquipSet_dress(inst, item)
+    if DRESSUP_DATA_LEGION[item.prefab] then
+        local dd = DRESSUP_DATA_LEGION[item.prefab]
+        if dd.onequipfn ~= nil then
+            local slot = inst.components.dressup:GetDressSlot(item, dd)
+            if slot and inst.components.dressup.itemlist[slot] ~= nil then
+                dd.onequipfn(inst, item)
+            end
+        end
+	end
+end
+local function OnEquip_dress(inst, data)
+    if data == nil or data.item == nil then
+        return
+    end
+	EquipSet_dress(inst, data.item)
+end
+local function OnFix_dress(inst, data)
+    if inst.components.inventory == nil then
+        return
+    end
+    for k, v in pairs(inst.components.inventory.equipslots) do
+        if v ~= nil then
+            EquipSet_dress(inst, v)
+        end
+    end
+end
+-- local function OnUnequip_dress(inst, data)
+--     if data == nil then
+--         return
+--     end
+-- end
 
 local BODYTALL = "body_t"
 
@@ -61,6 +93,9 @@ local DressUp = Class(function(self, inst)
     }
 
     inst:ListenForEvent("ms_playerreroll", OnReroll) --重选人物时
+    inst:ListenForEvent("equip", OnEquip_dress)
+    inst:ListenForEvent("dressup_l", OnFix_dress)
+	-- inst:ListenForEvent("unequip", OnUnequip_dress)
 end)
 
 function DressUp:GetDressData(buildskin, buildfile, buildsymbol, guid, type)
@@ -82,6 +117,9 @@ function DressUp:SetDressTop(itemswap)
 
     itemswap["HEAD"] = self:GetDressData(nil, nil, nil, nil, "hide")
     itemswap["HEAD_HAT"] = self:GetDressData(nil, nil, nil, nil, "show")
+    itemswap["face"] = self:GetDressData(nil, nil, nil, nil, "showsym")
+    itemswap["swap_face"] = self:GetDressData(nil, nil, nil, nil, "showsym")
+    itemswap["beard"] = self:GetDressData(nil, nil, nil, nil, "showsym")
 end
 function DressUp:SetDressOpenTop(itemswap)
     itemswap["HAT"] = self:GetDressData(nil, nil, nil, nil, "show")
@@ -91,8 +129,11 @@ function DressUp:SetDressOpenTop(itemswap)
 
     itemswap["HEAD"] = self:GetDressData(nil, nil, nil, nil, "show")
     itemswap["HEAD_HAT"] = self:GetDressData(nil, nil, nil, nil, "hide")
+    itemswap["face"] = self:GetDressData(nil, nil, nil, nil, "showsym")
+    itemswap["swap_face"] = self:GetDressData(nil, nil, nil, nil, "showsym")
+    itemswap["beard"] = self:GetDressData(nil, nil, nil, nil, "showsym")
 end
-function DressUp:SetDressTopCover(itemswap) --头部完全不显示
+function DressUp:SetDressFullHead(itemswap) --头部完全不显示
     itemswap["HAT"] = self:GetDressData(nil, nil, nil, nil, "show")
     itemswap["HAIR_HAT"] = self:GetDressData(nil, nil, nil, nil, "hide")
     itemswap["HAIR_NOHAT"] = self:GetDressData(nil, nil, nil, nil, "hide")
@@ -100,6 +141,9 @@ function DressUp:SetDressTopCover(itemswap) --头部完全不显示
 
     itemswap["HEAD"] = self:GetDressData(nil, nil, nil, nil, "hide")
     itemswap["HEAD_HAT"] = self:GetDressData(nil, nil, nil, nil, "hide")
+    itemswap["face"] = self:GetDressData(nil, nil, nil, nil, "hidesym")
+    itemswap["swap_face"] = self:GetDressData(nil, nil, nil, nil, "hidesym")
+    itemswap["beard"] = self:GetDressData(nil, nil, nil, nil, "hidesym")
 end
 function DressUp:SetDressHand(itemswap)
     itemswap["whipline"] = self:GetDressData(nil, nil, nil, nil, "clear")
@@ -131,13 +175,25 @@ function DressUp:InitClear(symbol) --恢复实际展示的默认效果（清除�
     end
     self.inst.AnimState:ClearOverrideSymbol(symbol)
 end
-function DressUp:InitHide(symbol) --恢复实际展示的默认效果（隐藏）
+function DressUp:InitHideSym(symbol) --恢复实际展示的默认效果（隐藏通道）
+    if self.swaplist[symbol] ~= nil then
+        return
+    end
+    self.inst.AnimState:HideSymbol(symbol)
+end
+function DressUp:InitShowSym(symbol) --恢复实际展示的默认效果（显示通道）
+    if self.swaplist[symbol] ~= nil then
+        return
+    end
+    self.inst.AnimState:ShowSymbol(symbol)
+end
+function DressUp:InitHide(symbol) --恢复实际展示的默认效果（隐藏贴图）
     if self.swaplist[symbol] ~= nil then
         return
     end
     self.inst.AnimState:Hide(symbol)
 end
-function DressUp:InitShow(symbol) --恢复实际展示的默认效果（显示）
+function DressUp:InitShow(symbol) --恢复实际展示的默认效果（显示贴图）
     if self.swaplist[symbol] ~= nil then
         return
     end
@@ -152,6 +208,9 @@ function DressUp:InitGroupHead()
 
     self:InitShow("HEAD")
     self:InitHide("HEAD_HAT")
+    self:InitShowSym("face")
+    self:InitShowSym("swap_face")
+    self:InitShowSym("beard")
 end
 
 -----
@@ -172,11 +231,14 @@ function DressUp:UpdateReal() --更新实际展示效果
                 self.inst.AnimState:Hide(k)
             elseif v.type == "clear" then
                 self.inst.AnimState:ClearOverrideSymbol(k)
+            elseif v.type == "showsym" then
+                self.inst.AnimState:ShowSymbol(k)
+            elseif v.type == "hidesym" then
+                self.inst.AnimState:HideSymbol(k)
             end
         end
     end
 end
-
 function DressUp:UpdateSwapList() --更新幻化表
     self.swaplist = {}
     for slot,itemdata in pairs(self.itemlist) do
@@ -198,9 +260,17 @@ function DressUp:UpdateSwapList() --更新幻化表
     end
 end
 
-function DressUp:PutOn(item, loaddata) --幻化一个物品
+local nodressitems = {
+    lunarplanthat = true,
+    armor_lunarplant = true
+}
+function DressUp:PutOn(item, loaddata, noevent) --幻化一个物品
     local data = DRESSUP_DATA_LEGION[item.prefab]
     if data == nil then
+        return false
+    end
+
+    if not PrefabExists("voidcloth_scythe") and nodressitems[item.prefab] then --新版本到来之前，不能幻化这些，代码不兼容
         return false
     end
 
@@ -225,6 +295,8 @@ function DressUp:PutOn(item, loaddata) --幻化一个物品
             end
         end
     end
+
+    self:TakeOff(slot, itemdataold)
 
     --增加幻化数据
     local itemswap = {}
@@ -253,6 +325,8 @@ function DressUp:PutOn(item, loaddata) --幻化一个物品
             itemswap["swap_hat"] = self:GetDressData(buildskin, data.buildfile, data.buildsymbol, item.GUID, "swap")
             if data.isopentop then
                 self:SetDressOpenTop(itemswap)
+            elseif data.isfullhead then
+                self:SetDressFullHead(itemswap)
             else
                 self:SetDressTop(itemswap)
             end
@@ -303,8 +377,11 @@ function DressUp:PutOn(item, loaddata) --幻化一个物品
     end
 
     self:UpdateSwapList()
-    self:TakeOff(slot, itemdataold)
     self:UpdateReal()
+
+    if not noevent then
+        self.inst:PushEvent("dressup_l", { item = item, olditemdata = itemdataold })
+    end
 
     item:RemoveFromScene()
     item:DoTaskInTime(0.2, function() --必需滞后删除！
@@ -398,9 +475,12 @@ function DressUp:OnLoad(data, newents)
         for _, v in pairs(data.items) do
             local item = CreateItem(self, v, true)
             if item ~= nil then
-                self:PutOn(item, v)
+                self:PutOn(item, v, true)
             end
         end
+        self.inst:DoTaskInTime(0.25 + 0.6*math.random(), function(inst)
+            inst:PushEvent("dressup_l")
+        end)
     end
 end
 

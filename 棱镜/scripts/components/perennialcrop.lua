@@ -801,12 +801,16 @@ function PerennialCrop:PourWater(item, doer, value) --浇水
 end
 
 function PerennialCrop:SayDetail(doer, dotalk) --介绍细节
-	if
-		doer ~= nil and doer:HasTag("player") and not doer:HasTag("mime") and doer.components.inventory ~= nil
-	then
-		local str = nil
-		local hat = doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HEAD)
+	if doer == nil or doer:HasTag("mime") then
+		return
+	end
 
+	local str = nil
+
+	if doer:HasTag("sharpeye") then
+		str = GetDetailString(self, doer, 2)
+	else
+		local hat = doer.components.inventory and doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HEAD) or nil
 		if hat == nil then
 			if doer:HasTag("plantkin") then
 				str = GetDetailString(self, doer, 1)
@@ -816,14 +820,13 @@ function PerennialCrop:SayDetail(doer, dotalk) --介绍细节
 		elseif hat:HasTag("plantinspector") then
 			str = GetDetailString(self, doer, 1)
 		end
-
-		if dotalk and str ~= nil and doer.components.talker ~= nil then
-			doer.components.talker:Say(str)
-		end
-
-		return str
 	end
-	return nil
+
+	if dotalk and str ~= nil and doer.components.talker ~= nil then
+		doer.components.talker:Say(str)
+	end
+
+	return str
 end
 
 local function ComputValue(valuectl, valueneed)

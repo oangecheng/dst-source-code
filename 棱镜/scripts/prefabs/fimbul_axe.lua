@@ -70,16 +70,17 @@ local function OnThrown(inst, owner, target)
 end
 
 local function ReturnToOwner(inst, owner)
+    OnDropped(inst)
     if owner ~= nil and owner:IsValid() then
         -- owner.SoundEmitter:PlaySound("dontstarve/wilson/boomerang_return")
         -- inst.components.projectile:Throw(owner, owner)
 
         if not (owner.components.health ~= nil and owner.components.health:IsDead()) then --玩家还活着，自动接住
-            local skindata = inst.components.skinedlegion:GetSkinedData()
-            if skindata ~= nil and skindata.fn_onThrownEnd ~= nil then
-                skindata.fn_onThrownEnd(inst)
-            end
-            inst.components.inventoryitem.canbepickedup = true
+            -- local skindata = inst.components.skinedlegion:GetSkinedData()
+            -- if skindata ~= nil and skindata.fn_onThrownEnd ~= nil then
+            --     skindata.fn_onThrownEnd(inst)
+            -- end
+            -- inst.components.inventoryitem.canbepickedup = true
 
             --如果使用者已装备手持武器，就放进物品栏，没有的话就直接装备上
             if not owner.components.inventory:GetEquippedItem(inst.components.equippable.equipslot) then
@@ -87,10 +88,9 @@ local function ReturnToOwner(inst, owner)
             else
                 owner.components.inventory:GiveItem(inst)
             end
-            return
+            -- return
         end
     end
-    OnDropped(inst)
 end
 local function DelayReturnToOwner(inst, owner)
     -- inst:Hide()

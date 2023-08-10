@@ -347,7 +347,7 @@ table.insert(prefs, Prefab("hiddenmoonlight", function()
 
     MakeHauntableLaunchAndDropFirstItem(inst)
 
-    MakeSnowCovered_serv_legion(inst, 0.1 + 0.3 * math.random(), function(inst)
+    MakeSnowCovered_serv_legion(inst, 0.1 + 0.3*math.random(), function(inst)
         inst.AnimState:SetTime(math.random() * inst.AnimState:GetCurrentAnimationLength())
     end)
 
@@ -393,12 +393,7 @@ local function OnUpgrade_revolved(item, doer, target, result)
         target.components.container.canbeopened = false
         target.components.container:DropEverything()
     end
-
-    local linkdata = item.components.skinedlegion:GetLinkedSkins()
-    if linkdata ~= nil and result.components.skinedlegion ~= nil then
-        result.components.skinedlegion:SetSkin(target.prefab == "piggyback" and linkdata.item or linkdata.item_pro)
-    end
-
+    item.components.skinedlegion:SetLinkedSkin(result, target.prefab == "piggyback" and "item" or "item_pro", doer)
     item:Remove() --该道具是一次性的
 end
 
@@ -836,13 +831,7 @@ local function MakeRevolved(sets)
             DropGems(inst, "yellowgem")
 
             --归还套件
-            local links = inst.components.skinedlegion:GetLinkedSkins()
-            if links ~= nil and links.item ~= nil then
-                inst.components.lootdropper:SpawnLootPrefab("revolvedmoonlight_item", nil,
-                    links.item, nil, worker and worker.userid or nil)
-            else
-                inst.components.lootdropper:SpawnLootPrefab("revolvedmoonlight_item")
-            end
+            inst.components.skinedlegion:SpawnLinkedSkinLoot("revolvedmoonlight_item", inst, "item", worker)
 
             --特效
             local fx = SpawnPrefab("collapse_small")

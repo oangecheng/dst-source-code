@@ -42,21 +42,6 @@ end
 ------
 
 local function DressUpItem(staff, target)
-    if not CONFIGS_LEGION.DUSTTODUSTY then
-        if
-            SKINS_LEGION["icire_rock_collector"].skin_id == "notnononl" or
-            SKINS_LEGION["siving_turn_collector"].skin_id == "notnononl" or
-            SKINS_LEGION["icire_rock_day"].skin_id == "notnononl"
-        then
-            CONFIGS_LEGION.DUSTTODUSTY = true
-            DRESSUP_DATA_LEGION = {}
-            return
-        end
-    else
-        DRESSUP_DATA_LEGION = {}
-        return
-    end
-
     local caster = staff.components.inventoryitem.owner
     if caster ~= nil and caster.components.dressup ~= nil then
         if target == nil then --解除幻化（右键装备栏的法杖）

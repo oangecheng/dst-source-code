@@ -8,7 +8,7 @@ local L = locale ~= "zh" and locale ~= "zhr" --true-英文; false-中文
 
 name = L and "[DST] Legion" or "[DST] 棱镜"
 author = "ti_Tout"
-version = "7.2.2" --每次更新时为了上传必须更改
+version = "7.2.6" --每次更新时为了上传必须更改
 description =
     L and "Thanks for using this mod!\n                                           [version]"..version.."  [file]1392778117\n\n*As you can see, this mod includes much of the imagination of the mod makers. I really want to make this mod like a DLC, can we wait until it happens?\n\nSpecial thanks：半夏微暖半夏凉(Code consultant)、羽中就是他(Guest artist)、风铃草(Functional supporter)、白饭(Wiki editor)"
     or "感谢订阅本mod！                                    [版本]"..version.."  [文件]1392778117\n\n*如你所见，本mod包括了作者的很多的脑洞，我也很想把这个mod做成像DLC一样的规模，敬请期待吧。\n*本mod为个人爱好所做，禁止任何个人或组织转载、除自用外的修改、发布或其他形式的侵犯本mod权益的行为！\n\n特别感谢：半夏微暖半夏凉(代码指导)、羽中就是他(客串画佬)、风铃草(特功支持)、白饭(百科编辑)"
@@ -554,6 +554,95 @@ configuration_options = {
         },
         default = true
     },
+    L and {
+        name = "TransTimeCrop",
+        label = "Mutation Time of Crops",
+        hover = "Set the time for ordinary crops mutation with Siving-Trans.",
+        options = {
+            {description = "30 sec", data = 0.0625},
+            {description = "1 min", data = 0.125},
+            {description = "2 min", data = 0.25},
+            {description = "4 min", data = 0.5},
+            {description = "6 min", data = 0.75},
+            {description = "8 min(default)", data = 1},
+            {description = "12 min", data = 1.5},
+            {description = "16 min", data = 2},
+            {description = "24 min", data = 3},
+            {description = "32 min", data = 4}
+        },
+        default = 1
+    } or {
+        name = "TransTimeCrop",
+        label = "普通作物转成异种的时间",
+        hover = "设置子圭·育转化普通作物所需的时间。你也是时间管理大师吗？",
+        options = {
+            {description = "30秒", data = 0.0625},
+            {description = "1分钟", data = 0.125},
+            {description = "2分钟", data = 0.25},
+            {description = "4分钟", data = 0.5},
+            {description = "6分钟", data = 0.75},
+            {description = "8分钟(默认)", data = 1},
+            {description = "12分钟", data = 1.5},
+            {description = "16分钟", data = 2},
+            {description = "24分钟", data = 3},
+            {description = "32分钟", data = 4}
+        },
+        default = 1
+    },
+    L and {
+        name = "TransTimeSpec",
+        label = "Mutation Time Mult of Plants",
+        hover = "Set the Time Multiplier for special plants mutation with Siving-Trans.",
+        options = {
+            {description = "0.0625x", data = 0.0625},
+            {description = "0.125x", data = 0.125},
+            {description = "0.25x", data = 0.25},
+            {description = "0.5x", data = 0.5},
+            {description = "0.75x", data = 0.75},
+            {description = "1x(default)", data = 1},
+            {description = "1.5x", data = 1.5},
+            {description = "2x", data = 2},
+            {description = "3x", data = 3},
+            {description = "4x", data = 4}
+        },
+        default = 1
+    } or {
+        name = "TransTimeSpec",
+        label = "特殊植物转成异种的时间倍率",
+        hover = "设置子圭·育转化特殊植物的时间倍率。你肯定是时间管理大师！",
+        options = {
+            {description = "0.0625倍", data = 0.0625},
+            {description = "0.125倍", data = 0.125},
+            {description = "0.25倍", data = 0.25},
+            {description = "0.5倍", data = 0.5},
+            {description = "0.75倍", data = 0.75},
+            {description = "1倍(默认)", data = 1},
+            {description = "1.5倍", data = 1.5},
+            {description = "2倍", data = 2},
+            {description = "3倍", data = 3},
+            {description = "4倍", data = 4}
+        },
+        default = 1
+    },
+    L and {
+        name = "SivSolToMedal",
+        label = "Siving-Sols Bans Crops in Medals",
+        hover = "Set whether the crops in the Functional Medal mod can be planted in Siving-Sols.",
+        options = {
+            {description = "Not Plantable", data = false},
+            {description = "Plantable(default)", data = true}
+        },
+        default = true
+    } or {
+        name = "SivSolToMedal",
+        label = "子圭·垄兼容能力勋章的作物",
+        hover = "是否允许能力勋章mod里的作物被种在子圭·垄里。我有我自己的见解和想法，真的。",
+        options = {
+            {description = "禁止种植", data = false},
+            {description = "允许种植(默认)", data = true}
+        },
+        default = true
+    },
 
     -----
 
@@ -630,22 +719,20 @@ configuration_options = {
         name = "CleaningUpStench",
         label = "Cleaning Up Stench",
         hover = "Auto-cleaning-up smelly things on the ground.",
-        options =
-        {
+        options = {
             {description = "Yes", data = true},
-            {description = "No(default)", data = false},
+            {description = "No(default)", data = false}
         },
-        default = false,
+        default = false
     } or {
         name = "CleaningUpStench",
         label = "臭臭自动清理",
         hover = "自动清除掉在地上的臭东西(大便、鸟粪、腐烂物)。化作春泥更护花。",
-        options =
-        {
+        options = {
             {description = "是", data = true},
-            {description = "否(默认)", data = false},
+            {description = "否(默认)", data = false}
         },
-        default = false,
+        default = false
     },
     L and {
         name = "BackCubChance",

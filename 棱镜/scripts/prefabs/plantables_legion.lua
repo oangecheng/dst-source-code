@@ -1,12 +1,4 @@
-local prefabs = {}
-
-local function GetPlacerAnim(anims)
-    if type(anims) == 'table' then
-        return anims[ #anims ]
-    else
-        return anims
-    end
-end
+local prefs = {}
 
 local function MakePlantable(name, data)
     local imgname = data.overrideimage or name
@@ -93,14 +85,11 @@ local function MakePlantable(name, data)
         MakeHauntableLaunchAndIgnite(inst)
 
         inst:AddComponent("deployable")
-        inst.components.deployable.ondeploy = function(inst, pt, deployer)
+        inst.components.deployable.ondeploy = function(inst, pt, deployer, rot)
             local skinname = nil
             local tree = nil
-            if deployer and deployer.userid and SKINS_CACHE_EX_L[deployer.userid] ~= nil then
-                local data = SKINS_CACHE_EX_L[deployer.userid]
-                if data[name] ~= nil then
-                    skinname = data[name].name
-                end
+            if deployer and deployer.userid and SKINS_CACHE_CG_L[deployer.userid] ~= nil then
+                skinname = SKINS_CACHE_CG_L[deployer.userid][data.deployable.prefab]
             end
             if skinname == nil then
                 tree = SpawnPrefab(data.deployable.prefab)
@@ -109,6 +98,9 @@ local function MakePlantable(name, data)
             end
 
             if tree ~= nil then
+                -- if rot ~= nil then
+                --     tree.Transform:SetRotation(rot)
+                -- end
                 tree.Transform:SetPosition(pt:Get())
 
                 if inst.components.stackable ~= nil then
@@ -118,7 +110,11 @@ local function MakePlantable(name, data)
                 end
 
                 if tree.components.pickable ~= nil then
-                    tree.components.pickable:OnTransplant()
+                    if data.deployable.isoriginal then --直接进入生长状态
+                        tree.components.pickable:MakeEmpty()
+                    else
+                        tree.components.pickable:OnTransplant()
+                    end
                 end
 
                 if deployer ~= nil and deployer.SoundEmitter ~= nil then
@@ -155,7 +151,7 @@ local plantables = {
     --花香四溢
     ------
     dug_rosebush = {
-        animstate = { bank = "berrybush2", build = "rosebush", anim = "dropped", anim_palcer = "dead", },
+        animstate = { bank = "berrybush2", build = "rosebush", anim = "dropped" },
         floater = {0.03, "large", 0.2, {0.65, 0.5, 0.65}},  --漂浮参数（底部切割比例, 波纹动画, 波纹所处位置比例, 波纹大小）
         stacksize = TUNING.STACK_SIZE_LARGEITEM,            --最大堆叠数
         fuelvalue = TUNING.LARGE_FUEL,                      --燃料值
@@ -165,9 +161,9 @@ local plantables = {
             lightedsize = "small",          --引燃范围大小
         },
         deployable = {
-            prefab = "rosebush",        --种植出的prefab名
-            mode = DEPLOYMODE.PLANT,    --种植类型
-            spacing = nil,              --种植间隔
+            prefab = "rosebush", --种植出的prefab名
+            mode = DEPLOYMODE.PLANT, --种植类型
+            spacing = DEPLOYSPACING.MEDIUM --种植间隔
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant") --植株种植标签，植物人种下时能恢复精神等
@@ -175,7 +171,7 @@ local plantables = {
         fn_server = nil,
     },
     dug_lilybush = {
-        animstate = { bank = "berrybush2", build = "lilybush", anim = "dropped", anim_palcer = "dead", },
+        animstate = { bank = "berrybush2", build = "lilybush", anim = "dropped" },
         floater = {0.03, "large", 0.2, {0.65, 0.5, 0.65}},
         stacksize = TUNING.STACK_SIZE_LARGEITEM,
         fuelvalue = TUNING.LARGE_FUEL,
@@ -186,8 +182,7 @@ local plantables = {
         },
         deployable = {
             prefab = "lilybush",
-            mode = DEPLOYMODE.PLANT,
-            spacing = nil,
+            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.MEDIUM
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -195,7 +190,7 @@ local plantables = {
         fn_server = nil,
     },
     dug_orchidbush = {
-        animstate = { bank = "berrybush2", build = "orchidbush", anim = "dropped", anim_palcer = "dead", },
+        animstate = { bank = "berrybush2", build = "orchidbush", anim = "dropped" },
         floater = {nil, "large", 0.1, {0.65, 0.5, 0.65}},
         stacksize = TUNING.STACK_SIZE_LARGEITEM,
         fuelvalue = TUNING.LARGE_FUEL,
@@ -206,8 +201,7 @@ local plantables = {
         },
         deployable = {
             prefab = "orchidbush",
-            mode = DEPLOYMODE.PLANT,
-            spacing = DEPLOYSPACING.MEDIUM,
+            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.LESS
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -215,7 +209,7 @@ local plantables = {
         fn_server = nil,
     },
     cutted_rosebush = {
-        animstate = { bank = "rosebush", build = "rosebush", anim = "cutted", anim_palcer = "dead", },
+        animstate = { bank = "rosebush", build = "rosebush", anim = "cutted" },
         floater = {nil, "large", 0.1, 0.55},
         stacksize = TUNING.STACK_SIZE_SMALLITEM,
         fuelvalue = TUNING.SMALL_FUEL,
@@ -226,8 +220,8 @@ local plantables = {
         },
         deployable = {
             prefab = "rosebush",
-            mode = DEPLOYMODE.PLANT,
-            spacing = nil,
+            isoriginal = true,
+            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.MEDIUM
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -236,7 +230,7 @@ local plantables = {
         fn_server = nil,
     },
     cutted_lilybush = {
-        animstate = { bank = "lilybush", build = "lilybush", anim = "cutted", anim_palcer = "dead", },
+        animstate = { bank = "lilybush", build = "lilybush", anim = "cutted" },
         floater = {nil, "large", 0.1, 0.55},
         stacksize = TUNING.STACK_SIZE_SMALLITEM,
         fuelvalue = TUNING.SMALL_FUEL,
@@ -247,8 +241,8 @@ local plantables = {
         },
         deployable = {
             prefab = "lilybush",
-            mode = DEPLOYMODE.PLANT,
-            spacing = nil,
+            isoriginal = true,
+            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.MEDIUM
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -257,7 +251,7 @@ local plantables = {
         fn_server = nil,
     },
     cutted_orchidbush = {
-        animstate = { bank = "orchidbush", build = "orchidbush", anim = "cutted", anim_palcer = "dead", },
+        animstate = { bank = "orchidbush", build = "orchidbush", anim = "cutted" },
         floater = {nil, "large", 0.1, 0.55},
         stacksize = TUNING.STACK_SIZE_SMALLITEM,
         fuelvalue = TUNING.SMALL_FUEL,
@@ -268,7 +262,8 @@ local plantables = {
         },
         deployable = {
             prefab = "orchidbush",
-            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.MEDIUM
+            isoriginal = true,
+            mode = DEPLOYMODE.PLANT, spacing = DEPLOYSPACING.LESS
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -279,16 +274,15 @@ local plantables = {
     ------
     --丰饶传说
     ------
-    siving_derivant_item = { --子圭一型岩(物品)
-        animstate = { bank = "siving_derivants", build = "siving_derivants", anim = "item", anim_palcer = "lvl0", },
+    siving_derivant_item = { --子圭奇型岩(物品)
+        animstate = { bank = "siving_derivant", build = "siving_derivant", anim = "item" },
         floater = nil,
         stacksize = TUNING.STACK_SIZE_LARGEITEM,
         fuelvalue = nil,
         burnable = nil,
         deployable = {
-            prefab = "siving_derivant_lvl0",
-            mode = nil,
-            spacing = nil,
+            prefab = "siving_derivant",
+            mode = nil, spacing = nil
         },
         fn_common = function(inst)
             inst.entity:AddLight()
@@ -330,13 +324,13 @@ local plantables = {
             inst.components.inventoryitem:SetOnPickupFn(function(inst)
 				inst.OnTreeLive(inst, nil)
 			end)
-        end,
+        end
     },
     ------
     --祈雨祭
     ------
     dug_monstrain = {
-        animstate = { bank = "monstrain", build = "monstrain", anim = "dropped", anim_palcer = nil, },
+        animstate = { bank = "monstrain", build = "monstrain", anim = "dropped" },
         floater = {nil, "small", 0.2, 1.2},
         stacksize = TUNING.STACK_SIZE_LARGEITEM,
         fuelvalue = TUNING.SMALL_FUEL,
@@ -347,8 +341,7 @@ local plantables = {
         },
         deployable = {
             prefab = "monstrain_wizen",
-            mode = DEPLOYMODE.PLANT,
-            spacing = nil,
+            mode = DEPLOYMODE.PLANT, spacing = nil
         },
         fn_common = function(inst)
             inst:AddTag("deployedplant")
@@ -357,12 +350,12 @@ local plantables = {
     }
 }
 
---异种
+----异种
 for k,v in pairs(CROPS_DATA_LEGION) do
     local seedsprefab = "seeds_"..k.."_l"
     local cropprefab = "plant_"..k.."_l"
     plantables[seedsprefab] = {
-        animstate = { bank = "seeds_crop_l", build = "seeds_crop_l", anim = "idle", anim_palcer = nil },
+        animstate = { bank = "seeds_crop_l", build = "seeds_crop_l", anim = "idle" },
         overrideimage = "seeds_crop_l2",
         floater = {nil, "small", 0.2, 1.2},
         stacksize = TUNING.STACK_SIZE_SMALLITEM,
@@ -408,35 +401,13 @@ for k,v in pairs(CROPS_DATA_LEGION) do
             inst.components.plantablelegion.plant2 = v.plant2 --同一个异种种子可能能升级第二种对象
         end
     }
-    table.insert(prefabs, MakePlacer(
-        seedsprefab.."_placer", v.bank, v.build, GetPlacerAnim(v.leveldata[1].anim),
-        nil, nil, nil, nil, nil, nil, function(inst)
-            inst.AnimState:Pause() --不想让placer动起来
-            inst.AnimState:OverrideSymbol("soil", "crop_soil_legion", "soil")
-            if v.cluster_size ~= nil then
-                inst.AnimState:SetScale(v.cluster_size[1], v.cluster_size[1], v.cluster_size[1])
-            end
-        end
-    ))
 end
-
---雨竹块茎placer
-table.insert(prefabs, MakePlacer(
-    "dug_monstrain_placer", "monstrain", "monstrain", "idle_summer",
-    nil, nil, nil, nil, nil, nil, function(inst)
-        inst.AnimState:Pause()
-        inst.Transform:SetScale(1.4, 1.4, 1.4)
-    end
-))
 
 --------------------
 --------------------
 
 for i, v in pairs(plantables) do
-    table.insert(prefabs, MakePlantable(i, v))
-    if v.animstate.anim_palcer ~= nil then
-        table.insert(prefabs, MakePlacer(i.."_placer", v.animstate.bank, v.animstate.build, v.animstate.anim_palcer))
-    end
+    table.insert(prefs, MakePlantable(i, v))
 end
 
-return unpack(prefabs)
+return unpack(prefs)

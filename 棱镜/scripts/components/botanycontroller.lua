@@ -101,7 +101,7 @@ end
 local function ComputMoisture(self, x, y, z)
     if self.moisture > 0 then
         TheWorld.components.farming_manager:AddSoilMoistureAtPoint(x, y, z, 100)
-        self.moisture = math.max(0, self.moisture-25)
+        self.moisture = math.max(0, self.moisture-2.5) --由于没法知道耕地里的具体水分，只能这样直接加水了
         return true
     end
 end
@@ -330,6 +330,56 @@ function BotanyController:OnLoad(data)
     else
         self:SetValue(data.mo, { data.n1, data.n2, data.n3 }, false)
     end
+end
+
+local function DecimalPointTruncation(value, plus) --截取小数点
+	value = math.floor(value*plus)
+	return value/plus
+end
+local function GetDetailString(self, doer, type)
+	local data = {
+		n1 = tostring(DecimalPointTruncation(self.nutrients[1], 10)),
+        n2 = tostring(DecimalPointTruncation(self.nutrients[2], 10)),
+        n3 = tostring(DecimalPointTruncation(self.nutrients[3], 10)),
+        mo = tostring(DecimalPointTruncation(self.moisture, 10))
+	}
+
+	if type == 2 then
+		data.nu_max = tostring(self.nutrient_max)
+		data.mo_max = tostring(self.moisture_max)
+		return subfmt(STRINGS.PLANT_CROP_L["CTL2_"..tostring(self.type)], data)
+	else
+		return subfmt(STRINGS.PLANT_CROP_L["CTL1_"..tostring(self.type)], data)
+	end
+end
+function BotanyController:SayDetail(doer, dotalk) --介绍细节
+	if doer == nil or doer:HasTag("mime") then
+		return
+	end
+
+	local str = nil
+
+	if doer:HasTag("sharpeye") then
+		str = GetDetailString(self, doer, 2)
+	else
+		local hat = doer.components.inventory and doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HEAD) or nil
+		if hat == nil then
+			-- if doer:HasTag("plantkin") then
+			-- 	str = GetDetailString(self, doer, 1)
+			-- end
+			return str
+		elseif hat:HasTag("detailedplanthappiness") then
+			str = GetDetailString(self, doer, 2)
+		elseif hat:HasTag("plantinspector") then
+			str = GetDetailString(self, doer, 1)
+		end
+	end
+
+	if dotalk and str ~= nil and doer.components.talker ~= nil then
+		doer.components.talker:Say(str)
+	end
+
+	return str
 end
 
 return BotanyController

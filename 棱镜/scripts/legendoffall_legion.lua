@@ -315,19 +315,6 @@ PLANT_DEFS.pineananas = {
 local WEIGHTED_SEED_TABLE = require("prefabs/weed_defs").weighted_seed_table
 
 local function PickFarmPlant()
-    if not CONFIGS_LEGION.GGGGRREEANY then
-        if
-            SKINS_LEGION["icire_rock_collector"].skin_id == "notnononl" or
-            SKINS_LEGION["siving_turn_collector"].skin_id == "notnononl" or
-            SKINS_LEGION["revolvedmoonlight_item_taste3"].skin_id == "notnononl"
-        then
-            CONFIGS_LEGION.GGGGRREEANY = true
-            return "weed_tillweed"
-        end
-    else
-        return "weed_tillweed"
-    end
-
 	if math.random() < TUNING.FARM_PLANT_RANDOMSEED_WEED_CHANCE then
 		return weighted_random_choice(WEIGHTED_SEED_TABLE)
 	else
@@ -360,6 +347,17 @@ local function OnPlant(seed, doer, soilorcrop)
             if plant_prefab == "farm_plant_randomseed" then
                 plant_prefab = PickFarmPlant()
             end
+        end
+
+        if --【能力勋章】能否种植其中作物
+            not _G.CONFIGS_LEGION.SIVSOLTOMEDAL and (
+                seed.prefab == "immortal_fruit_seed" or
+                seed.prefab == "medal_gift_fruit_seed" or
+                plant_prefab == "farm_plant_immortal_fruit" or
+                plant_prefab == "farm_plant_medal_gift_fruit"
+            )
+        then
+            return false
         end
 
         local plant = SpawnPrefab(plant_prefab.."_legion")
@@ -946,7 +944,8 @@ end
 
 local function OnSummer_cactus(inst, isit)
     if TheWorld.state.issummer then
-        inst.AnimState:OverrideSymbol("flowerplus", "crop_legion_cactus", "flomax")
+        local skin = inst.components.skinedlegion:GetSkin()
+        inst.AnimState:OverrideSymbol("flowerplus", skin or "crop_legion_cactus", "flomax")
     else
         inst.AnimState:ClearOverrideSymbol("flowerplus")
     end
@@ -1348,8 +1347,8 @@ _G.CROPS_DATA_LEGION.cactus_meat = {
     regrowstage = 1,
     bank = "crop_legion_cactus", build = "crop_legion_cactus",
     leveldata = {
-        { anim = { "level1_1", "level1_2", "level1_3" }, time = time_crop*0.45, deadanim = "dead1", witheredprefab = nil },
-        { anim = { "level2_1", "level2_2", "level2_3" }, time = time_crop*0.55, deadanim = "dead1", witheredprefab = {"cutgrass"} },
+        { anim = { "level1_1", "level1_2", "level1_3" }, time = TUNING.TOTAL_DAY_TIME*10*0.45, deadanim = "dead1", witheredprefab = nil },
+        { anim = { "level2_1", "level2_2", "level2_3" }, time = TUNING.TOTAL_DAY_TIME*10*0.55, deadanim = "dead1", witheredprefab = {"cutgrass"} },
         { anim = { "level3_1", "level3_2", "level3_3" }, time = time_grow, deadanim = "dead1", witheredprefab = {"cutgrass"}, pickable = 1 },
         { anim = { "level4_1", "level4_2", "level4_3" }, time = time_day*6, deadanim = "dead1", witheredprefab = {"cutgrass"}, bloom = true }
     },
@@ -1431,12 +1430,18 @@ _G.CROPS_DATA_LEGION.plantmeat = {
 if not _G.rawget(_G, "DIGEST_DATA_LEGION") then
     _G.DIGEST_DATA_LEGION = {}
 end
+
+local function FnD_lordfruitfly(inst, eater, items_free)
+    TheWorld:PushEvent("ms_lordfruitflykilled")
+end
+
 local lvls = { 0, 5, 10, 20, 30, 40, 50, 65, 80 }
 local digest_data_l = {
     bee = {
         lvl = nil, --巨食草要达到这个簇栽等级后才能主动吞下该对象，如果为 nil 则代表无法主动吞下
         attract = nil, --为true的话，可以被巨食草主动吸引(是靠战斗组件来吸引)
-        loot = { ahandfulofwings = 0.2, insectshell_l = 1, honey = 0.2 } --key value 对应 产物prefab 数量比例
+        loot = { ahandfulofwings = 0.2, insectshell_l = 1, honey = 0.2 }, --key value 对应 产物prefab 数量比例
+        -- fn_digest = function(inst, eater, items_free)end --被消化或吞食时的
     },
     butterfly = { lvl = nil, attract = nil, loot = { ahandfulofwings = 0.2, insectshell_l = 1 } }, --蝴蝶
     moonbutterfly = { lvl = nil, attract = nil, loot = { ahandfulofwings = 0.5, insectshell_l = 1 } }, --月蛾
@@ -1469,6 +1474,7 @@ local digest_data_l = {
     lavae_cocoon = { lvl = nil, attract = nil, loot = { insectshell_l = 28 } }, --冷冻虫卵
     butter = { lvl = nil, attract = nil, loot = { insectshell_l = 16 } }, --黄油
     royal_jelly = { lvl = nil, attract = nil, loot = { insectshell_l = 16 } }, --蜂王浆
+    glommerflower = { lvl = nil, attract = nil, loot = { insectshell_l = 16 } }, --格罗姆花
     glommerwings = { lvl = nil, attract = nil, loot = { insectshell_l = 16 } }, --格罗姆翅膀
     glommerfuel = { lvl = nil, attract = nil, loot = { insectshell_l = 8 } }, --格罗姆黏液
     honeycomb = { lvl = nil, attract = nil, loot = { insectshell_l = 16 } }, --蜂巢
@@ -1556,7 +1562,7 @@ local digest_data_l = {
     walrus = { lvl = lvls[9], attract = nil, loot = { boneshard = 1, walrus_tusk = 1 } }, --海象
     clayhound = { lvl = lvls[9], attract = nil, loot = { redpouch = 4 } }, --陶土猎狗
     hedgehound = { lvl = lvls[9], attract = nil, loot = { boneshard = 1, cutted_rosebush = 4 } }, --蔷薇猎狗
-    lordfruitfly = { lvl = lvls[9], attract = nil, loot = { ahandfulofwings = 8, insectshell_l = 12 } }, --果蝇王
+    lordfruitfly = { lvl = lvls[9], attract = nil, loot = { ahandfulofwings = 8, insectshell_l = 12 }, fn_digest = FnD_lordfruitfly }, --果蝇王
 
     --mod兼容：永不妥协
     aphid = { lvl = lvls[2], attract = true, loot = { ahandfulofwings = 0.2, insectshell_l = 1 } }, --蚜虫
@@ -1838,6 +1844,8 @@ LIFEBEND.strfn = function(act)
         return "REVIVE"
     elseif target:HasTag("_health") then --有生命组件的对象
         return "CURE"
+    elseif target:HasTag("lifebox_l") then --生命容器
+        return "GIVE"
     end
     return "GENERIC"
 end
