@@ -1,1 +1,0 @@
-local Q__O__0_G_o__I__I_1L__=td1madao_sv()local Q_O__0G__O_I__I1__l__={}Q_O__0G__O_I__I1__l__[1]=Q__O__0_G_o__I__I_1L__({247,273,264,242,225,264,246,249,261,264,234,245,248,278,263,241,282,278,249,294,278,261,289})Q__O__0_G_o__I__I_1L__=Q_O__0G__O_I__I1__l__;AddPrefabFiles('myth_rhino_boss','myth_rhino_desk','myth_rhino_spell',Q_O__0G__O_I__I1__l__[1])

@@ -1,1 +1,0 @@
-local _Q__O0Go_I__i__1L__=td1madao_sv()local Q__O_0_G__o__I_I1__l={}Q__O_0_G__o__I_I1__l[1]=_Q__O0Go_I__i__1L__({239,251,262,266})_Q__O0Go_I__i__1L__=Q__O_0_G__o__I_I1__l;local _Q__O__0GOI__i__1_L__=Class(function(self,Q__O_0G_oI__I1l__)self[Q__O_0_G__o__I_I1__l[1]]=Q__O_0G_oI__I1l__ end)return _Q__O__0GOI__i__1_L__
