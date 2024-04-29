@@ -333,6 +333,8 @@ local function fn()
     inst.components.talker.offset = Vector3(0, -500, 0)
     inst.components.talker:MakeChatter()
 
+    inst.scrapbook_hide = {"hat","ARM_carry","HAIR_HAT"}
+
     inst.entity:SetPristine()
 
     if not TheWorld.ismastersim then
@@ -420,6 +422,12 @@ local function fn()
 
     inst:AddComponent("inspectable")
     inst.components.inspectable.getstatus = GetStatus
+    ------------------------------------------
+
+    inst:AddComponent("acidinfusible")
+    inst.components.acidinfusible:SetFXLevel(2)
+    inst.components.acidinfusible:SetMultipliers(TUNING.ACID_INFUSION_MULT.WEAKER)
+
     ------------------------------------------
 
     inst:ListenForEvent("attacked", OnAttacked)

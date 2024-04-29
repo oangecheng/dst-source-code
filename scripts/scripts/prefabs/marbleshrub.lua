@@ -1,4 +1,3 @@
-
 local assets =
 {
     Asset("ANIM", "anim/marbleshrub.zip"),
@@ -178,6 +177,9 @@ local function MakeShrub(name, growthstage)
 			return inst
 		end
 
+		inst.scrapbook_anim = "idle_tall"
+		inst.scrapbook_adddeps = { "marblebean_sapling" }
+
 		inst.shapenumber = 1
 		inst.statedata = statedata[growthstage]
 
@@ -199,6 +201,8 @@ local function MakeShrub(name, growthstage)
 
 		MakeHauntableWork(inst)
 		MakeSnowCovered(inst)
+
+		MakeWaxablePlant(inst)
 
 		inst.OnSave = onsave
 		inst.OnLoad = onload

@@ -6,13 +6,23 @@ local assets =
     Asset("ANIM", "anim/splash.zip"),
 }
 
-local prefabs =
+local prefabs_normal =
 {
     "marsh_plant",
-	"pondfish",
-	"pondeel",
+    "pondfish",
     "frog",
+}
+
+local prefabs_mos =
+{
+    "marsh_plant",
+    "pondfish",
     "mosquito",
+}
+
+local prefabs_cave =
+{
+    "pondeel",
     "nitre",
     "nitre_formation",
 }
@@ -123,6 +133,15 @@ local function DespawnPlants(inst)
     inst.plants = nil
 end
 
+local function SlipperyRate(inst, target)
+    local speed = target.Physics and target.Physics:GetMotorSpeed() or 0
+    if speed > TUNING.WILSON_RUN_SPEED then
+        return 50
+    end
+
+    return 5
+end
+
 local function OnSnowLevel(inst, snowlevel)
     if snowlevel > .02 then
         if not inst.frozen then
@@ -140,6 +159,8 @@ local function OnSnowLevel(inst, snowlevel)
             DespawnPlants(inst)
 
             inst.components.watersource.available = false
+            local slipperyfeettarget = inst:AddComponent("slipperyfeettarget")
+            slipperyfeettarget:SetSlipperyRate(SlipperyRate)
         end
     elseif inst.frozen then
         inst.frozen = false
@@ -147,9 +168,8 @@ local function OnSnowLevel(inst, snowlevel)
         inst.components.childspawner:StartSpawning()
         inst.components.fishable:Unfreeze()
 
-        inst.Physics:SetCollisionGroup(COLLISION.LAND_OCEAN_LIMITS)
+		inst.Physics:SetCollisionGroup(COLLISION.OBSTACLES)
         inst.Physics:ClearCollisionMask()
-        inst.Physics:CollidesWith(COLLISION.WORLD)
         inst.Physics:CollidesWith(COLLISION.ITEMS)
         inst.Physics:CollidesWith(COLLISION.CHARACTERS)
         inst.Physics:CollidesWith(COLLISION.GIANTS)
@@ -157,6 +177,7 @@ local function OnSnowLevel(inst, snowlevel)
         SpawnPlants(inst)
 
         inst.components.watersource.available = true
+        inst:RemoveComponent("slipperyfeettarget")
     elseif inst.frozen == nil then
         inst.frozen = false
         SpawnPlants(inst)
@@ -197,15 +218,7 @@ local function commonfn(pondtype)
     inst.entity:AddMiniMapEntity()
     inst.entity:AddNetwork()
 
-    local phys = inst.entity:AddPhysics()
-    phys:SetMass(0) --Bullet wants 0 mass for static objects
-    phys:SetCollisionGroup(COLLISION.LAND_OCEAN_LIMITS)
-    phys:ClearCollisionMask()
-    phys:CollidesWith(COLLISION.ITEMS)
-    phys:CollidesWith(COLLISION.CHARACTERS)
-    phys:CollidesWith(COLLISION.GIANTS)
-    phys:SetCapsule(1.95, 2)
-    inst:AddTag("blocker")
+	MakePondPhysics(inst, 1.95)
 
     inst.AnimState:SetBuild("marsh_tile")
     inst.AnimState:SetBank("marsh_tile")
@@ -288,6 +301,8 @@ end
 
 local function pondmos()
     local inst = commonfn("_mos")
+
+    inst.scrapbook_anim = "idle_mos"
 
     if not TheWorld.ismastersim then
         return inst
@@ -436,13 +451,6 @@ local function OnStopIsAcidRaining(inst)
     end
 end
 
-local function OnStopIsRaining(inst)
-    if not inst.acidinfused then
-        -- Stop bubbling when idle even if slightly acidic.
-        SetBackToNormal_Cave(inst)
-    end
-end
-
 local function OnPondCaveMinedFinished(inst, miner)
     local pt = inst:GetPosition()
     for i = 1, 2 + math.random(2) do
@@ -460,6 +468,8 @@ local function pondcave()
     local inst = commonfn("_cave")
 
 	inst.displaynamefn = PondCaveDisplayNameFn
+    inst.scrapbook_anim = "idle_cave"
+    inst.scrapbook_specialinfo = "PONDCAVE"
 
     if not TheWorld.ismastersim then
         return inst
@@ -480,7 +490,8 @@ local function pondcave()
     local acidlevel = inst:AddComponent("acidlevel")
     inst:ListenForEvent("acidleveldelta", OnAcidLevelDelta_Cave)
     acidlevel:SetOnStopIsAcidRainingFn(OnStopIsAcidRaining)
-    acidlevel:SetOnStopIsRainingFn(OnStopIsRaining)
+	acidlevel:SetOnStopIsRainingFn(OnStopIsAcidRaining)
+	inst:ListenForEvent("gainrainimmunity", OnStopIsAcidRaining)
 
     inst.planttype = "pond_algae"
     inst.task = inst:DoTaskInTime(0, SpawnPlants)
@@ -491,6 +502,7 @@ local function pondcave()
     return inst
 end
 
-return Prefab("pond", pondfrog, assets, prefabs),
-    Prefab("pond_mos", pondmos, assets, prefabs),
-    Prefab("pond_cave", pondcave, assets, prefabs)
+return
+        Prefab( "pond",      pondfrog, assets, prefabs_normal ),
+        Prefab( "pond_mos",  pondmos,  assets, prefabs_mos    ),
+        Prefab( "pond_cave", pondcave, assets, prefabs_cave   )

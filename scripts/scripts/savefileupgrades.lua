@@ -1258,6 +1258,41 @@ t = {
                 FlagForRetrofitting_Cave(savedata, "retrofit_daywalker_content")
             end,
         },
+
+        {
+            version = 5.142, -- Beard Turf fixup for consoles
+            fn = function(savedata)
+                if IsConsole() then
+                    -- NOTES(JBK): This only applies to consoles so do not mess up modded worlds.
+                    FlagForRetrofitting_Forest(savedata, "console_beard_turf_fix")
+                    FlagForRetrofitting_Cave(savedata, "console_beard_turf_fix")
+                end
+            end,
+        },
+        {
+            version = 5.143, -- Junk Yard - new content
+            fn = function(savedata)
+                FlagForRetrofitting_Forest(savedata, "retrofit_junkyard_content")
+            end,
+        },
+        {
+            version = 5.144, -- Junk Yard - remove fence_junk_pre_rotator instances
+            fn = function(savedata)
+                savedata.retrofit_junkyardv2_content = true
+            end,
+        },
+        {
+            version = 5.145, -- Junk Yard - Try to spawn a whole setpiece if any of the pieces are missing.
+            fn = function(savedata)
+                FlagForRetrofitting_Forest(savedata, "retrofit_junkyardv3_content")
+            end,
+        },
+        {
+            version = 5.146, -- rift_terraformer fix
+            fn = function(savedata)
+                FlagForRetrofitting_Forest(savedata, "remove_rift_terraformers_fix")
+            end,
+        },
     },
 }
 

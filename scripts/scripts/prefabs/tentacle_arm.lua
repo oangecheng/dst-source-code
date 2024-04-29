@@ -117,6 +117,9 @@ local function fn()
     inst:AddTag("tentacle_pillar_arm")
     inst:AddTag("wet")
     inst:AddTag("soulless")
+    inst:AddTag("NPCcanaggro")
+
+    inst.scrapbook_removedeps = {"monstermeat"}
 
     inst.entity:SetPristine()
 
@@ -150,6 +153,10 @@ local function fn()
     inst.components.sanityaura.aura = -TUNING.SANITYAURA_MED
 
     inst:AddComponent("inspectable")
+
+    inst:AddComponent("acidinfusible")
+    inst.components.acidinfusible:SetFXLevel(1)
+    inst.components.acidinfusible:SetMultipliers(TUNING.ACID_INFUSION_MULT.WEAKER)
 
     AddHauntableCustomReaction(inst, CustomOnHaunt)
 

@@ -5,8 +5,8 @@ local assets =
 
 --DSV uses 4 but ignores physics radius
 local MAXRANGE = 3
-local NO_TAGS_NO_PLAYERS = { "bramble_resistant", "INLIMBO", "notarget", "noattack", "flight", "invisible", "player" }
-local NO_TAGS = { "bramble_resistant", "INLIMBO", "notarget", "noattack", "flight", "invisible", "playerghost" }
+local NO_TAGS_NO_PLAYERS =	{ "bramble_resistant", "INLIMBO", "notarget", "noattack", "flight", "invisible", "wall", "player", "companion" }
+local NO_TAGS =				{ "bramble_resistant", "INLIMBO", "notarget", "noattack", "flight", "invisible", "wall", "playerghost" }
 local COMBAT_TARGET_TAGS = { "_combat" }
 
 local function OnUpdateThorns(inst)
@@ -26,16 +26,31 @@ local function OnUpdateThorns(inst)
                     inst.owner = nil
                 end
                 if inst.owner ~= nil then
-                    if inst.owner.components.combat ~= nil and inst.owner.components.combat:CanTarget(v) then
+					if inst.owner.components.combat ~= nil and
+						inst.owner.components.combat:CanTarget(v) and
+						not inst.owner.components.combat:IsAlly(v)
+					then
                         inst.ignore[v] = true
-                        v.components.combat:GetAttacked(v.components.follower ~= nil and v.components.follower:GetLeader() == inst.owner and inst or inst.owner, inst.damage)
+						v.components.combat:GetAttacked(v.components.follower and v.components.follower:GetLeader() == inst.owner and inst or inst.owner, inst.damage, nil, nil, inst.spdmg)
                         --V2C: wisecracks make more sense for being pricked by picking
                         --v:PushEvent("thorns")
                     end
                 elseif v.components.combat:CanBeAttacked() then
-                    inst.ignore[v] = true
-                    v.components.combat:GetAttacked(inst, inst.damage)
-                    --v:PushEvent("thorns")
+                    -- NOTES(JBK): inst.owner is nil here so this is for non worn things like the bramble trap.
+					local isally = false
+					if not inst.canhitplayers then
+						--non-pvp, so don't hit any player followers (unless they are targeting a player!)
+						local leader = v.components.follower ~= nil and v.components.follower:GetLeader() or nil
+						isally = leader ~= nil and leader:HasTag("player") and
+							not (v.components.combat ~= nil and
+								v.components.combat.target ~= nil and
+								v.components.combat.target:HasTag("player"))
+					end
+					if not isally then
+						inst.ignore[v] = true
+						v.components.combat:GetAttacked(inst, inst.damage, nil, nil, inst.spdmg)
+						--v:PushEvent("thorns")
+					end
                 end
             end
         end
@@ -53,13 +68,17 @@ local function SetFXOwner(inst, owner)
     inst.ignore[owner] = true
 end
 
-local function MakeFX(name, anim, damage)
+local function MakeFX(name, anim, damage, planardamage)
     local function fn()
         local inst = CreateEntity()
 
         inst.entity:AddTransform()
         inst.entity:AddAnimState()
         inst.entity:AddNetwork()
+
+        if planardamage then
+            inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+        end
 
         inst:AddTag("FX")
         inst:AddTag("thorny")
@@ -87,6 +106,7 @@ local function MakeFX(name, anim, damage)
         inst:ListenForEvent("animover", inst.Remove)
         inst.persists = false
         inst.damage = TUNING[damage]
+		inst.spdmg = planardamage and { planar = TUNING[planardamage] } or nil
         inst.range = .75
         inst.ignore = {}
         inst.canhitplayers = true
@@ -100,5 +120,6 @@ local function MakeFX(name, anim, damage)
     return Prefab(name, fn, assets)
 end
 
-return MakeFX("bramblefx_armor", "idle", "ARMORBRAMBLE_DMG"--[[TUNING.ARMORBRAMBLE_DMG]]),
+return MakeFX("bramblefx_armor", "idle", "ARMORBRAMBLE_DMG" --[[TUNING.ARMORBRAMBLE_DMG]]),
+    MakeFX("bramblefx_armor_upgrade", "idle", "ARMORBRAMBLE_DMG", "ARMORBRAMBLE_DMG_PLANAR_UPGRADE"--[[TUNING.ARMORBRAMBLE_DMG]]),
     MakeFX("bramblefx_trap", "trap", "TRAP_BRAMBLE_DAMAGE"--[[TUNING.TRAP_BRAMBLE_DAMAGE]])

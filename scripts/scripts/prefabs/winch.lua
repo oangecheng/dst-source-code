@@ -108,7 +108,6 @@ local function turn_off_boat_drag(inst)
 end
 
 local function turn_on_boat_drag(inst, boat, duration)
-	boat = boat
 	if boat == nil then
 		return nil
 	end
@@ -261,7 +260,7 @@ local function CanActivate(inst, doer)
 	return inst:HasTag("winch_ready")
 end
 
-local function onitemget(inst, data, no_CHEVO_event)
+local function onitemget(inst, data)
 	local item = data.item
 	inst.components.shelf:PutItemOnShelf(item)
 
@@ -273,9 +272,7 @@ local function onitemget(inst, data, no_CHEVO_event)
 		end
 	end
 
-	if not no_CHEVO_event then
-		inst:DoTaskInTime(0,function() TheWorld:PushEvent("CHEVO_heavyobject_winched",{target=inst,doer=nil}) end)
-	end
+    inst:DoTaskInTime(0,function() TheWorld:PushEvent("CHEVO_heavyobject_winched",{target=inst,doer=nil}) end)
 end
 
 local function onitemlose(inst, data)
@@ -400,8 +397,8 @@ local function OnLoadPostPass(inst)
 			end
 		end
 
-		if inst:GetCurrentPlatform() ~= nil then
-			if inst.components.winch ~= nil then
+		if inst.components.winch ~= nil then
+			if inst:GetCurrentPlatform() ~= nil then
 				if inst.components.winch.is_static then
 					if inst.components.winch.line_length > 0 then
 						inst.components.winch:StartRaising()
@@ -415,6 +412,9 @@ local function OnLoadPostPass(inst)
 						inst.components.winch:FullyLowered()
 					end
 				end
+
+			elseif not inst:HasTag("lowered_ground") then
+				inst.components.winch:FullyRaised()
 			end
 		end
 

@@ -17,11 +17,14 @@ local SandOver = require "widgets/sandover"
 local SandDustOver = require "widgets/sanddustover"
 local MoonstormOver = require "widgets/moonstormover"
 local MoonstormOver_Lightning = require "widgets/moonstormover_lightning"
+local RainDomeOver = require("widgets/raindomeover")
 local Leafcanopy = require "widgets/leafcanopy"
 local MindControlOver = require "widgets/mindcontrolover"
 local InkOver = require "widgets/inkover"
+local WagpunkUI = require "widgets/wagpunkui"
 local GogglesOver = require "widgets/gogglesover"
 local NutrientsOver = require "widgets/nutrientsover"
+local ScrapMonocleOver = require "widgets/scrapmonocleover"
 local BatOver = require "widgets/batover"
 local FlareOver = require "widgets/flareover"
 local EndOfMatchPopup = require "widgets/redux/endofmatchpopup"
@@ -122,17 +125,23 @@ function PlayerHud:CreateOverlays(owner)
     self.drops_alpha= 0
 
     self.inst:ListenForEvent("moisturedelta", function(inst, data)
-            if data.new > data.old then
+			if owner.components.raindomewatcher ~= nil and owner.components.raindomewatcher:IsUnderRainDome() then
+				self.dropsplash = nil
+				if self.droptask ~= nil then
+					self.droptask:Cancel()
+					self.droptask = nil
+				end
+			elseif data.new > data.old then
                 self.dropsplash = true
                 if self.droptask then
                     self.droptask:Cancel()
-                    self.droptask = nil
                 end
                 self.droptask = self.inst:DoSimTaskInTime(3,function() self.dropsplash = nil end)
             end
         end, owner)
 
     self.leafcanopy = self.overlayroot:AddChild(Leafcanopy(owner))
+    self.raindomeover = self.overlayroot:AddChild(RainDomeOver(owner))
 
     self.storm_root = self.over_root:AddChild(Widget("storm_root"))
     self.storm_overlays = self.storm_root:AddChild(Widget("storm_overlays"))
@@ -163,6 +172,7 @@ function PlayerHud:CreateOverlays(owner)
 
     self.gogglesover = self.overlayroot:AddChild(GogglesOver(owner, self.storm_overlays))
     self.nutrientsover = self.overlayroot:AddChild(NutrientsOver(owner))
+    self.scrapmonocleover = self.overlayroot:AddChild(ScrapMonocleOver(owner))
     self.bloodover = self.overlayroot:AddChild(BloodOver(owner))
     self.beefbloodover = self.overlayroot:AddChild(BeefBloodOver(owner))
     self.iceover = self.overlayroot:AddChild(IceOver(owner))
@@ -172,12 +182,14 @@ function PlayerHud:CreateOverlays(owner)
     self.flareover = self.overlayroot:AddChild(FlareOver(owner))
 
     self.InkOver = self.overlayroot:AddChild(InkOver(owner))
+    self.Wagpunkui = self.overlayroot:AddChild(WagpunkUI(owner))    
 
     self.clouds = self.under_root:AddChild(UIAnim())
     self.clouds.cloudcolour = GetGameModeProperty("cloudcolour") or {1, 1, 1}
     self.clouds:SetClickable(false)
     self.clouds:SetHAnchor(ANCHOR_MIDDLE)
     self.clouds:SetVAnchor(ANCHOR_MIDDLE)
+    self.clouds:SetScaleMode(SCALEMODE_FIXEDSCREEN_NONDYNAMIC)
     self.clouds:GetAnimState():SetBank("clouds_ol")
     self.clouds:GetAnimState():SetBuild("clouds_ol")
     self.clouds:GetAnimState():PlayAnimation("idle", true)
@@ -1021,7 +1033,7 @@ function PlayerHud:OpenSpellWheel(invobject, items, radius, focus_radius)
 			end
 		end
 	end
-	self.controls.spellwheel:SetScale(TheFrontEnd:GetHUDScale())
+	self.controls.spellwheel:SetScale(TheFrontEnd:GetProportionalHUDScale()) --instead of GetHUDScale(), because parent already has SCALEMODE_PROPORTIONAL
 	self.controls.spellwheel:SetItems(itemscpy, radius, focus_radius)
 	self.controls.spellwheel:Open()
 	local old = self.controls.spellwheel.invobject
@@ -1199,6 +1211,11 @@ function PlayerHud:OnControl(control, down)
 			chat_input_screen.chat_edit:SetString("/")
 			TheFrontEnd:PushScreen(chat_input_screen)
 			return true
+		elseif control == CONTROL_START_EMOJI then
+			local chat_input_screen = ChatInputScreen(false)
+			chat_input_screen.chat_edit:SetString(":")
+			TheFrontEnd:PushScreen(chat_input_screen)
+			return true
         end
     elseif control == CONTROL_SHOW_PLAYER_STATUS then
         if not self:IsPlayerAvatarPopUpOpen() or self.playeravatarpopup.settled then
@@ -1265,12 +1282,10 @@ end
 function PlayerHud:OnRawKey(key, down)
     if PlayerHud._base.OnRawKey(self, key, down) then
         return true
-    elseif down and self.shown and key == KEY_SEMICOLON and TheInput:IsKeyDown(KEY_SHIFT) then
-        local chat_input_screen = ChatInputScreen(false)
-        chat_input_screen.chat_edit:SetString(":")
-        TheFrontEnd:PushScreen(chat_input_screen)
-        return true
     end
+    -- NOTES(JBK): Add controls to the files below to allow players to edit bound keys do not use OnRawKey for forced binds unless in dev only.
+    -- strings.lua, constants.lua, playerhud.lua, optionsscreen.lua, DontStarveInputHandler.h, DontStarveInputHandler.cpp, InputDefinitions.h
+    -- I am leaving this function stub here for dev testing only and maybe a mod already hooked it.
 end
 
 local DROPS_ALPHA_INCREASE_RATE = 0.01

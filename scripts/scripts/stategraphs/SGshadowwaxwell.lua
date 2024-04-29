@@ -268,7 +268,7 @@ local states =
 			ToggleOffCharacterCollisions(inst)
 			inst.AnimState:PlayAnimation("minion_spawn")
            -- inst.SoundEmitter:PlaySound("maxwell_rework/shadow_worker/spawn")
-			mult = mult or .8 + math.random() * .2
+			mult = mult or (0.8 + math.random() * 0.2)
 			inst.AnimState:SetDeltaTimeMultiplier(mult)
 
 			mult = 1 / mult
@@ -926,7 +926,7 @@ local states =
             if inst.bufferedaction ~= nil then
                 inst.sg.statemem.action = inst.bufferedaction
                 if inst.bufferedaction.target ~= nil and inst.bufferedaction.target:IsValid() then
-                    inst.bufferedaction.target:PushEvent("startlongaction")
+					inst.bufferedaction.target:PushEvent("startlongaction", inst)
                 end
             end
         end,

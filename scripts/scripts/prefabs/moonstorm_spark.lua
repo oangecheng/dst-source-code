@@ -72,7 +72,6 @@ local function checkforcrowding(inst)
 end
 
 local function onpickup(inst)
-
     --These last longer when held
     inst.components.perishable:SetLocalMultiplier( TUNING.SEG_TIME * 3/ TUNING.PERISH_SLOW )
     inst.SoundEmitter:KillSound("idle_LP")
@@ -127,6 +126,11 @@ end
 
 local function onworked(inst, worker)
     if worker.components.inventory ~= nil then
+
+        if TheWorld.components.moonstormmanager then
+            TheWorld.components.moonstormmanager:DoTestForSparks()
+        end
+
         worker.components.inventory:GiveItem(inst, nil, inst:GetPosition())
         worker.SoundEmitter:PlaySound("dontstarve/common/butterfly_trap")
         inst.SoundEmitter:KillSound("idle_LP")
@@ -166,7 +170,6 @@ local function fn()
     inst.AnimState:SetBuild("charged_particle")
     inst.AnimState:SetBank("charged_particle")
     inst.AnimState:PlayAnimation("idle_flight_loop", true)
-    inst.scrapbook_anim = "idle_flight_loop"
 
     inst.DynamicShadow:Enable(false)
 
@@ -180,6 +183,12 @@ local function fn()
 
     inst:AddTag("show_spoilage")
     inst:AddTag("moonstorm_spark")
+
+    inst.scrapbook_damage = TUNING.LIGHTNING_DAMAGE
+    inst.scrapbook_animpercent = 0.5
+    inst.scrapbook_anim = "idle_flight_loop"
+    inst.scrapbook_animoffsetx = 20
+    inst.scrapbook_animoffsety = 35
 
     inst.entity:SetPristine()
 

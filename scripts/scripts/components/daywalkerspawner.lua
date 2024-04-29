@@ -49,6 +49,7 @@ for k, v in pairs(COLLAPSIBLE_WORK_ACTIONS) do
 end
 local NON_COLLAPSIBLE_TAGS = { "locomotor", "FX", --[["NOCLICK",]] "DECOR", "INLIMBO" }
 local STRUCTURES_TAGS = {"structure", "blocker"}
+local CANT_SPAWN_NEAR_TAGS = {"antlion_sinkhole_blocker"}
 local IS_CLEAR_AREA_RADIUS = TILE_SCALE * 2.5
 local DESTROY_AREA_RADIUS = TILE_SCALE * 2.5
 local NO_PLAYER_RADIUS = 35
@@ -57,7 +58,7 @@ local ARENA_RADIUS = TILE_SCALE * 1.5 -- Must be <= IS_CLEAR_AREA_RADIUS!
 local ARENA_PILLARS = 3
 
 function DayWalkerSpawner:IncrementPowerLevel()
-    self.power_level = math.min(self.power_level + 1, 2) -- TODO(JBK): V2C
+    self.power_level = math.min(self.power_level + 1, 2)
 end
 
 function DayWalkerSpawner:GetPowerLevel()
@@ -133,12 +134,14 @@ function DayWalkerSpawner:FindBestSpawningPoint()
     for i, v in ipairs(self.spawnpoints) do
         x, y, z = v.Transform:GetWorldPosition()
         if self:IsValidSpawningPoint(x, y, z) and not IsAnyPlayerInRange(x, y, z, NO_PLAYER_RADIUS) then
-            local structures = #TheSim:FindEntities(x, y, z, IS_CLEAR_AREA_RADIUS, nil, nil, STRUCTURES_TAGS)
-            if structures == 0 then
-                valid = true -- No structures nearby and roomy for tiles.
-                break
+            if TheSim:FindEntities(x, y, z, IS_CLEAR_AREA_RADIUS, CANT_SPAWN_NEAR_TAGS)[1] == nil then
+                local structures = #TheSim:FindEntities(x, y, z, IS_CLEAR_AREA_RADIUS, nil, nil, STRUCTURES_TAGS)
+                if structures == 0 then
+                    valid = true -- No structures nearby and roomy for tiles.
+                    break
+                end
+                structuresatspawnpoints[v] = structures
             end
-            structuresatspawnpoints[v] = structures
         end
     end
 
@@ -193,6 +196,12 @@ function DayWalkerSpawner:OnDayChange()
         return
     end
 
+    local shard_daywalkerspawner = TheWorld.shard.components.shard_daywalkerspawner
+    if shard_daywalkerspawner ~= nil and shard_daywalkerspawner:GetLocationName() ~= "cavejail" then
+        return
+    end
+
+    --print("OnDayChange", self.days_to_spawn)
     local days_to_spawn = self.days_to_spawn
     if days_to_spawn > 0 then
         self.days_to_spawn = days_to_spawn - 1
@@ -213,6 +222,7 @@ function DayWalkerSpawner:WatchDaywalker(daywalker)
     self.inst:ListenForEvent("onremove", function()
 		if self.daywalker.defeated then
 			self:IncrementPowerLevel()
+            Shard_SyncBossDefeated("daywalker")
 		end
         self.daywalker = nil
     end, self.daywalker)
@@ -221,6 +231,10 @@ end
 function DayWalkerSpawner:OnPostInit()
     if TUNING.SPAWN_DAYWALKER then
         self:WatchWorldState("cycles", self.OnDayChange)
+        if self.days_to_spawn <= 0 then
+            -- NOTES(JBK): Try to do a spawn in this case it means the component has yet to try to spawn one or failed to spawn one in an attempt.
+            self:OnDayChange()
+        end
     end
 end
 

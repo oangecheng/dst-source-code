@@ -168,7 +168,7 @@ function FindSafeSpawnLocation(x, y, z)
 end
 
 function FindNearbyLand(position, range)
-    local finaloffset = FindValidPositionByFan(math.random() * 2 * PI, range or 8, 8, function(offset)
+    local finaloffset = FindValidPositionByFan(math.random() * TWOPI, range or 8, 8, function(offset)
         local x, z = position.x + offset.x, position.z + offset.z
         return TheWorld.Map:IsAboveGroundAtPoint(x, 0, z)
             and not TheWorld.Map:IsPointNearHole(Vector3(x, 0, z))
@@ -181,7 +181,7 @@ function FindNearbyLand(position, range)
 end
 
 function FindNearbyOcean(position, range)
-    local finaloffset = FindValidPositionByFan(math.random() * 2 * PI, range or 8, 8, function(offset)
+    local finaloffset = FindValidPositionByFan(math.random() * TWOPI, range or 8, 8, function(offset)
         local x, z = position.x + offset.x, position.z + offset.z
         return TheWorld.Map:IsOceanAtPoint(x, 0, z)
             and not TheWorld.Map:IsPointNearHole(Vector3(x, 0, z))
@@ -196,7 +196,7 @@ end
 function GetRandomInstWithTag(tag, inst, radius)
     local x, y, z = inst.Transform:GetWorldPosition()
     local ents = TheSim:FindEntities(x, y, z, radius, type(tag) == "string" and { tag } or tag)
-    return #ents > 0 and ents[math.random(1, #ents)] or nil
+    return (#ents > 0 and ents[math.random(1, #ents)]) or nil
 end
 
 function GetClosestInstWithTag(tag, inst, radius)
@@ -208,8 +208,8 @@ end
 function DeleteCloseEntsWithTag(tag, inst, radius)
     local x, y, z = inst.Transform:GetWorldPosition()
     local ents = TheSim:FindEntities(x, y, z, radius, type(tag) == "string" and { tag } or tag)
-    for i, v in ipairs(ents) do
-        v:Remove()
+    for _, ent in ipairs(ents) do
+        ent:Remove()
     end
 end
 
@@ -330,13 +330,17 @@ local PICKUP_CANT_TAGS = {
     "minesprung", "mineactive", "catchable",
     "fire", "light", "spider", "cursed", "paired", "bundle",
     "heatrock", "deploykititem", "boatbuilder", "singingshell",
-    "archive_lockbox", "simplebook",
+    "archive_lockbox", "simplebook", "furnituredecor",
     -- Pickables
     "flower", "gemsocket", "structure",
     -- Either
     "donotautopick",
 }
-local function FindPickupableItem_filter(v, ba, owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, ispickable, worker)
+local function FindPickupableItem_filter(v, ba, owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, ispickable, worker, extra_filter)
+    if extra_filter ~= nil and not extra_filter(worker, v, owner) then
+        return false
+    end
+    
     if AllBuilderTaggedRecipes[v.prefab] then
         return false
     end
@@ -383,10 +387,11 @@ local function FindPickupableItem_filter(v, ba, owner, radius, furthestfirst, po
     if ba ~= nil and ba.target == v and (ba.action == ACTIONS.PICKUP or ba.action == ACTIONS.CHECKTRAP or ba.action == ACTIONS.PICK) then
         return false
     end
+
     return v, ispickable
 end
 -- This function looks for an item on the ground that could be ACTIONS.PICKUP (or ACTIONS.CHECKTRAP if a trap) by the owner and subsequently put into the owner's inventory.
-function FindPickupableItem(owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, worker)
+function FindPickupableItem(owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, worker, extra_filter)
     if owner == nil or owner.components.inventory == nil then
         return nil
     end
@@ -405,7 +410,7 @@ function FindPickupableItem(owner, radius, furthestfirst, positionoverride, igno
     for i = istart, iend, idiff do
         local v = ents[i]
         local ispickable = v:HasTag("pickable")
-        if FindPickupableItem_filter(v, ba, owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, ispickable, worker) then
+        if FindPickupableItem_filter(v, ba, owner, radius, furthestfirst, positionoverride, ignorethese, onlytheseprefabs, allowpickables, ispickable, worker, extra_filter) then
             return v, ispickable
         end
     end
@@ -469,8 +474,11 @@ function CanEntitySeeTarget(inst, target)
     return CanEntitySeePoint(inst, x, y, z)
 end
 
-function SpringCombatMod(amount)
-    return TheWorld.state.isspring and amount * TUNING.SPRING_COMBAT_MOD or amount
+function SpringCombatMod(amount, forced) -- NOTES(JBK): This is an amplification modifier to increase damage.
+    return (forced or TheWorld.state.isspring) and amount * TUNING.SPRING_COMBAT_MOD or amount
+end
+function SpringGrowthMod(amount, forced) -- NOTES(JBK): This is a reduction modifier to reduce timer durations.
+    return (forced or TheWorld.state.isspring) and amount * TUNING.SPRING_GROWTH_MODIFIER or amount
 end
 
 function TemporarilyRemovePhysics(obj, time)
@@ -489,6 +497,9 @@ function ErodeAway(inst, erode_time)
 
     if inst.DynamicShadow ~= nil then
         inst.DynamicShadow:Enable(false)
+    end
+    if inst.components.floater ~= nil then
+        inst.components.floater:Erode(time_to_erode)
     end
 
     inst:StartThread(function()
@@ -608,10 +619,152 @@ function GetInventoryItemAtlas(imagename, no_fallback)
 	return atlas
 end
 
-function GetScrapbookIconAtlas(imagename)
-    local images1 = "images/scrapbook_icons1.xml"
-    local images2 = "images/scrapbook_icons2.xml"
+----------------------------------------------------------------------------------------------
+function GetMinimapAtlas_Internal(imagename)
+    local images1 = "minimap/minimap_data1.xml"
+    local images2 = "minimap/minimap_data2.xml"
     return TheSim:AtlasContains(images1, imagename) and images1
             or TheSim:AtlasContains(images2, imagename) and images2
             or nil
 end
+
+local minimapAtlasLookup = {}
+function GetMinimapAtlas(imagename)
+	local atlas = minimapAtlasLookup[imagename]
+	if atlas then
+		return atlas
+	end
+
+    atlas = GetMinimapAtlas_Internal(imagename)
+
+	if atlas ~= nil then
+		minimapAtlasLookup[imagename] = atlas
+	end
+
+	return atlas
+end
+
+----------------------------------------------------------------------------------------------
+
+local scrapbookIconAtlasLookup = {}
+
+function RegisterScrapbookIconAtlas(atlas, imagename)
+	if atlas ~= nil and imagename ~= nil then
+		if scrapbookIconAtlasLookup[imagename] ~= nil then
+			if scrapbookIconAtlasLookup[imagename] ~= atlas then
+				print("RegisterScrapbookIconAtlas: Image '" .. imagename .. "' is already registered to atlas '" .. atlas .."'")
+			end
+		else
+			scrapbookIconAtlasLookup[imagename] = atlas
+		end
+	end
+end
+
+function GetScrapbookIconAtlas_Internal(imagename)
+    local images1 = "images/scrapbook_icons1.xml"
+    local images2 = "images/scrapbook_icons2.xml"
+    local images3 = "images/scrapbook_icons3.xml"
+    return TheSim:AtlasContains(images1, imagename) and images1
+            or TheSim:AtlasContains(images2, imagename) and images2
+            or TheSim:AtlasContains(images3, imagename) and images3
+            or nil
+end
+
+function GetScrapbookIconAtlas(imagename)
+	local atlas = scrapbookIconAtlasLookup[imagename]
+	if atlas then
+		return atlas
+	end
+
+    atlas = GetScrapbookIconAtlas_Internal(imagename)
+
+	if atlas ~= nil then
+		scrapbookIconAtlasLookup[imagename] = atlas
+	end
+
+	return atlas
+end
+
+----------------------------------------------------------------------------------------------
+
+local skillTreeBGAtlasLookup = {}
+
+function RegisterSkilltreeBGAtlas(atlas, imagename)
+	if atlas ~= nil and imagename ~= nil then
+		if skillTreeBGAtlasLookup[imagename] ~= nil then
+			if skillTreeBGAtlasLookup[imagename] ~= atlas then
+				print("RegisterSkilltreeBGAtlas: Image '" .. imagename .. "' is already registered to atlas '" .. atlas .."'")
+			end
+		else
+			skillTreeBGAtlasLookup[imagename] = atlas
+		end
+	end
+end
+
+function GetSkilltreeBG_Internal(imagename)
+    local images1 = "images/skilltree2.xml"
+    local images2 = "images/skilltree3.xml"
+    local images3 = "images/skilltree4.xml"
+    return TheSim:AtlasContains(images1, imagename) and images1
+            or TheSim:AtlasContains(images2, imagename) and images2
+            or TheSim:AtlasContains(images3, imagename) and images3
+            or nil
+end
+
+function GetSkilltreeBG(imagename)
+	local atlas = skillTreeBGAtlasLookup[imagename]
+	if atlas then
+		return atlas
+	end
+
+    atlas = GetSkilltreeBG_Internal(imagename)
+
+	if atlas ~= nil then
+		skillTreeBGAtlasLookup[imagename] = atlas
+	end
+
+	return atlas
+end
+
+local skillTreeIconsAtlasLookup = {}
+
+function RegisterSkilltreeIconsAtlas(atlas, imagename)
+	if atlas ~= nil and imagename ~= nil then
+		if skillTreeIconsAtlasLookup[imagename] ~= nil then
+			if skillTreeIconsAtlasLookup[imagename] ~= atlas then
+				print("RegisterSkilltreeIconsAtlas: Image '" .. imagename .. "' is already registered to atlas '" .. atlas .."'")
+			end
+		else
+			skillTreeIconsAtlasLookup[imagename] = atlas
+		end
+	end
+end
+
+function GetSkilltreeIconAtlas_Internal(imagename)
+    return "images/skilltree_icons.xml"
+
+    -- NOTES(DiogoW): For future!
+
+    -- local images1 = "images/skilltree_icons1.xml"
+    -- local images2 = "images/skilltree_icons2.xml"
+    -- return TheSim:AtlasContains(images1, imagename) and images1
+    --         or TheSim:AtlasContains(images2, imagename) and images2
+    --         or nil
+end
+
+function GetSkilltreeIconAtlas(imagename)
+	local atlas = skillTreeIconsAtlasLookup[imagename]
+	if atlas then
+		return atlas
+	end
+
+    atlas = GetSkilltreeIconAtlas_Internal(imagename)
+
+	if atlas ~= nil then
+		skillTreeIconsAtlasLookup[imagename] = atlas
+	end
+
+	return atlas
+end
+
+----------------------------------------------------------------------------------------------

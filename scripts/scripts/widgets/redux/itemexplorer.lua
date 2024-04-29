@@ -451,6 +451,11 @@ function ItemExplorer:DoShopForDefaultItem(default_item_key)
 end
 
 function ItemExplorer:_LaunchCommerce()
+    if self.launched_commerce then
+        print("Already launched commerce before?")
+        return
+    end
+    self.launched_commerce = true
     local item_key = self.last_interaction_target.item_key
     if WillUnravelBreakRestrictedCharacter( item_key ) then
         local data = GetSkinData(item_key)
@@ -461,7 +466,7 @@ function ItemExplorer:_LaunchCommerce()
 			STRINGS.UI.BARTERSCREEN.UNRAVEL_WARNING_TITLE,
 			body,
 			{{ text = STRINGS.UI.BARTERSCREEN.OK, cb = function() self:_DoCommerce(item_key) TheFrontEnd:PopScreen(scr) end },
-			 { text = STRINGS.UI.BARTERSCREEN.CANCEL, cb = function() TheFrontEnd:PopScreen(scr) end }})
+			 { text = STRINGS.UI.BARTERSCREEN.CANCEL, cb = function() TheFrontEnd:PopScreen(scr) self.launched_commerce = nil end }})
 		scr.owned_by_wardrobe = true
 		TheFrontEnd:PushScreen(scr)
 		return
@@ -473,7 +478,7 @@ function ItemExplorer:_LaunchCommerce()
 			STRINGS.UI.BARTERSCREEN.UNRAVEL_WARNING_TITLE,
 			body,
 			{{ text = STRINGS.UI.BARTERSCREEN.OK, cb = function() self:_DoCommerce(item_key) TheFrontEnd:PopScreen(scr) end },
-			 { text = STRINGS.UI.BARTERSCREEN.CANCEL, cb = function() TheFrontEnd:PopScreen(scr) end }})
+			 { text = STRINGS.UI.BARTERSCREEN.CANCEL, cb = function() TheFrontEnd:PopScreen(scr) self.launched_commerce = nil end }})
 		scr.owned_by_wardrobe = true
 		TheFrontEnd:PushScreen(scr)
 		return
@@ -487,6 +492,7 @@ function ItemExplorer:_DoCommerce(item_key)
     local cached_data = self.last_interaction_target --we need to cache the last_interaction_target as it may have been nil'd on the refresh when the screen becomes active again
 
     local barter_screen = BarterScreen(self.scroll_list.context.user_profile, self, item_key, is_buying, cached_data.owned_count, function()
+        self.launched_commerce = nil
         -- We completed a barter and now our screens contain old inventory data.
         if not is_buying and cached_data.owned_count <= 1 then
             -- Selling our last one. Fake a click to turn it off. We can't click the widget because the interaction target may not be on screen (and thus not in a widget).
@@ -924,13 +930,13 @@ function ItemExplorer:OnControl(control, down)
 	if ItemExplorer._base.OnControl(self, control, down) then return true end
 
     if self.last_interaction_target then
-        if not down and control == CONTROL_INSPECT then
+        if not down and control == CONTROL_MENU_MISC_2 then
             -- A bit confusing because interaction target doesn't move with focus! Could click focused widget automatically, but that's inconsistent with mouse controls.
             if self.can_do_commerce then
                 self:_LaunchCommerce()
                 return true
             end
-        elseif not down and control == CONTROL_OPEN_INVENTORY and TheInput:ControllerAttached() then
+        elseif not down and control == CONTROL_MENU_R2 and TheInput:ControllerAttached() then
             -- Hitting Esc fires both Pause and Cancel, so keyboard users will need to click buttons instead.
 			if self.can_show_steam then
                 self:_ShowMarketplaceForInteractTarget()
@@ -943,7 +949,7 @@ function ItemExplorer:OnControl(control, down)
 					end, nil )
                 return true
 			end
-        elseif not down and control == CONTROL_MAP then
+        elseif not down and control == CONTROL_MENU_BACK then
             if self.should_show_set_info then
                 self:_ShowItemSetInfo()
             end
@@ -957,17 +963,17 @@ function ItemExplorer:GetHelpText()
 
     if self.last_interaction_target then
         if self.can_do_commerce then
-            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_INSPECT) .. " " .. GetCommerceText(self.last_interaction_target))
+            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_MISC_2) .. " " .. GetCommerceText(self.last_interaction_target))
         end
 
         if self.should_show_set_info then
-            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_MAP) .. " " .. STRINGS.UI.COLLECTIONSCREEN.SET_INFO)
+            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_BACK) .. " " .. STRINGS.UI.COLLECTIONSCREEN.SET_INFO)
         end
 
 		if self.can_show_steam then
-            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_OPEN_INVENTORY ) .. " " .. STRINGS.UI.COLLECTIONSCREEN.VIEW_MARKET)
+            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_R2 ) .. " " .. STRINGS.UI.COLLECTIONSCREEN.VIEW_MARKET)
         elseif self.can_show_pack then
-            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_OPEN_INVENTORY ) .. " " .. STRINGS.UI.PLAYERSUMMARYSCREEN.PURCHASE)
+            table.insert(t,  TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_R2 ) .. " " .. STRINGS.UI.PLAYERSUMMARYSCREEN.PURCHASE)
 		end
     end
 

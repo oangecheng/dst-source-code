@@ -1,5 +1,3 @@
-
-
 local WEED_DEFS = require("prefabs/weed_defs").WEED_DEFS
 
 local function ontendto(inst, doer)
@@ -419,7 +417,10 @@ local function GetDisplayName(inst)
 	local registry_key = inst:GetPlantRegistryKey()
 	local research_stage = inst:GetResearchStage()
 
-	return not ThePlantRegistry:KnowsPlantName(registry_key, plantregistryinfo, research_stage) and STRINGS.NAMES.FARM_PLANT_UNKNOWN
+    local player_is_farmplantidentifier = (ThePlayer ~= nil and ThePlayer:HasTag("farmplantidentifier"))
+	local knows_plant_name = (player_is_farmplantidentifier or ThePlantRegistry:KnowsPlantName(registry_key, plantregistryinfo, research_stage))
+
+	return (not knows_plant_name and STRINGS.NAMES.FARM_PLANT_UNKNOWN)
 		or nil
 end
 
@@ -502,7 +503,6 @@ local function MakeWeed(weed_def)
         inst:AddTag("farm_plant")
 		inst:AddTag("farm_plant_killjoy")
 		inst:AddTag("weed")
-        inst:AddTag("lunarplant_target")
 		inst:AddTag("plant")
 		inst:AddTag("plantresearchable")
 		inst:AddTag("weedplantstress")
@@ -531,6 +531,9 @@ local function MakeWeed(weed_def)
         if not TheWorld.ismastersim then
             return inst
         end
+
+		inst.scrapbook_overridedata= {"soil01", "farm_soil", "soil01"}
+		inst.scrapbook_anim = "crop_full"
 
 		inst.UpdateResearchStage = UpdateResearchStage
 
@@ -576,6 +579,8 @@ local function MakeWeed(weed_def)
 			inst.components.burnable:SetOnIgniteFn(onignite)
 			inst.components.burnable:SetOnExtinguishFn(onextinguish)
 		end
+
+		MakeWaxablePlant(inst)
 
 		inst.OnSave = OnSave
 		inst.OnPreLoad = OnPreLoad

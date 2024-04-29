@@ -14,7 +14,6 @@ local LOCKSIZE = 24
 local SPACE = 5 
 
 local ATLAS = "images/skilltree.xml"
-local ATLAS_ICONS = "images/skilltree_icons.xml"
 local IMAGE_LOCKED = "locked.tex"
 local IMAGE_LOCKED_OVER = "locked_over.tex"
 local IMAGE_UNLOCKED = "unlocked.tex"
@@ -136,51 +135,61 @@ function SkillTreeBuilder:GetDefaultFocus()
 	end
 end
 
-function SkillTreeBuilder:SetFocusChangeDirs()
+local function GetFocusChangeButton(self, current, fn, boost_dir)
+	local list = {}
 
-	local function getButton(current,fn)
-		local list = {}
-		for i,data in ipairs(self.buttongrid) do
-			if fn(current,data) and current ~= data then
-				table.insert(list,data)
-			end
+	for i, data in ipairs(self.buttongrid) do
+		if current ~= data and fn(current,data) then
+			table.insert(list, data)
 		end
-		local choice = nil
-		local currentdist = math.huge
-		if #list > 0 then
-			for i=#list,1,-1 do
-				local xdiff = math.abs(list[i].x - current.x)
-				local ydiff = math.abs(list[i].y - current.y)
-				local dist = (xdiff*xdiff) + (ydiff*ydiff)
-
-				if dist < currentdist then
-					choice = list[i]
-					currentdist = dist
-				end
-			end
-		end
-		
-		return choice and choice.button or nil
 	end
 
-	--find the button absolute positions relative to the skill tree widget
-	for i,data in ipairs(self.buttongrid) do
+	local choice = nil
+	local currentdist = math.huge
+
+	if #list > 0 then
+		for i=#list, 1, -1 do
+			local xdiff = math.abs(list[i].x - current.x) * (boost_dir == "X" and 0.65 or 1)
+			local ydiff = math.abs(list[i].y - current.y) * (boost_dir == "Y" and 0.65 or 1)
+			local dist = (xdiff*xdiff) + (ydiff*ydiff)
+
+			if dist < currentdist then
+				choice = list[i]
+				currentdist = dist
+			end
+		end
+	end
+	
+	return choice and choice.button or nil
+end
+
+function SkillTreeBuilder:SetFocusChangeDirs()
+	-- Find the button absolute positions relative to the skill tree widget.
+	for i, data in ipairs(self.buttongrid) do
 		data.x = data.x + data.button.parent:GetPosition().x
 		data.y = data.y + data.button.parent:GetPosition().y
 	end
 
-	for i,data in ipairs(self.buttongrid) do
-		local up = getButton(data, function(a,b) return b.y > a.y and math.abs(b.x - a.x) <= TILEUNIT/0.5 end)
-		if up then data.button:SetFocusChangeDir(MOVE_UP, up) end
+	for i, data in ipairs(self.buttongrid) do
+		local up = GetFocusChangeButton(self, data, function(a,b) return b.y > a.y and math.abs(b.x - a.x) <= TILEUNIT/0.5 end, "Y")
+		if up ~= nil then
+			data.button:SetFocusChangeDir(MOVE_UP, up)
+		end
 		
-		local down = getButton(data,function(a,b) return b.y < a.y and math.abs(b.x - a.x) <= TILEUNIT/0.5 end)
-		if down then data.button:SetFocusChangeDir(MOVE_DOWN, down) end
+		local down = GetFocusChangeButton(self, data, function(a,b) return b.y < a.y and math.abs(b.x - a.x) <= TILEUNIT/0.5 end, "Y")
+		if down ~= nil then
+			data.button:SetFocusChangeDir(MOVE_DOWN, down)
+		end
 
-		local left = getButton(data,function(a,b) return b.x < a.x and math.abs(b.y - a.y) <= TILEUNIT/0.5 end)
-		if left then data.button:SetFocusChangeDir(MOVE_LEFT, left) end
+		local left = GetFocusChangeButton(self, data, function(a,b) return b.x < a.x and math.abs(b.y - a.y) <= TILEUNIT/0.5 end, "X")
+		if left ~= nil then
+			data.button:SetFocusChangeDir(MOVE_LEFT, left)
+		end
 
-		local right = getButton(data,function(a,b) return b.x > a.x and math.abs(b.y - a.y) <= TILEUNIT/0.5 end)
-		if right then data.button:SetFocusChangeDir(MOVE_RIGHT, right) end
+		local right = GetFocusChangeButton(self, data, function(a,b) return b.x > a.x and math.abs(b.y - a.y) <= TILEUNIT/0.5 end, "X")
+		if right ~= nil then
+			data.button:SetFocusChangeDir(MOVE_RIGHT, right)
+		end
 	end
 end
 
@@ -224,7 +233,8 @@ function SkillTreeBuilder:buildbuttons(panel,pos,data, offset)
 		end)
 
 		if subdata.icon then
-			skillicon = skillbutton:AddChild(Image(ATLAS_ICONS,subdata.icon..".tex"))
+			local tex = subdata.icon..".tex"
+			skillicon = skillbutton:AddChild(Image( GetSkilltreeIconAtlas(tex), tex ))
 			skillicon:ScaleToSize(TILESIZE-4, TILESIZE-4)
 			skillicon:MoveToFront()
 		end
@@ -325,7 +335,7 @@ function getdesc(skill, prefabname)
 end
 
 function SkillTreeBuilder:RefreshTree()
-    local characterprefab, availableskillpoints, skillselection, skilltreeupdater
+    local characterprefab, availableskillpoints, activatedskills, skilltreeupdater
     local frontend = self.fromfrontend
     local readonly = self.readonly
 
@@ -334,7 +344,7 @@ function SkillTreeBuilder:RefreshTree()
         self.root.xp:Hide()
 
         characterprefab = self.targetdata.prefab
-        skillselection = TheSkillTree:GetNamesFromSkillSelection(self.targetdata.skillselection, characterprefab)
+        activatedskills = TheSkillTree:GetNamesFromSkillSelection(self.targetdata.skillselection, characterprefab)
         availableskillpoints = 0
     else
     	characterprefab = self.target
@@ -348,10 +358,13 @@ function SkillTreeBuilder:RefreshTree()
     	end
 
         if skilltreeupdater == nil then
+            print("Weird state for skilltreebuilder missing skilltreeupdater component?")
             return -- FIXME(JBK): See if this panel should disappear at this time?
         end
 
         availableskillpoints = skilltreeupdater:GetAvailableSkillPoints(characterprefab)
+        -- NOTES(JBK): This is not readonly so the player accessing it has access to its state and it is safe to assume TheSkillTree here.
+        activatedskills = TheSkillTree:GetActivatedSkills(characterprefab)
     end
     
 	local function make_connected_clickable(skill)
@@ -378,13 +391,13 @@ function SkillTreeBuilder:RefreshTree()
 
 	for skill,graphics in pairs(self.skillgraphics) do
         if readonly then
-            if skillselection[skill] then
+            if activatedskills[skill] then
                 graphics.status.activated = true
                 --make_connected_clickable(skill)
             end
             if self.skilltreedef[skill].lock_open then
             	graphics.status.lock = true
-            	local lockstatus = self.skilltreedef[skill].lock_open(self.target, skillselection)
+            	local lockstatus = self.skilltreedef[skill].lock_open(characterprefab, activatedskills, readonly)
 				graphics.status.lock_open = lockstatus
 				
 			end
@@ -392,7 +405,7 @@ function SkillTreeBuilder:RefreshTree()
         	if self.skilltreedef[skill].lock_open then
         		-- MARK LOCKS and ACTIVATE CONNECTED ITEMS WHEN NOT LOCKED
 				graphics.status.lock = true
-				if self.skilltreedef[skill].lock_open(self.target) then
+				if self.skilltreedef[skill].lock_open(characterprefab, activatedskills, readonly) then
 					graphics.status.lock_open = true
 					make_connected_clickable(skill)
 				end
@@ -473,7 +486,7 @@ function SkillTreeBuilder:RefreshTree()
 	end
 
 	self.root.xptotal:SetString(availableskillpoints)
-	if availableskillpoints <= 0 and TheSkillTree:GetSkillXP(characterprefab) >= TheSkillTree:GetMaximumExperiencePoints() then
+	if availableskillpoints <= 0 and TheSkillTree:GetSkillXP(characterprefab) >= TUNING.FIXME_DO_NOT_USE_FOR_MODS_NEW_MAX_XP_VALUE then -- >= TheSkillTree:GetMaximumExperiencePoints() then
 		self.root.xp_tospend:SetString(STRINGS.SKILLTREE.KILLPOINTS_MAXED)
 		local w, h = self.root.xp_tospend:GetRegionSize()
    		self.root.xp_tospend:SetPosition(30+(w/2),-3)		
@@ -495,9 +508,10 @@ function SkillTreeBuilder:RefreshTree()
 		self.infopanel.activatebutton:Hide()
 		self.infopanel.activatedtext:Hide()
 		self.infopanel.respec_button:Hide()
+		self.infopanel.activatedbg:Hide()
 
 		if self.fromfrontend then
-            if skilltreedefs.FN.CountSkills(self.target) > 0 then
+            if skilltreedefs.FN.CountSkills(self.target, activatedskills) > 0 then
                 self.infopanel.respec_button:Show()
             end
             if self.sync_status then
@@ -519,7 +533,8 @@ function SkillTreeBuilder:RefreshTree()
             if not readonly then
                 if availableskillpoints > 0 and self.skillgraphics[self.selectedskill].status.activatable and not skilltreeupdater:IsActivated(self.selectedskill, characterprefab) and not self.skilltreedef[self.selectedskill].lock_open then
 
-                    self.infopanel.activatebutton:Show()
+                	self.infopanel.activatedbg:Hide()
+                    self.infopanel.activatebutton:Show()                    
                     self.infopanel.activatebutton:SetOnClick(function()
                     	self:LearnSkill(skilltreeupdater,characterprefab)
                     end)
@@ -532,6 +547,7 @@ function SkillTreeBuilder:RefreshTree()
 
 			if self.skillgraphics[self.selectedskill].status.activated then
 				self.infopanel.activatedtext:Show()
+				self.infopanel.activatedbg:Show()
 			end
 		else
 			self.infopanel.desc:SetMultilineTruncatedString(STRINGS.SKILLTREE.INFOPANEL_DESC, 3, 240, nil,nil,true,6)
@@ -545,8 +561,6 @@ function SkillTreeBuilder:LearnSkill(skilltreeupdater, characterprefab)
 			return
 		end
 	    skilltreeupdater:ActivateSkill(self.selectedskill, characterprefab)
-	    
-	    TheFrontEnd:GetSound():PlaySound("wilson_rework/ui/skill_mastered") -- wilson_rework/ui/skill_mastered
 
 	    local pos = self.skillgraphics[self.selectedskill].button:GetPosition()
 	    local clickfx = self:AddChild(UIAnim())
@@ -556,9 +570,20 @@ function SkillTreeBuilder:LearnSkill(skilltreeupdater, characterprefab)
 	    clickfx.inst:ListenForEvent("animover", function() clickfx:Kill() end)
 	    clickfx:SetPosition(pos.x,pos.y + 15)
 
-	    if  skilltreedefs.FN.SkillHasTags( self.selectedskill, "shadow", self.target) or skilltreedefs.FN.SkillHasTags( self.selectedskill, "lunar", self.target) then
+		local isshadow = skilltreedefs.FN.SkillHasTags( self.selectedskill, "shadow_favor", self.target)
+		local islunar =  skilltreedefs.FN.SkillHasTags( self.selectedskill, "lunar_favor",  self.target)
+
+		local sound = 
+			(isshadow and "wilson_rework/ui/shadow_skill") or
+			(islunar  and "wilson_rework/ui/lunar_skill") or
+			"wilson_rework/ui/skill_mastered"
+			
+		TheFrontEnd:GetSound():PlaySound(sound)
+
+	    if isshadow or islunar then
 	    	self.skilltreewidget:SpawnFavorOverlay(true)
 		end
+
 	    self:RefreshTree()
 	end
 end

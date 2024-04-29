@@ -336,6 +336,13 @@ local function OnChangeLeaves(inst, monster, monsterout)
     else
         inst:RemoveTag("shelter")
     end
+
+    if monster then
+        inst:RemoveComponent("waxable")
+
+    elseif inst.components.waxable == nil then
+        MakeWaxablePlant(inst)
+    end
 end
 
 local function ChangeSizeFn(inst)
@@ -595,7 +602,7 @@ local function chop_down_tree(inst, chopper)
 
     inst:DoTaskInTime(.4, chop_down_tree_shake)
 
-    inst.AnimState:PushAnimation(inst.anims.stump)
+    inst.AnimState:PushAnimation(inst.anims.stump, false)
 
     make_stump(inst)
 end
@@ -1096,6 +1103,13 @@ local function onload(inst, data)
             Sway(inst)
         end
     end
+
+    if inst.monster then
+        inst:RemoveComponent("waxable")
+
+    elseif inst.components.waxable == nil then
+        MakeWaxablePlant(inst)
+    end
 end
 
 local function OnSeasonChanged(inst, season)
@@ -1257,9 +1271,12 @@ local function makefn(build, stage, data)
             inst.AnimState:OverrideSymbol("swap_leaves", GetBuild(inst).leavesbuild, "swap_leaves")
         end
 
-        inst.scrapbook_overridedata={"swap_leaves", "tree_leaf_green_build", "swap_leaves"}
-
         inst:SetPrefabName(GetBuild(inst).prefab_name)
+
+        inst.scrapbook_specialinfo = "TREE"
+        inst.scrapbook_overridedata={"swap_leaves", "tree_leaf_green_build", "swap_leaves"}
+        inst.scrapbook_proxy = "deciduoustree_tall"
+        inst.scrapbook_speechname = inst.prefab
 
         MakeSnowCoveredPristine(inst)
 
@@ -1335,6 +1352,8 @@ local function makefn(build, stage, data)
         inst:WatchWorldState("season", OnSeasonChanged)
 
         inst.leaf_state = "normal"
+
+        MakeWaxablePlant(inst)
 
         inst.StartMonster = StartMonster
         inst.StopMonster = StopMonster

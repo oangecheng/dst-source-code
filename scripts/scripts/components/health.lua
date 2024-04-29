@@ -159,7 +159,7 @@ end
 local FIRE_TIMEOUT = .5
 
 function Health:GetFireDamageScale()
-    return self.fire_damage_scale * self.externalfiredamagemultipliers:Get()
+    return self.fire_damage_scale * self.externalfiredamagemultipliers:Get() * (self.inst.components.burnable and self.inst.components.burnable:GetControlledBurn() and self.inst.components.burnable:GetControlledBurn().damage or 1)
 end
 
 function Health:DoFireDamage(amount, doer, instant)
@@ -272,7 +272,7 @@ function Health:StopRegen()
 end
 
 function Health:SetPenalty(penalty)
-    print("Health:SetPenalty", self.disable_penalty)
+    --print("Health:SetPenalty", self.disable_penalty)
 	if not self.disable_penalty then
 		--Penalty should never be less than 0% or ever above 75%.
 		self.penalty = math.clamp(penalty, 0, TUNING.MAXIMUM_HEALTH_PENALTY)
@@ -297,6 +297,8 @@ function Health:GetPercentWithPenalty()
 end
 
 function Health:IsInvincible()
+	--V2C: don't use "temp_invincible" for players, since they also need to use
+	--     "invincibletoggle" event, which doesn't work with "temp_invincible".
     return self.invincible or (self.inst.sg and self.inst.sg:HasStateTag("temp_invincible"))
 end
 

@@ -67,6 +67,8 @@ local function fn()
     inst.AnimState:SetBank("static_contained")
     inst.AnimState:PlayAnimation("idle", true)
 
+    inst.scrapbook_specialinfo = "MOONSTORMSTATIC"
+
     inst.DynamicShadow:Enable(true)
     inst.DynamicShadow:SetSize(1, .5)
 
@@ -118,11 +120,13 @@ local function itemfn()
 
     inst.AnimState:SetBank("static_contained")
     inst.AnimState:SetBuild("static_ball_contained")
-    inst.AnimState:PlayAnimation("finish_idle")
+    inst.AnimState:PlayAnimation("finish_idle", true)
 
     inst:AddTag("moonstorm_static")
 
     MakeInventoryFloatable(inst, "med", 0.05, 0.68)
+
+    inst.scrapbook_anim = "finish_idle"
 
     inst.entity:SetPristine()
 
@@ -133,6 +137,9 @@ local function itemfn()
     inst.SoundEmitter:PlaySound("moonstorm/common/static_ball_contained/finished_idle_LP","loop")
 
     inst:AddComponent("tradable")
+
+    inst:AddComponent("upgrader")
+    inst.components.upgrader.upgradetype = UPGRADETYPES.SPEAR_LIGHTNING
 
     inst:AddComponent("inspectable")
 

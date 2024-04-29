@@ -16,14 +16,12 @@ local prefabs =
 {
     "twigs",
     "dug_sapling",
-    "spoiled_food",
 }
 
 local moon_prefabs =
 {
     "twigs",
     "dug_sapling_moon",
-    "spoiled_food",
 }
 
 local function ontransplantfn(inst)
@@ -162,6 +160,8 @@ local function sapling_common(inst, is_moon)
     MakeSmallPropagator(inst)
     MakeNoGrowInWinter(inst)
     MakeHauntableIgnite(inst)
+    MakeWaxablePlant(inst)
+
     ---------------------
     inst._is_moon = is_moon
 

@@ -203,17 +203,12 @@ function Entity:AddNetwork()
     end
 end
 
--------------------------------------------
---Replica components container with overriden accessor
-
-local Replica = Class(function(self, inst)
-    self.inst = inst
-    self._ = {}
-end)
-
-function Replica:__index(name)
-    return self._[name] == nil and getmetatable(self)[name] or self.inst:ValidateReplicaComponent(name, self._[name])
-end
+local replica_mt =
+{
+	__index = function(t, k)
+		return rawget(t, "inst"):ValidateReplicaComponent(k, rawget(t, "_")[k])
+	end,
+}
 
 EntityScript = Class(function(self, entity)
     self.entity = entity
@@ -241,7 +236,10 @@ EntityScript = Class(function(self, entity)
     self.platformfollowers = nil
 
     self.actionreplica = nil
-    self.replica = Replica(self)
+
+	--Replica components container with overriden accessor
+	self.replica = { _ = {}, inst = self }
+	setmetatable(self.replica, replica_mt)
 end)
 
 function EntityScript:GetSaveRecord()
@@ -556,23 +554,25 @@ function EntityScript:HasTag(tag)
     return self.entity:HasTag(tag)
 end
 
-function EntityScript:HasTags(tags)
-	for i = 1, #tags do
-		if not self.entity:HasTag(tags[i]) then
-			return false
-		end
-	end
-	return true
+function EntityScript:HasTags(...)
+    local tags = select(1, ...)
+    if type(tags) == "table" then
+        return self.entity:HasAllTags(unpack(tags))
+    else
+        return self.entity:HasAllTags(...)
+    end
 end
+EntityScript.HasAllTags = EntityScript.HasTags
 
-function EntityScript:HasOneOfTags(tags)
-	for i = 1, #tags do
-		if self.entity:HasTag(tags[i]) then
-			return true
-		end
-	end
-	return false
+function EntityScript:HasOneOfTags(...)
+    local tags = select(1, ...)
+    if type(tags) == "table" then
+        return self.entity:HasAnyTag(unpack(tags))
+    else
+        return self.entity:HasAnyTag(...)
+    end
 end
+EntityScript.HasAnyTag = EntityScript.HasOneOfTags
 
 require("entityreplica")
 --Additional initialization for network entity replicas
@@ -654,6 +654,9 @@ function EntityScript:GetAdjectivedName()
         return ConstructAdjectivedName(self, name, STRINGS.UI.HUD.SPOILED)
     elseif self:HasTag("withered") then
         return ConstructAdjectivedName(self, name, STRINGS.WITHEREDITEM)
+    elseif self:HasTag("waxedplant") then
+        -- No wet prefix for waxed plants.
+        return ConstructAdjectivedName(self, name, STRINGS.WAXEDPLANT)
     elseif not self.no_wet_prefix and (self.always_wet_prefix or self:GetIsWet()) then
         --custom
         if self.wet_prefix ~= nil then
@@ -681,8 +684,14 @@ function EntityScript:GetAdjectivedName()
                 return ConstructAdjectivedName(self, name, STRINGS.WET_PREFIX.FUEL)
             end
         end
+		--broken
+		if self:HasTag("broken") then
+			return ConstructAdjectivedName(self, ConstructAdjectivedName(self, name, STRINGS.WET_PREFIX.GENERIC), STRINGS.BROKENITEM)
+		end
         --generic
         return ConstructAdjectivedName(self, name, STRINGS.WET_PREFIX.GENERIC)
+	elseif self:HasTag("broken") then
+		return ConstructAdjectivedName(self, name, STRINGS.BROKENITEM)
     end
     return name
 end
@@ -709,7 +718,27 @@ function EntityScript:GetIsWet()
     if replica ~= nil then
         return replica:IsWet()
     end
-    return self:HasTag("wet") or TheWorld.state.iswet or (self:HasTag("swimming") and not self:HasTag("likewateroffducksback"))
+	return self:HasTag("wet")
+		or (TheWorld.state.iswet and not self:HasTag("rainimmunity"))
+		or (self:HasTag("swimming") and not self:HasTag("likewateroffducksback"))
+end
+--Can be used on clients
+function EntityScript:IsAcidSizzling()
+    if self:HasTag("acidrainimmune") then
+        return false
+    end
+
+    local replica = self.replica.inventoryitem
+    if replica ~= nil then
+        return replica:IsAcidSizzling()
+    end
+
+    local player_classified = self.player_classified
+    if player_classified ~= nil then
+        return player_classified.isacidsizzling:value()
+    end
+
+    return false
 end
 
 function EntityScript:GetSkinBuild()
@@ -1336,6 +1365,18 @@ function EntityScript:DoTaskInTime(time, fn, ...)
     return per
 end
 
+function EntityScript:PushEventInTime(time, eventname, data)
+    self.pendingtasks = self.pendingtasks or {}
+
+    local event_function = function(inst)
+        inst:PushEvent(eventname, data)
+    end
+    local per = scheduler:ExecuteInTime(time, event_function, self.GUID, self, data)
+    self.pendingtasks[per] = true
+    per.onfinish = task_finish
+    return per
+end
+
 function EntityScript:GetTaskInfo(time)
     local taskinfo = {}
     taskinfo.start = GetTime()
@@ -1460,16 +1501,25 @@ function EntityScript:PerformBufferedAction()
 			self:PushEvent("play_theme_music", {theme = action_theme_music})
 		end
 
-        local success, reason = self.bufferedaction:Do()
+		local bufferedaction = self.bufferedaction
+		--@V2C: - cahced in case self.bufferedaction changes
+		--      - ideally, should clear self.bufferedaction here
+		--      - however, legacy code might rely on inst.bufferedaction during Do()
+
+		local success, reason = bufferedaction:Do()
         if success then
-            self.bufferedaction = nil
+			if self.bufferedaction == bufferedaction then
+				self.bufferedaction = nil
+			end
             return true
         end
 
-        self:PushEvent("actionfailed", { action = self.bufferedaction, reason = reason })
+		self:PushEvent("actionfailed", { action = bufferedaction, reason = reason })
 
-        self.bufferedaction:Fail()
-        self.bufferedaction = nil
+		bufferedaction:Fail()
+		if self.bufferedaction == bufferedaction then
+			self.bufferedaction = nil
+		end
     end
 end
 
@@ -1914,3 +1964,5 @@ function EntityScript:RemoveDebuff(name)
     end
     self.components.debuffable:RemoveDebuff(name)
 end
+
+require("entityscriptproxy")

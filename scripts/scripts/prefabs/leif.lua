@@ -13,10 +13,9 @@ local assets =
 
 local prefabs =
 {
-    "meat",
-    "log",
-    "character_fire",
+    "monstermeat",
     "livinglog",
+    "character_fire",
 }
 
 local function SetLeifScale(inst, scale)
@@ -177,6 +176,10 @@ local function common_fn(build)
 
     inst:AddComponent("drownable")
     ------------------------------------------
+
+    inst:AddComponent("acidinfusible")
+    inst.components.acidinfusible:SetFXLevel(3)
+    inst.components.acidinfusible:SetMultipliers(TUNING.ACID_INFUSION_MULT.WEAKER)
 
     inst:SetBrain(brain)
 

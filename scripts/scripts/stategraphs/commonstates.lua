@@ -148,7 +148,9 @@ end
 
 --------------------------------------------------------------------------
 local function ondeath(inst, data)
-    inst.sg:GoToState("death", data)
+	if not inst.sg:HasStateTag("dead") then
+		inst.sg:GoToState("death", data)
+	end
 end
 
 CommonHandlers.OnDeath = function()
@@ -242,7 +244,7 @@ CommonStates.AddSimpleState = function(states, name, anim, tags, finishstate, ti
 				fns.onenter(inst, params)
 			end
         end,
-        
+
         timeline = timeline,
 
         events =
@@ -279,7 +281,7 @@ CommonStates.AddSimpleActionState = function(states, name, anim, time, tags, fin
 			end
         end,
 
-        timeline = timeline or 
+        timeline = timeline or
         {
             TimeEvent(time, performbufferedaction),
         },
@@ -355,7 +357,7 @@ CommonStates.AddRunStates = function(states, timelines, anims, softstop, delayst
         tags = { "moving", "running", "canrotate" },
 
         onenter = function(inst)
-			if fns ~= nil and fns.startonenter ~= nil then
+			if fns ~= nil and fns.startonenter ~= nil then -- this has to run before RunForward so that startonenter has a chance to update the run speed
 				fns.startonenter(inst)
 			end
 			if delaystart then
@@ -364,9 +366,6 @@ CommonStates.AddRunStates = function(states, timelines, anims, softstop, delayst
 	            inst.components.locomotor:RunForward()
 			end
             inst.AnimState:PlayAnimation(get_loco_anim(inst, anims ~= nil and anims.startrun or nil, "run_pre"))
-			if fns ~= nil and fns.startonenter ~= nil then
-				fns.startonenter(inst)
-			end
         end,
 
         timeline = timelines ~= nil and timelines.starttimeline or nil,
@@ -390,8 +389,11 @@ CommonStates.AddRunStates = function(states, timelines, anims, softstop, delayst
 				fns.runonenter(inst)
 			end
             inst.components.locomotor:RunForward()
-            local anim_to_play = get_loco_anim(inst, anims ~= nil and anims.run or nil, "run_loop")
-            inst.AnimState:PlayAnimation(anim_to_play, true)
+			--V2C: -normally we wouldn't restart an already looping anim
+			--     -however, changing this might affect softstop behaviour
+			--     -i.e. PushAnimation over a looping anim (first play vs subsequent loops)
+			--     -why do we even tell it to loop here then?  for smoother playback on clients
+			inst.AnimState:PlayAnimation(get_loco_anim(inst, anims ~= nil and anims.run or nil, "run_loop"), true)
             inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength())
         end,
 
@@ -418,9 +420,6 @@ CommonStates.AddRunStates = function(states, timelines, anims, softstop, delayst
             else
                 inst.AnimState:PlayAnimation(get_loco_anim(inst, anims ~= nil and anims.stoprun or nil, "run_pst"))
             end
-			if fns ~= nil and fns.endonenter ~= nil then
-				fns.endonenter(inst)
-			end
         end,
 
         timeline = timelines ~= nil and timelines.endtimeline or nil,
@@ -490,6 +489,10 @@ CommonStates.AddWalkStates = function(states, timelines, anims, softstop, delays
 				fns.walkonenter(inst)
 			end
             inst.components.locomotor:WalkForward()
+			--V2C: -normally we wouldn't restart an already looping anim
+			--     -however, changing this might affect softstop behaviour
+			--     -i.e. PushAnimation over a looping anim (first play vs subsequent loops)
+			--     -why do we even tell it to loop here then?  for smoother playback on clients
             inst.AnimState:PlayAnimation(get_loco_anim(inst, anims ~= nil and anims.walk or nil, "walk_loop"), true)
             inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength())
         end,
@@ -1294,6 +1297,10 @@ CommonHandlers.OnNoSleepTimeEvent = function(t, fn)
     end)
 end
 
+CommonHandlers.OnNoSleepFrameEvent = function(frame, fn)
+	return CommonHandlers.OnNoSleepTimeEvent(frame * FRAMES, fn)
+end
+
 local function sleepexonanimover(inst)
     if inst.AnimState:AnimDone() then
         inst.sg.statemem.continuesleeping = true
@@ -1745,7 +1752,7 @@ local function DoWashAshore(inst, skip_splash)
 	inst.components.drownable:WashAshore()
 end
 
-CommonStates.AddSinkAndWashAsoreStates = function(states, anims, timelines, fns)
+CommonStates.AddSinkAndWashAshoreStates = function(states, anims, timelines, fns)
 	anims = anims or {}
 	timelines = timelines or {}
 	fns = fns or {}
@@ -1885,7 +1892,8 @@ CommonStates.AddSinkAndWashAsoreStates = function(states, anims, timelines, fns)
 	})
 end
 
-CommonStates.AddSinkAndWashAshoreStates = CommonStates.AddSinkAndWashAsoreStates
+--Backward compatibility for originally mispelt function name
+CommonStates.AddSinkAndWashAsoreStates = CommonStates.AddSinkAndWashAshoreStates
 
 --------------------------------------------------------------------------
 
@@ -1910,6 +1918,38 @@ function PlayMiningFX(inst, target, nosound)
             )
         end
     end
+end
+
+--------------------------------------------------------------------------
+
+local function IpecacPoop(inst)
+    if not (inst.sg:HasStateTag("busy") or (inst.components.health ~= nil and inst.components.health:IsDead())) then
+        inst.sg:GoToState("ipecacpoop")
+    end
+end
+
+CommonHandlers.OnIpecacPoop = function()
+    return EventHandler("ipecacpoop", IpecacPoop)
+end
+
+CommonStates.AddIpecacPoopState = function(states, anim)
+    anim = anim or "hit"
+
+    table.insert(states, State{
+        name = "ipecacpoop",
+        tags = { "busy" },
+
+        onenter = function(inst)
+            inst.SoundEmitter:PlaySound("meta2/wormwood/laxative_poot")
+            inst.AnimState:PlayAnimation(anim)
+            inst.Physics:Stop()
+        end,
+
+        events =
+        {
+            EventHandler("animover", idleonanimover),
+        },
+    })
 end
 
 --------------------------------------------------------------------------

@@ -3,6 +3,15 @@ local assets =
     Asset("ANIM", "anim/shadowrift_portal.zip"),
     Asset("MINIMAP_IMAGE", "shadowrift_portal"),
     Asset("MINIMAP_IMAGE", "shadowrift_portal_max"),
+
+    Asset("MINIMAP_IMAGE", "shadowrift_portal1"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal2"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal3"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal4"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal_max1"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal_max2"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal_max3"),
+    Asset("MINIMAP_IMAGE", "shadowrift_portal_max4"),
 }
 
 local prefabs =
@@ -35,7 +44,7 @@ local SHADELINGS_BY_STAGE = {1, 2, 3}
 --------------------------------------------------------------------------------
 
 local function OnChildSpawned(inst, child)
-    child:PushEvent("onspawnedby", {portal = inst})
+    child:OnSpawnedBy(inst)
 end
 
 local function ConfigureShadelingSpawn(inst, stage)
@@ -55,14 +64,8 @@ end
 --------------------------------------------------------------------------------
 
 local function SetMaxMinimapStatus(inst)
-    inst.MiniMapEntity:SetCanUseCache(true)
-    inst.MiniMapEntity:SetDrawOverFogOfWar(true)
-    inst.MiniMapEntity:SetPriority(22)
     inst.MiniMapEntity:SetIcon("shadowrift_portal_max.png")
-
-    inst.icon = SpawnPrefab("globalmapicon")
-    inst.icon:TrackEntity(inst)
-    inst.icon.MiniMapEntity:SetPriority(22)
+    inst.icon_max = true
 end
 
 local function SpawnStageFx(inst)
@@ -328,6 +331,31 @@ local function OnPortalLongUpdate(inst, dt)
     end
 end
 
+
+local function do_marker_minimap_swap(inst)
+    inst.marker_index = inst.marker_index == nil and 0 or ((inst.marker_index + 1) % 4)
+    
+    local max = ""
+    if inst.icon_max then
+        max = "_max"
+    end
+
+    local marker_image = "shadowrift_portal"..max..(inst.marker_index +1)..".png"  --_max
+
+    --inst.MiniMapEntity:SetIcon(marker_image)
+    inst.icon.MiniMapEntity:SetIcon(marker_image)
+end
+
+local function show_minimap(inst)
+    -- Create a global map icon so the minimap icon is visible to other players as well.
+    inst.icon = SpawnPrefab("globalmapicon")
+    inst.icon:TrackEntity(inst)
+    inst.icon.MiniMapEntity:SetPriority(21)
+
+    inst:DoPeriodicTask(TUNING.STORM_SWAP_TIME, do_marker_minimap_swap)
+end
+
+
 --------------------------------------------------------------------------------
 
 local function portalfn()
@@ -343,7 +371,9 @@ local function portalfn()
     inst.Physics:SetCylinder(PHYSICS_SIZE_BY_STAGE[1], 6)
 
     inst.MiniMapEntity:SetIcon("shadowrift_portal.png")
-    inst.MiniMapEntity:SetPriority(1)
+    inst.MiniMapEntity:SetCanUseCache(false)
+    inst.MiniMapEntity:SetDrawOverFogOfWar(true)
+    inst.MiniMapEntity:SetPriority(22)
 
     local animstate = inst.AnimState
     animstate:SetBank ("shadowrift_portal")
@@ -369,8 +399,12 @@ local function portalfn()
     inst.entity:SetPristine()
 
     inst._fx = CreateParticleFx(inst)
-    inst.highlightchildren = {inst._fx}
+    inst.highlightchildren = {inst._fx}    
     inst.highlightoverride = {0.15, 0, 0}
+
+    inst.scrapbook_anim = "scrapbook" -- "stage_3_loop"
+    inst.scrapbook_nodamage = true
+    inst.scrapbook_specialinfo = "SHADOWRIFTPORTAL"
 
     if not TheWorld.ismastersim then
         return inst
@@ -386,6 +420,7 @@ local function portalfn()
 
     local groundpounder = inst:AddComponent("groundpounder")
     table.insert(groundpounder.noTags, "shadow_aligned")
+	groundpounder:UseRingMode()
     groundpounder.radiusStepDistance = 1.5
     groundpounder.inventoryPushingRings = 2
     groundpounder.numRings = 2
@@ -421,6 +456,8 @@ local function portalfn()
 
     inst.SpawnStageFx = SpawnStageFx
     inst.SetMaxMinimapStatus = SetMaxMinimapStatus
+
+    inst:DoTaskInTime(0, show_minimap)
 
     return inst
 end

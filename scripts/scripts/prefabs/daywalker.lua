@@ -12,13 +12,16 @@ local prefabs =
 {
 	"shadow_leech",
 	"daywalker_sinkhole",
+	"daywalker_pillar",
 
 	"nightmarefuel",
 	"horrorfuel",
 	"armordreadstone_blueprint",
 	"dreadstonehat_blueprint",
 	"wall_dreadstone_item_blueprint",
+	"support_pillar_dreadstone_scaffold_blueprint",
 	"chesspiece_daywalker_sketch",
+	"winter_ornament_boss_daywalker",
 }
 
 local brain = require("brains/daywalkerbrain")
@@ -38,6 +41,7 @@ SetSharedLootTable("daywalker",
 	{ "wall_dreadstone_item_blueprint", 1 },
 	{'chesspiece_daywalker_sketch', 1.00},
 })
+local BONUS_PILLAR_LOOT = { "support_pillar_dreadstone_scaffold_blueprint" }
 
 --------------------------------------------------------------------------
 
@@ -81,16 +85,6 @@ end
 --------------------------------------------------------------------------
 
 local MASS = 1000
-
-local function ChangeToGiantPhysics(inst)
-	inst.Physics:SetCollisionGroup(COLLISION.GIANTS)
-	inst.Physics:ClearCollisionMask()
-	inst.Physics:CollidesWith(COLLISION.WORLD)
-	inst.Physics:CollidesWith(COLLISION.OBSTACLES)
-	inst.Physics:CollidesWith(COLLISION.CHARACTERS)
-	inst.Physics:CollidesWith(COLLISION.GIANTS)
-	inst.Physics:SetMass(MASS)
-end
 
 --For clients
 local function OnFacingModelDirty(inst)
@@ -357,7 +351,6 @@ local function DetachLeech(inst, attachpos, speedmult, randomdir)
 	todetach.Physics:Teleport(x + math.cos(rot) * speedmult, y, z - math.sin(rot) * speedmult)
 	todetach.sg:GoToState("flung", speedmult)]]
 	--V2C: moved to shadow_leech.OnFlungFrom
-	--NOTE: the leech gets replaced with a new spawn
 	todetach:OnFlungFrom(inst, speedmult, randomdir)
 	return true
 end
@@ -571,6 +564,7 @@ local function OnHeadTrackingDirty(inst)
 		end
 	elseif inst.head ~= nil then
 		inst.head:Remove()
+		inst.head = nil
 		inst.highlightchildren = nil
 	end
 end
@@ -911,7 +905,7 @@ local function MakeUnchained(inst)
 		inst.AnimState:ClearAllOverrideSymbols()
 		inst:SwitchToFacingModel(4) --inst.Transform:SetFourFaced()
 		inst.SoundEmitter:KillSound("chainloop")
-		ChangeToGiantPhysics(inst)
+		ChangeToGiantCharacterPhysics(inst, MASS)
 		EnableChains(inst, false)
 		inst:SetStateGraph("SGdaywalker")
 		inst.sg:GoToState("tired")
@@ -1096,6 +1090,13 @@ end
 
 --------------------------------------------------------------------------
 
+local function LootSetupFn(lootdropper)
+	lootdropper:SetLoot(lootdropper.inst.components.knownlocations:GetLocation("prison") == nil and BONUS_PILLAR_LOOT or nil)
+	lootdropper:SetChanceLootTable("daywalker")
+end
+
+--------------------------------------------------------------------------
+
 local function fn()
 	local inst = CreateEntity()
 
@@ -1120,19 +1121,22 @@ local function fn()
 	inst.AnimState:SetBank("daywalker")
 	inst.AnimState:SetBuild("daywalker_build")
 	inst.AnimState:PlayAnimation("idle", true)
+	inst.AnimState:Hide("ARM_CARRY")
 	inst.AnimState:SetSymbolLightOverride("ww_armlower_red", .6)
 	inst.AnimState:SetSymbolLightOverride("flake", .6)
 	inst.scrapbook_anim = "scrapbook"
 
 	inst.DynamicShadow:SetSize(3.5, 1.5)
 
-	inst:AddComponent("talker")
-	inst.components.talker.fontsize = 40
-	inst.components.talker.font = TALKINGFONT
-	inst.components.talker.colour = Vector3(238 / 255, 69 / 255, 105 / 255)
-	inst.components.talker.offset = Vector3(0, -400, 0)
-	inst.components.talker.symbol = "ww_hunch"
-	inst.components.talker:MakeChatter()
+	local talker = inst:AddComponent("talker")
+	talker.fontsize = 40
+	talker.font = TALKINGFONT
+	talker.colour = Vector3(238 / 255, 69 / 255, 105 / 255)
+	talker.offset = Vector3(0, -400, 0)
+	talker.symbol = "ww_hunch"
+	talker.name_colour = Vector3(159/256, 72/256, 93/256)
+	talker.chaticon = "npcchatflair_daywalker"
+	talker:MakeChatter()
 
 	inst._enablechains = net_bool(inst.GUID, "daywalker._enablechains", "chainsdirty")
 	inst._facingmodel = net_tinybyte(inst.GUID, "daywalker._facingmodel", "facingmodeldirty")
@@ -1162,6 +1166,8 @@ local function fn()
 		return inst
 	end
 
+	inst.footstep = "daywalker/action/step"
+
 	inst.components.talker.ontalk = OnTalk
 
 	inst:AddComponent("entitytracker")
@@ -1180,7 +1186,7 @@ local function fn()
 
 	inst:AddComponent("combat")
 	inst.components.combat:SetDefaultDamage(TUNING.DAYWALKER_DAMAGE)
-	inst.components.combat:SetAttackPeriod(TUNING.DAYWALKER_ATTACK_PERIOD)
+	inst.components.combat:SetAttackPeriod(TUNING.DAYWALKER_ATTACK_PERIOD.min)
 	inst.components.combat.playerdamagepercent = .5
 	inst.components.combat:SetRange(TUNING.DAYWALKER_ATTACK_RANGE)
 	inst.components.combat:SetRetargetFunction(3, RetargetFn)
@@ -1206,7 +1212,7 @@ local function fn()
 	inst.components.epicscare:SetRange(TUNING.DAYWALKER_EPICSCARE_RANGE)
 
 	inst:AddComponent("lootdropper")
-	inst.components.lootdropper:SetChanceLootTable("daywalker")
+	inst.components.lootdropper:SetLootSetupFn(LootSetupFn)
 	inst.components.lootdropper.min_speed = 1
 	inst.components.lootdropper.max_speed = 3
 	inst.components.lootdropper.y_speed = 14

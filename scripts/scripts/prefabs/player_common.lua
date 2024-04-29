@@ -1,8 +1,8 @@
-local upvalue = {}
 local easing = require("easing")
 local PlayerHud = require("screens/playerhud")
 local ex_fns = require "prefabs/player_common_extensions"
 local skilltreedefs = require "prefabs/skilltree_defs"
+local SourceModifierList = require("util/sourcemodifierlist")
 
 local BEEFALO_COSTUMES = require("yotb_costumes")
 
@@ -43,6 +43,13 @@ function fns.IsNearDanger(inst, hounded_ok)
                     not (inst.components.sanity:IsSane() and target:HasTag("shadowcreature")))
         end,
         nil, nil, nopigdanger and DANGER_NOPIG_ONEOF_TAGS or DANGER_ONEOF_TAGS) ~= nil
+end
+
+--V2C: Things to explicitly hide mouseover Attack command when not Force Attacking.
+--     e.g. other players' shadow creatures
+--NOTE: Normally, non-hostile creatures still show "Attack" when you mouseover.
+function fns.TargetForceAttackOnly(inst, target)
+	return target.HostileToPlayerTest ~= nil and target:HasTag("shadowcreature") and not target:HostileToPlayerTest(inst)
 end
 
 function fns.SetGymStartState(inst)
@@ -276,6 +283,48 @@ local function IsCarefulWalking(inst)
     return inst.player_classified ~= nil and inst.player_classified.iscarefulwalking:value()
 end
 
+fns.IsChannelCasting = function(inst)
+	return inst.player_classified and inst.player_classified.ischannelcasting:value()
+end
+
+fns.IsChannelCastingItem = function(inst)
+	return inst.player_classified and inst.player_classified.ischannelcastingitem:value()
+end
+
+--Solve for a resultmult so that:
+--    resultmult * mult = MIN(recalcmult, mult)
+local function MinMult(recalcmult, mult)
+	return recalcmult < mult and recalcmult / mult or 1
+end
+
+fns.OnStartChannelCastingItem = function(inst, item)
+	if item and item.components.channelcastable and not item.components.channelcastable.strafing then
+		return
+	end
+
+	--channelcaster speedmult stacks with other status speedmults
+	--but we don't actually want that
+	--so temporarily adjust the other mults so that when stacked, will equal the min
+	local mult = TUNING.CHANNELCAST_SPEED_MOD
+	inst.components.grogginess:SetSpeedModMultiplier(1 / math.max(TUNING.MAX_GROGGY_SPEED_MOD, mult))
+	inst.components.sandstormwatcher:SetSandstormSpeedMultiplier(MinMult(TUNING.SANDSTORM_SPEED_MOD, mult))
+	inst.components.moonstormwatcher:SetMoonstormSpeedMultiplier(MinMult(TUNING.MOONSTORM_SPEED_MOD, mult))
+	inst.components.miasmawatcher:SetMiasmaSpeedMultiplier(MinMult(TUNING.MIASMA_SPEED_MOD, mult))
+	inst.components.carefulwalker:SetCarefulWalkingSpeedMultiplier(MinMult(TUNING.CAREFUL_SPEED_MOD, mult))
+
+	inst.components.locomotor:StartStrafing()
+end
+
+fns.OnStopChannelCastingItem = function(inst)
+	inst.components.grogginess:SetSpeedModMultiplier(1)
+	inst.components.sandstormwatcher:SetSandstormSpeedMultiplier(TUNING.SANDSTORM_SPEED_MOD)
+	inst.components.moonstormwatcher:SetMoonstormSpeedMultiplier(TUNING.MOONSTORM_SPEED_MOD)
+	inst.components.miasmawatcher:SetMiasmaSpeedMultiplier(TUNING.MIASMA_SPEED_MOD)
+	inst.components.carefulwalker:SetCarefulWalkingSpeedMultiplier(TUNING.CAREFUL_SPEED_MOD)
+
+	inst.components.locomotor:StopStrafing()
+end
+
 local function ShouldAcceptItem(inst, item)
     if inst:HasTag("playerghost") then
         return item.prefab == "reviver" and inst:IsOnPassablePoint()
@@ -306,7 +355,7 @@ end
 
 local function DropWetTool(inst, data)
     --Tool slip.
-    if inst.components.moisture:GetSegs() < 4 or inst:HasTag("stronggrip") then
+	if inst.components.moisture:GetSegs() < 4 or inst:HasTag("stronggrip") or inst.components.rainimmunity ~= nil then
         return
     end
 
@@ -406,22 +455,15 @@ end
 --Audio events
 --------------------------------------------------------------------------
 
-local PICKUPSOUNDS = {
-    ["wood"] = "aqol/new_test/wood",
-    ["gem"] = "aqol/new_test/gem",
-    ["cloth"] = "aqol/new_test/cloth",
-    ["metal"] = "aqol/new_test/metal",
-    ["rock"] = "aqol/new_test/rock",
-    ["vegetation_firm"] = "aqol/new_test/vegetation_firm",
-    ["vegetation_grassy"] = "aqol/new_test/vegetation_grassy",
-
-    ["DEFAULT_FALLBACK"] = "dontstarve/HUD/collect_resource",
-}
+-- Uses global table PICKUPSOUNDS from constants.
 
 local function OnGotNewItem(inst, data)
     if data.slot ~= nil or data.eslot ~= nil or data.toactiveitem ~= nil then
         local sound = data.item and data.item.pickupsound or "DEFAULT_FALLBACK"
-        TheFocalPoint.SoundEmitter:PlaySound(inst._PICKUPSOUNDS[sound])
+		sound = PICKUPSOUNDS[sound]
+		if sound then
+			TheFocalPoint.SoundEmitter:PlaySound(sound)
+		end
     end
 end
 
@@ -568,10 +610,11 @@ end
 function fns.ArmorBroke(inst, data)
     if data.armor ~= nil then
         local sameArmor = inst.components.inventory:FindItem(function(item)
-            return item.prefab == data.armor.prefab
+			return item.prefab == data.armor.prefab and item.components.equippable ~= nil
         end)
         if sameArmor ~= nil then
-            inst.components.inventory:Equip(sameArmor)
+			local force_ui_anim = data.armor.components.armor.keeponfinished
+			inst.components.inventory:Equip(sameArmor, nil, nil, force_ui_anim)
         end
     end
 end
@@ -580,7 +623,7 @@ end
 
 local function RegisterActivePlayerEventListeners(inst)
     --HUD Audio events
-    inst._PICKUPSOUNDS = PICKUPSOUNDS -- NOTES(JBK): For client mods to get access to.
+    inst._PICKUPSOUNDS = PICKUPSOUNDS -- NOTES(JBK): Deprecated but kept for client mods to get access to. Mods can use the table directly from constants.
     inst:ListenForEvent("gotnewitem", OnGotNewItem)
     inst:ListenForEvent("equip", OnEquip)
 end
@@ -649,11 +692,15 @@ end
 local function AddActivePlayerComponents(inst)
     inst:AddComponent("hudindicatorwatcher")
     inst:AddComponent("playerhearing")
+	inst:AddComponent("raindomewatcher")
+	inst:AddComponent("strafer")
 end
 
 local function RemoveActivePlayerComponents(inst)
     inst:RemoveComponent("hudindicatorwatcher")
     inst:RemoveComponent("playerhearing")
+	inst:RemoveComponent("raindomewatcher")
+	inst:RemoveComponent("strafer")
 end
 
 local function ActivateHUD(inst)
@@ -787,6 +834,8 @@ end
 
 local function OnCancelMovementPrediction(inst)
 	--Use stategraph event logic, but triggered instantly instead of buffering.
+	--NOTE: not just calling inst.sg:GoToState("idle", "cancel") because an event
+	--      allows states to override the handler.
 	inst.sg:HandleEvent("sg_cancelmovementprediction")
 end
 
@@ -800,12 +849,19 @@ local function EnableMovementPrediction(inst, enable)
                     (inst.player_classified == nil and inst:HasTag("playerghost"))
 
                 inst.Physics:Stop()
+
+				inst:AddComponent("embarker")
+				inst.components.embarker.embark_speed = TUNING.WILSON_RUN_SPEED
+
                 inst:AddComponent("locomotor") -- locomotor must be constructed before the stategraph
                 if isghost then
                     ex_fns.ConfigureGhostLocomotor(inst)
                 else
                     ex_fns.ConfigurePlayerLocomotor(inst)
                 end
+				if inst.player_classified and inst.player_classified.isstrafing:value() then
+					inst.components.locomotor:SetStrafing(true)
+				end
 
                 if inst.components.playercontroller ~= nil then
                     inst.components.playercontroller.locomotor = inst.components.locomotor
@@ -832,6 +888,7 @@ local function EnableMovementPrediction(inst, enable)
                 inst.components.playercontroller.locomotor = nil
             end
             inst:RemoveComponent("locomotor")
+			inst:RemoveComponent("embarker")
             inst.Physics:Stop()
             print("Movement prediction disabled")
             --This is unfortunate but it doesn't seem like you can send an rpc on the first
@@ -1360,7 +1417,9 @@ end
 --------------------------------------------------------------------------
 
 local function DoEffects(pet)
-    SpawnPrefab(pet:HasTag("flying") and "spawn_fx_small_high" or "spawn_fx_small").Transform:SetPosition(pet.Transform:GetWorldPosition())
+    if not pet.no_spawn_fx then
+        SpawnPrefab(pet:HasTag("flying") and "spawn_fx_small_high" or "spawn_fx_small").Transform:SetPosition(pet.Transform:GetWorldPosition())
+    end
 end
 
 local function OnSpawnPet(inst, pet)
@@ -1388,17 +1447,17 @@ local function IsActionsVisible(inst)
     return inst.player_classified ~= nil and inst.player_classified.isactionsvisible:value()
 end
 
-local function IsHUDVisible(inst)
+fns.IsHUDVisible = function(inst)
     return inst.player_classified.ishudvisible:value()
 end
 
-local function ShowActions(inst, show)
+fns.ShowActions = function(inst, show)
     if TheWorld.ismastersim then
         inst.player_classified:ShowActions(show)
     end
 end
 
-local function ShowHUD(inst, show)
+fns.ShowHUD = function(inst, show)
     if TheWorld.ismastersim then
         inst.player_classified:ShowHUD(show)
     end
@@ -1418,19 +1477,43 @@ fns.ResetMinimapOffset = function(inst) -- NOTES(JBK): Please use this only when
     end
 end
 
-local function SetCameraDistance(inst, distance)
+fns.CloseMinimap = function(inst) -- NOTES(JBK): Please use this only when necessary.
+    if TheWorld.ismastersim then
+        --Forces a netvar to be dirty regardless of value
+        inst.player_classified.minimapclose:set_local(false)
+        inst.player_classified.minimapclose:set(false)
+    end
+end
+
+fns.SetCameraDistance = function(inst, distance)
     if TheWorld.ismastersim then
         inst.player_classified.cameradistance:set(distance or 0)
     end
 end
 
-local function SetCameraZoomed(inst, iszoomed)
+fns.AddCameraExtraDistance = function(inst, source, distance, key)
+    if TheWorld.ismastersim and inst.cameradistancebonuses ~= nil then
+        inst.cameradistancebonuses:SetModifier(source, distance, key)
+
+        inst.player_classified.cameraextramaxdist:set(inst.cameradistancebonuses:Get())
+    end
+end
+
+fns.RemoveCameraExtraDistance = function(inst, source, key)
+    if TheWorld.ismastersim and inst.cameradistancebonuses ~= nil then
+        inst.cameradistancebonuses:RemoveModifier(source, key)
+
+        inst.player_classified.cameraextramaxdist:set(inst.cameradistancebonuses:Get())
+    end
+end
+
+fns.SetCameraZoomed = function(inst, iszoomed)
     if TheWorld.ismastersim then
         inst.player_classified.iscamerazoomed:set(iszoomed)
     end
 end
 
-local function SnapCamera(inst, resetrot)
+fns.SnapCamera = function(inst, resetrot)
     if TheWorld.ismastersim then
         --Forces a netvar to be dirty regardless of value
         inst.player_classified.camerasnap:set_local(false)
@@ -1438,7 +1521,7 @@ local function SnapCamera(inst, resetrot)
     end
 end
 
-local function ShakeCamera(inst, mode, duration, speed, scale, source_or_pt, maxDist)
+fns.ShakeCamera = function(inst, mode, duration, speed, scale, source_or_pt, maxDist)
     if source_or_pt ~= nil and maxDist ~= nil then
         local distSq = source_or_pt.entity ~= nil and inst:GetDistanceSqToInst(source_or_pt) or inst:GetDistanceSqToPoint(source_or_pt:Get())
         local k = math.max(0, math.min(1, distSq / (maxDist * maxDist)))
@@ -1471,7 +1554,7 @@ local function ShakeCamera(inst, mode, duration, speed, scale, source_or_pt, max
     end
 end
 
-local function ScreenFade(inst, isfadein, time, iswhite)
+fns.ScreenFade = function(inst, isfadein, time, iswhite)
     if TheWorld.ismastersim then
         --truncate to half of net_smallbyte, so we can include iswhite flag
         time = time ~= nil and math.min(31, math.floor(time * 10 + .5)) or 0
@@ -1480,7 +1563,7 @@ local function ScreenFade(inst, isfadein, time, iswhite)
     end
 end
 
-local function ScreenFlash(inst, intensity)
+fns.ScreenFlash = function(inst, intensity)
     if TheWorld.ismastersim then
         --normalize for net_tinybyte
         intensity = math.floor((intensity >= 1 and 1 or intensity) * 8 + .5) - 1
@@ -1497,7 +1580,7 @@ end
 
 --------------------------------------------------------------------------
 
-local function ApplyScale(inst, source, scale)
+fns.ApplyScale = function(inst, source, scale)
     if TheWorld.ismastersim and source ~= nil then
         if scale ~= 1 and scale ~= nil then
             if inst._scalesource == nil then
@@ -1527,7 +1610,7 @@ local function ApplyScale(inst, source, scale)
     end
 end
 
-local function ApplyAnimScale(inst, source, scale)
+fns.ApplyAnimScale = function(inst, source, scale)
     if TheWorld.ismastersim and source ~= nil then
         if scale ~= 1 and scale ~= nil then
             if inst._animscalesource == nil then
@@ -1705,6 +1788,8 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         Asset("ANIM", "anim/player_actions_reversedeath.zip"),
         Asset("ANIM", "anim/player_actions_cannon.zip"),
 		Asset("ANIM", "anim/player_actions_scythe.zip"),
+		Asset("ANIM", "anim/player_actions_deploytoss.zip"),
+		Asset("ANIM", "anim/player_actions_spray.zip"),
 
         Asset("ANIM", "anim/player_boat.zip"),
         Asset("ANIM", "anim/player_boat_plank.zip"),
@@ -1726,6 +1811,23 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         Asset("ANIM", "anim/wilson_fx.zip"),
         Asset("ANIM", "anim/player_one_man_band.zip"),
 		Asset("ANIM", "anim/player_sit.zip"),
+		Asset("ANIM", "anim/player_sit_nofaced.zip"),
+		Asset("ANIM", "anim/player_sit_transition.zip"),
+		--sitting emotes
+		Asset("ANIM", "anim/player_sit_angry.zip"),
+		Asset("ANIM", "anim/player_sit_facepalm.zip"),
+		Asset("ANIM", "anim/player_sit_fistshake.zip"),
+		Asset("ANIM", "anim/player_sit_flex.zip"),
+		Asset("ANIM", "anim/player_sit_happy.zip"),
+		Asset("ANIM", "anim/player_sit_kiss.zip"),
+		Asset("ANIM", "anim/player_sit_laugh.zip"),
+		Asset("ANIM", "anim/player_sit_no.zip"),
+		Asset("ANIM", "anim/player_sit_rude.zip"),
+		Asset("ANIM", "anim/player_sit_sad.zip"),
+		Asset("ANIM", "anim/player_sit_sleepy.zip"),
+		Asset("ANIM", "anim/player_sit_toast.zip"),
+		Asset("ANIM", "anim/player_sit_wave.zip"),
+		--
 
         Asset("ANIM", "anim/player_slurtle_armor.zip"),
         Asset("ANIM", "anim/player_staff.zip"),
@@ -1751,13 +1853,14 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         Asset("ANIM", "anim/shadow_hands.zip"),
         Asset("ANIM", "anim/player_wrap_bundle.zip"),
         Asset("ANIM", "anim/player_hideseek.zip"),
+		Asset("ANIM", "anim/player_slip.zip"),
 
         Asset("ANIM", "anim/player_wardrobe.zip"),
         Asset("ANIM", "anim/player_skin_change.zip"),
         Asset("ANIM", "anim/player_receive_gift.zip"),
         Asset("ANIM", "anim/shadow_skinchangefx.zip"),
         Asset("ANIM", "anim/player_townportal.zip"),
-        Asset("ANIM", "anim/player_channel.zip"),
+        Asset("ANIM", "anim/player_channel.zip"), --channeling scene entity
         Asset("ANIM", "anim/player_construct.zip"),
         Asset("SOUND", "sound/sfx.fsb"),
         Asset("SOUND", "sound/wilson.fsb"),
@@ -1787,6 +1890,10 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         Asset("ANIM", "anim/player_encumbered.zip"),
         Asset("ANIM", "anim/player_encumbered_fast.zip"),
         Asset("ANIM", "anim/player_encumbered_jump.zip"),
+		Asset("ANIM", "anim/player_channelcast_basic.zip"), --channelcast using held item (can walk)
+		Asset("ANIM", "anim/player_channelcast_hit.zip"),
+		Asset("ANIM", "anim/player_channelcast_oh_basic.zip"), --channelcast using off-hand (can walk)
+		Asset("ANIM", "anim/player_channelcast_oh_hit.zip"),
 
         Asset("ANIM", "anim/player_sandstorm.zip"),
         Asset("ANIM", "anim/player_tiptoe.zip"),
@@ -1821,6 +1928,7 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         Asset("ANIM", "anim/player_mount_cointoss.zip"),
         Asset("ANIM", "anim/player_mount_hornblow.zip"),
         Asset("ANIM", "anim/player_mount_strum.zip"),
+		Asset("ANIM", "anim/player_mount_deploytoss.zip"),
 
         Asset("ANIM", "anim/player_mighty_gym.zip"),
         Asset("ANIM", "anim/mighty_gym.zip"),
@@ -1870,6 +1978,7 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         "player_classified",
         "inventory_classified",
         "wonkey",
+        "spellbookcooldown",
     }
 
     if starting_inventory ~= nil or customprefabs ~= nil then
@@ -1921,9 +2030,11 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 		inst.IsInMiasma = fns.IsInMiasma -- Didn't want to make miasmawatcher a networked component
 		inst.IsInAnyStormOrCloud = fns.IsInAnyStormOrCloud -- Use this instead of GetStormLevel, to include things like Miasma clouds
         inst.IsCarefulWalking = IsCarefulWalking -- Didn't want to make carefulwalking a networked component
+		inst.IsChannelCasting = fns.IsChannelCasting -- Didn't want to make channelcaster a networked component
+		inst.IsChannelCastingItem = fns.IsChannelCastingItem -- Didn't want to make channelcaster a networked component
         inst.EnableMovementPrediction = EnableMovementPrediction
         inst.EnableBoatCamera = fns.EnableBoatCamera
-        inst.ShakeCamera = ShakeCamera
+        inst.ShakeCamera = fns.ShakeCamera
         inst.SetGhostMode = SetGhostMode
         inst.IsActionsVisible = IsActionsVisible
         inst.CanSeeTileOnMiniMap = ex_fns.CanSeeTileOnMiniMap
@@ -2093,6 +2204,7 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         inst:AddTag("lightningtarget")
         inst:AddTag(UPGRADETYPES.WATERPLANT.."_upgradeuser")
         inst:AddTag(UPGRADETYPES.MAST.."_upgradeuser")
+        inst:AddTag(UPGRADETYPES.CHEST.."_upgradeuser")
         inst:AddTag("usesvegetarianequipment")
 
 		SetInstanceFunctions(inst)
@@ -2141,11 +2253,15 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         inst:AddComponent("walkableplatformplayer")
         inst:AddComponent("boatcannonuser")
 
+		inst:AddComponent("spellbookcooldowns")
+
 		if TheNet:GetServerGameMode() == "lavaarena" then
             inst:AddComponent("healthsyncer")
         end
 
 		inst.isplayer = true
+
+		inst.TargetForceAttackOnly = fns.TargetForceAttackOnly
 
         if common_postinit ~= nil then
             common_postinit(inst)
@@ -2172,15 +2288,13 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 
         inst.userid = ""
 
-        inst:AddComponent("embarker")
-        inst.components.embarker.embark_speed = TUNING.WILSON_RUN_SPEED
-
         inst._sharksoundparam = net_float(inst.GUID, "localplayer._sharksoundparam","sharksounddirty")
         inst._winters_feast_music = net_event(inst.GUID, "localplayer._winters_feast_music")
         inst._hermit_music = net_event(inst.GUID, "localplayer._hermit_music")
         inst._underleafcanopy = net_bool(inst.GUID, "localplayer._underleafcanopy","underleafcanopydirty")
         inst._lunarportalmax = net_event(inst.GUID, "localplayer._lunarportalmax")
         inst._shadowportalmax = net_event(inst.GUID, "localplayer._shadowportalmax")
+        inst._skilltreeactivatedany = net_event(inst.GUID, "localplayer._skilltreeactivatedany")
 
         if IsSpecialEventActive(SPECIAL_EVENTS.YOTB) then
             inst.yotb_skins_sets = net_shortint(inst.GUID, "player.yotb_skins_sets")
@@ -2212,10 +2326,15 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         inst.OnPostActivateHandshake_Client = ex_fns.OnPostActivateHandshake_Client
         inst._PostActivateHandshakeState_Client = POSTACTIVATEHANDSHAKE.NONE
 
+        inst.SetClientAuthoritativeSetting = ex_fns.SetClientAuthoritativeSetting
+        inst.SynchronizeOneClientAuthoritativeSetting = ex_fns.SynchronizeOneClientAuthoritativeSetting
+
         inst.entity:SetPristine()
         if not TheWorld.ismastersim then
             return inst
         end
+
+        inst.cameradistancebonuses = SourceModifierList(inst, 0, SourceModifierList.additive)
 
         inst.OnPostActivateHandshake_Server = ex_fns.OnPostActivateHandshake_Server
         inst._PostActivateHandshakeState_Server = POSTACTIVATEHANDSHAKE.NONE
@@ -2262,6 +2381,7 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         end
 
 		inst.components.areaaware:StartWatchingTile(WORLD_TILES.RIFT_MOON)
+		inst.components.areaaware:StartWatchingTile(WORLD_TILES.OCEAN_ICE)
 
         inst:AddComponent("bloomer")
         inst:AddComponent("colouradder")
@@ -2269,6 +2389,9 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 
         inst:AddComponent("maprevealable")
         inst.components.maprevealable:SetIconPriority(10)
+
+		inst:AddComponent("embarker")
+		inst.components.embarker.embark_speed = TUNING.WILSON_RUN_SPEED
 
         inst:AddComponent("locomotor") -- locomotor must be constructed before the stategraph
         ex_fns.ConfigurePlayerLocomotor(inst)
@@ -2288,7 +2411,7 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 		inst:AddComponent("damagetypebonus")
 
         inst:AddComponent("planardamage")
-        inst.components.planardamage:SetBaseDamage(0)
+        inst:AddComponent("planardefense")
 
         local gamemode = TheNet:GetServerGameMode()
         if gamemode == "lavaarena" then
@@ -2409,6 +2532,8 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         inst.components.grogginess:SetResistance(3)
         inst.components.grogginess:SetKnockOutTest(ex_fns.ShouldKnockout)
 
+		inst:AddComponent("slipperyfeet")
+
         inst:AddComponent("sleepingbaguser")
 
         inst:AddComponent("colourtweener")
@@ -2436,6 +2561,10 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 
         inst:AddComponent("stageactor")
 
+		inst:AddComponent("channelcaster")
+		inst.components.channelcaster:SetOnStartChannelingFn(fns.OnStartChannelCastingItem)
+		inst.components.channelcaster:SetOnStopChannelingFn(fns.OnStopChannelCastingItem)
+
         inst:AddComponent("experiencecollector")
 
         inst:AddInherentAction(ACTIONS.PICK)
@@ -2447,16 +2576,19 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
         RegisterMasterEventListeners(inst)
 
         --HUD interface
-        inst.IsHUDVisible = IsHUDVisible
-        inst.ShowActions = ShowActions
-        inst.ShowHUD = ShowHUD
+        inst.IsHUDVisible = fns.IsHUDVisible
+        inst.ShowActions = fns.ShowActions
+        inst.ShowHUD = fns.ShowHUD
         inst.ShowPopUp = fns.ShowPopUp
         inst.ResetMinimapOffset = fns.ResetMinimapOffset
-        inst.SetCameraDistance = SetCameraDistance
-        inst.SetCameraZoomed = SetCameraZoomed
-        inst.SnapCamera = SnapCamera
-        inst.ScreenFade = ScreenFade
-        inst.ScreenFlash = ScreenFlash
+        inst.CloseMinimap = fns.CloseMinimap
+        inst.SetCameraDistance = fns.SetCameraDistance
+        inst.AddCameraExtraDistance = fns.AddCameraExtraDistance
+        inst.RemoveCameraExtraDistance = fns.RemoveCameraExtraDistance
+        inst.SetCameraZoomed = fns.SetCameraZoomed
+        inst.SnapCamera = fns.SnapCamera
+        inst.ScreenFade = fns.ScreenFade
+        inst.ScreenFlash = fns.ScreenFlash
         inst.YOTB_unlockskinset = fns.YOTB_unlockskinset
         inst.YOTB_issetunlocked = fns.YOTB_issetunlocked
         inst.YOTB_isskinunlocked = fns.YOTB_isskinunlocked
@@ -2468,8 +2600,8 @@ local function MakePlayerCharacter(name, customprefabs, customassets, common_pos
 
         --Other
         inst._scalesource = nil
-        inst.ApplyScale = ApplyScale
-		inst.ApplyAnimScale = ApplyAnimScale	-- use this one if you don't want to have thier speed increased
+        inst.ApplyScale = fns.ApplyScale
+		inst.ApplyAnimScale = fns.ApplyAnimScale	-- use this one if you don't want to have thier speed increased
 
         if inst.starting_inventory == nil then
             inst.starting_inventory = starting_inventory

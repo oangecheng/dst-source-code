@@ -75,7 +75,8 @@ end
 
 --------------------------------------------------------------------------
 
-function Container:OnRemoveFromEntity()
+--V2C: OnRemoveFromEntity not supported
+--[[function Container:OnRemoveFromEntity()
     if self.classified ~= nil then
         if TheWorld.ismastersim then
             self.classified:Remove()
@@ -105,9 +106,23 @@ function Container:OnRemoveFromEntity()
             self.openers[player] = nil
         end
     end
-end
+end]]
 
-Container.OnRemoveEntity = Container.OnRemoveFromEntity
+function Container:OnRemoveEntity()
+	if TheWorld.ismastersim then
+		if self.classified then
+			self.classified:Remove()
+			self.classified = nil
+		end
+		for player, opener in pairs(self.openers) do
+			opener:Remove()
+			self.openers[player] = nil
+		end
+	elseif self.opener then
+		self.opener._parent = nil
+		self:DetachOpener()
+	end
+end
 
 --------------------------------------------------------------------------
 --Client triggers open/close based on receiving access to classified data
@@ -283,6 +298,20 @@ function Container:ShouldSkipCloseSnd()
     return self._skipclosesnd:value()
 end
 
+function Container:EnableInfiniteStackSize(enable)
+	if self.classified then
+		self.classified.infinitestacksize:set(enable)
+	end
+end
+
+function Container:IsInfiniteStackSize()
+    if not self.classified then
+        return false
+    end
+
+    return self.classified.infinitestacksize:value()
+end
+
 function Container:CanTakeItemInSlot(item, slot)
     return item ~= nil
         and item.replica.inventoryitem ~= nil
@@ -384,7 +413,7 @@ end
 
 function Container:HasItemWithTag(tag, amount)
     if self.inst.components.container ~= nil then
-        return self.inst.components.container:HasTag(tag, amount)
+		return self.inst.components.container:HasItemWithTag(tag, amount)
     elseif self.classified ~= nil and self.opener ~= nil then
         return self.classified:HasItemWithTag(tag, amount)
     else
@@ -407,12 +436,14 @@ function Container:Open(doer)
             self._isopen = false
         elseif not self._isopen then
             doer.HUD:OpenContainer(self.inst, self:IsSideWidget())
-            if self:IsSideWidget() then
-                TheFocalPoint.SoundEmitter:PlaySound(SKIN_SOUND_FX[self.inst.AnimState:GetSkinBuild()] or "dontstarve/wilson/backpack_open")
-            else
-                if not self:ShouldSkipOpenSnd() then
-                    TheFocalPoint.SoundEmitter:PlaySound("dontstarve/HUD/Together_HUD/container_open")
-                end
+			if not self:ShouldSkipOpenSnd() then
+				local skinsound = self.inst.AnimState and SKIN_SOUND_FX[self.inst.AnimState:GetSkinBuild()] or nil
+				TheFocalPoint.SoundEmitter:PlaySound(
+					skinsound and skinsound.open_ui or
+					(self.widget ~= nil and self.widget.opensound) or
+					(self:IsSideWidget() and "dontstarve/wilson/backpack_open") or
+					"dontstarve/HUD/Together_HUD/container_open"
+				)
             end
             self._isopen = true
         end
@@ -429,12 +460,14 @@ function Container:Close()
     elseif self._isopen then
         if ThePlayer ~= nil and ThePlayer.HUD ~= nil then
             ThePlayer.HUD:CloseContainer(self.inst, self:IsSideWidget())
-            if self:IsSideWidget() then
-                TheFocalPoint.SoundEmitter:PlaySound("dontstarve/wilson/backpack_close")
-            else
-                if not self:ShouldSkipCloseSnd() then
-                    TheFocalPoint.SoundEmitter:PlaySound("dontstarve/HUD/Together_HUD/container_close")
-                end
+			if not self:ShouldSkipCloseSnd() then
+				local skinsound = self.inst.AnimState and SKIN_SOUND_FX[self.inst.AnimState:GetSkinBuild()] or nil
+				TheFocalPoint.SoundEmitter:PlaySound(
+					skinsound and skinsound.close_ui or
+					(self.widget ~= nil and self.widget.closesound) or
+					(self:IsSideWidget() and "dontstarve/wilson/backpack_close") or
+					"dontstarve/HUD/Together_HUD/container_close"
+				)
             end
         end
         self._isopen = false

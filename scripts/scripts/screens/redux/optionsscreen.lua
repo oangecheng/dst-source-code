@@ -63,6 +63,13 @@ local loadingtipsOptions =
 	{ text = STRINGS.UI.OPTIONS.LOADING_TIPS_SHOW_NONE, data = LOADING_SCREEN_TIP_OPTIONS.NONE },
 }
 
+local npcChatOptions = -- NPC Chat messages with priorities >= these values will be shown in the chat history.
+{
+	{ text = STRINGS.UI.OPTIONS.NPCCHAT_ALL,	data = CHATPRIORITIES.LOW },
+	{ text = STRINGS.UI.OPTIONS.NPCCHAT_SOME,	data = CHATPRIORITIES.HIGH },
+	{ text = STRINGS.UI.OPTIONS.NPCCHAT_NONE,	data = CHATPRIORITIES.MAX },
+}
+
 local function FindEnableScreenFlashOptionsIndex(value)
     for i = 1, #enableScreenFlashOptions do
 		if enableScreenFlashOptions[i].data == value then
@@ -79,6 +86,15 @@ local function FindDistortionLevelOptionsIndex(value)
 		end
 	end
 	return 4
+end
+
+local function FindNPCChatOptionsIndex(value)
+    for i = 1, #npcChatOptions do
+		if npcChatOptions[i].data == value then
+			return i
+		end
+	end
+	return 1
 end
 
 local all_controls =
@@ -170,6 +186,12 @@ local all_controls =
     {name=CONTROL_MENU_MISC_2, keyboard=nil, controller=CONTROL_MENU_MISC_2},
     {name=CONTROL_MENU_MISC_3, keyboard=nil, controller=CONTROL_MENU_MISC_3},
     {name=CONTROL_MENU_MISC_4, keyboard=nil, controller=CONTROL_MENU_MISC_4},
+
+    -- Chat based commands.
+    {name=CONTROL_TOGGLE_SLASH_COMMAND, keyboard=CONTROL_TOGGLE_SLASH_COMMAND, controller=nil},
+    {name=CONTROL_START_EMOJI, keyboard=CONTROL_START_EMOJI, controller=nil},
+
+    -- Available debug commands.
     {name=CONTROL_OPEN_DEBUG_CONSOLE, keyboard=CONTROL_OPEN_DEBUG_CONSOLE, controller=nil},
     {name=CONTROL_TOGGLE_LOG, keyboard=CONTROL_TOGGLE_LOG, controller=nil},
     {name=CONTROL_TOGGLE_DEBUGRENDER, keyboard=CONTROL_TOGGLE_DEBUGRENDER, controller=nil},
@@ -286,6 +308,7 @@ local OptionsScreen = Class(Screen, function( self, prev_screen, default_section
 		craftingmenusensitivity = Profile:GetCraftingMenuSensitivity(),
 		inventorysensitivity = Profile:GetInventorySensitivity(),
 		minimapzoomsensitivity = Profile:GetMiniMapZoomSensitivity(),
+		boathopdelay = Profile:GetBoatHopDelay(),
 		netbookmode = TheSim:IsNetbookMode(),
 		vibration = Profile:GetVibrationEnabled(),
 		showpassword = Profile:GetShowPasswordEnabled(),
@@ -294,6 +317,7 @@ local OptionsScreen = Class(Screen, function( self, prev_screen, default_section
         movementprediction = Profile:GetMovementPredictionEnabled(),
 		automods = Profile:GetAutoSubscribeModsEnabled(),
 		autologin = Profile:GetAutoLoginEnabled(),
+        npcchat = Profile:GetNPCChatLevel(),
 		animatedheads = Profile:GetAnimatedHeadsEnabled(),
 		wathgrithrfont = Profile:IsWathgrithrFontEnabled(),
 		boatcamera = Profile:IsBoatCameraEnabled(),
@@ -312,6 +336,7 @@ local OptionsScreen = Class(Screen, function( self, prev_screen, default_section
 		loadingtips = Profile:GetLoadingTipsOption(),
 		defaultcloudsaves = Profile:GetDefaultCloudSaves(),
 		scrapbookhuddisplay = Profile:GetScrapbookHudDisplay(),
+		poidisplay = Profile:GetPOIDisplay(),
 	}
 
 	if IsWin32() then
@@ -483,7 +508,7 @@ function OptionsScreen:OnControl(control, down)
 			end
 			TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
 			return true
-		elseif control == CONTROL_MAP and TheInput:ControllerAttached() then
+		elseif control == CONTROL_MENU_BACK and TheInput:ControllerAttached() then
             TheFrontEnd:PushScreen(PopupDialogScreen( STRINGS.UI.CONTROLSSCREEN.RESETTITLE, STRINGS.UI.CONTROLSSCREEN.RESETBODY,
             {
                 {
@@ -502,7 +527,7 @@ function OptionsScreen:OnControl(control, down)
             }))
             TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
             return true
-	    elseif control == CONTROL_PAUSE and TheInput:ControllerAttached() and not TheFrontEnd.tracking_mouse then
+	    elseif control == CONTROL_MENU_START and TheInput:ControllerAttached() and not TheFrontEnd.tracking_mouse then
 	    	if self:IsDirty() then
 	    		self:ApplyChanges() --apply changes and go back, or stay
 	    		TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/click_move")
@@ -581,11 +606,11 @@ function OptionsScreen:GetHelpText()
 	table.insert(t, TheInput:GetLocalizedControl(controller_id, CONTROL_CANCEL) .. " " .. STRINGS.UI.HELP.BACK)
 
 	if self.selected_tab == "controls" then
-		table.insert(t, TheInput:GetLocalizedControl(controller_id, CONTROL_MAP, false, false) .. " " .. STRINGS.UI.CONTROLSSCREEN.RESET)
+		table.insert(t, TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_BACK, false, false) .. " " .. STRINGS.UI.CONTROLSSCREEN.RESET)
 	end
 
 	if self:IsDirty() then
-		table.insert(t, TheInput:GetLocalizedControl(controller_id, CONTROL_PAUSE) .. " " .. STRINGS.UI.HELP.APPLY)
+		table.insert(t, TheInput:GetLocalizedControl(controller_id, CONTROL_MENU_START) .. " " .. STRINGS.UI.HELP.APPLY)
 	end
 
 	return table.concat(t, "  ")
@@ -613,6 +638,7 @@ function OptionsScreen:Save(cb)
 	Profile:SetCraftingMenuSensitivity( self.options.craftingmenusensitivity )
 	Profile:SetInventorySensitivity( self.options.inventorysensitivity )
 	Profile:SetMiniMapZoomSensitivity( self.options.minimapzoomsensitivity )
+    Profile:SetBoatHopDelay( self.options.boathopdelay )
 	Profile:SetScreenFlash( self.options.screenflash )
 	Profile:SetVibrationEnabled( self.options.vibration )
 	Profile:SetShowPasswordEnabled( self.options.showpassword )
@@ -621,6 +647,7 @@ function OptionsScreen:Save(cb)
     Profile:SetMovementPredictionEnabled(self.options.movementprediction)
 	Profile:SetAutoSubscribeModsEnabled( self.options.automods )
 	Profile:SetAutoLoginEnabled( self.options.autologin )
+    Profile:SetNPCChatLevel(self.options.npcchat)
 	Profile:SetAnimatedHeadsEnabled( self.options.animatedheads )
 	Profile:SetTextureStreamingEnabled( self.options.texturestreaming )
 	if IsWin32() then
@@ -637,6 +664,7 @@ function OptionsScreen:Save(cb)
 	Profile:SetMinimapZoomCursorEnabled( self.options.minimapzoomcursor )
 	Profile:SetDefaultCloudSaves( self.options.defaultcloudsaves )
 	Profile:SetScrapbookHudDisplay( self.options.scrapbookhuddisplay )
+	Profile:SetPOIDisplay( self.options.poidisplay )	
 
 	if self.integratedbackpackSpinner:IsEnabled() then
 		Profile:SetIntegratedBackpack( self.options.integratedbackpack )
@@ -763,6 +791,7 @@ function OptionsScreen:Apply()
 	Profile:SetLoadingTipsOption( self.working.loadingtips )
 	Profile:SetDefaultCloudSaves( self.options.defaultcloudsaves )
 	Profile:SetScrapbookHudDisplay( self.options.scrapbookhuddisplay )
+	Profile:SetPOIDisplay( self.options.poidisplay )
 	
 	DoAutopause()
 	local pausescreen = TheFrontEnd:GetOpenScreenOfType("PauseScreen")
@@ -1242,7 +1271,7 @@ local function AddSpinnerTooltip(widget, tooltip, tooltipdivider)
 	if widget.spinner then
 		widget.spinner.onlosefocusfn = onlosefocus
 	elseif widget.button then -- Handles the data collection checkbox option
-		widget.button.ongainfocus = ongainfocus
+		widget.button.onlosefocus = onlosefocus
 	end
 
 end
@@ -1806,6 +1835,20 @@ function OptionsScreen:_BuildAdvancedSettings()
 			self:UpdateMenu()
 		end
 
+	self.poidisplaySpinner = CreateTextSpinner(STRINGS.UI.OPTIONS.POIDISPLAY, enableDisableOptions, STRINGS.UI.OPTIONS.TOOLTIPS.POIDISPLAY)
+	self.poidisplaySpinner.OnChanged =
+		function( _, data )
+			self.working.poidisplay = data
+			--self:Apply()
+			self:UpdateMenu()
+		end
+
+    self.npcchatSpinner = CreateTextSpinner(STRINGS.UI.OPTIONS.NPCCHAT, npcChatOptions, STRINGS.UI.OPTIONS.TOOLTIPS.NPCCHAT)
+    self.npcchatSpinner.OnChanged = function(_, data)
+        self.working.npcchat = data
+        self:UpdateMenu()
+    end
+
 	self.minimapzoomcursorSpinner = CreateTextSpinner(STRINGS.UI.OPTIONS.MINIMAPZOOMCURSOR, enableDisableOptions, STRINGS.UI.OPTIONS.TOOLTIPS.MINIMAPZOOMCURSOR)
 	self.minimapzoomcursorSpinner.OnChanged =
 		function( _, data )
@@ -1885,6 +1928,13 @@ function OptionsScreen:_BuildAdvancedSettings()
 			--self:Apply()
 			self:UpdateMenu()
 		end
+    self.boathopdelaySpinner = CreateNumericSpinner(STRINGS.UI.OPTIONS.BOATHOPDELAY, 0, 16, STRINGS.UI.OPTIONS.TOOLTIPS.BOATHOPDELAY)
+    self.boathopdelaySpinner.OnChanged =
+        function( _, data )
+            self.working.boathopdelay = data
+            --self:Apply()
+            self:UpdateMenu()
+        end
 
 	if IsSteam() then
 		self.defaultcloudsavesSpinner = CreateTextSpinner(STRINGS.UI.OPTIONS.DEFAULTCLOUDSAVES, steamCloudLocalOptions, STRINGS.UI.OPTIONS.TOOLTIPS.DEFAULTCLOUDSAVES)
@@ -1907,6 +1957,8 @@ function OptionsScreen:_BuildAdvancedSettings()
 	table.insert( self.left_spinners, self.animatedHeadsSpinner )
     table.insert( self.left_spinners, self.wathgrithrfontSpinner)
 	table.insert( self.left_spinners, self.waltercameraSpinner)
+	table.insert( self.left_spinners, self.poidisplaySpinner)
+    table.insert( self.left_spinners, self.npcchatSpinner)
 
 	table.insert( self.right_spinners, self.consoleautopauseSpinner )
 	table.insert( self.right_spinners, self.craftingmenubufferedbuildautocloseSpinner )
@@ -1915,6 +1967,7 @@ function OptionsScreen:_BuildAdvancedSettings()
 	table.insert( self.right_spinners, self.inventorysensitivitySpinner )
 	table.insert( self.right_spinners, self.minimapzoomcursorSpinner )
 	table.insert( self.right_spinners, self.minimapzoomsensitivitySpinner )
+	table.insert( self.right_spinners, self.boathopdelaySpinner )
 	
 	self.grid_advanced:UseNaturalLayout()
 	self.grid_advanced:InitSize(2, math.max(#self.left_spinners, #self.right_spinners), 440, 40)
@@ -2410,6 +2463,7 @@ function OptionsScreen:InitializeSpinners(first)
 	self.craftingmenusensitivitySpinner:SetSelectedIndex( self.working.craftingmenusensitivity or 12)
 	self.inventorysensitivitySpinner:SetSelectedIndex( self.working.inventorysensitivity or 16)
 	self.minimapzoomsensitivitySpinner:SetSelectedIndex( self.working.minimapzoomsensitivity or 15)
+	self.boathopdelaySpinner:SetSelectedIndex( self.working.boathopdelay or 8)
 	self.screenFlashSpinner:SetSelectedIndex( FindEnableScreenFlashOptionsIndex( self.working.screenflash ) )
 	self.vibrationSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.vibration ) )
 	self.passwordSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.showpassword ) )
@@ -2421,6 +2475,8 @@ function OptionsScreen:InitializeSpinners(first)
     self.movementpredictionSpinner:SetSelectedIndex(EnabledOptionsIndex(self.working.movementprediction))
 	self.wathgrithrfontSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.wathgrithrfont ) )
 	self.waltercameraSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.waltercamera ) )
+	self.poidisplaySpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.poidisplay ) )
+    self.npcchatSpinner:SetSelectedIndex( FindNPCChatOptionsIndex(self.working.npcchat) )
 	self.minimapzoomcursorSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.minimapzoomcursor ) )
 	self.boatcameraSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.boatcamera ) )
 	self.integratedbackpackSpinner:SetSelectedIndex( EnabledOptionsIndex( self.working.integratedbackpack ) )

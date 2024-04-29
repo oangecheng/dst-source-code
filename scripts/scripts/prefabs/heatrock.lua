@@ -222,13 +222,16 @@ local function fn()
         return inst
     end
 
+    inst.scrapbook_fueled_rate = TUNING.HEATROCK_NUMUSES
+    inst.scrapbook_fueled_uses = true
+
     inst:AddComponent("inspectable")
     inst.components.inspectable.getstatus = GetStatus
 
     inst:AddComponent("inventoryitem")
 
     inst:AddComponent("tradable")
-    inst.components.tradable.rocktribute = 6
+    inst.components.tradable.rocktribute = 12
 
     inst:AddComponent("temperature")
     inst.components.temperature.current = TheWorld.state.temperature

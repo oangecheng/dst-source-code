@@ -11,6 +11,7 @@ local LootDropper = Class(function(self, inst)
     self.chanceloottable = nil
 
     self.trappable = true
+    self.droprecipeloot = true
 
     self.lootfn = nil
     self.flingtargetpos = nil
@@ -45,6 +46,12 @@ function LootDropper:AddRandomLoot(prefab, weight)
 
     table.insert(self.randomloot, { prefab = prefab, weight = weight })
     self.totalrandomweight = self.totalrandomweight + weight
+end
+
+function LootDropper:ClearRandomLoot()
+    self.randomloot = nil
+    self.totalrandomweight = nil
+    self.numrandomloot = nil
 end
 
 -- This overrides the normal loot table while haunted
@@ -197,16 +204,75 @@ function LootDropper:GenerateLoot()
         end
     end
 
-    local recipe = AllRecipes[self.inst.prefab]
-    if recipe then
-        local recipeloot = self:GetRecipeLoot(recipe)
-        for k,v in ipairs(recipeloot) do
-            table.insert(loots, v)
+    if self.droprecipeloot then
+        local recipe = AllRecipes[self.inst.prefab]
+        if recipe then
+            local recipeloot = self:GetRecipeLoot(recipe)
+            for k,v in ipairs(recipeloot) do
+                table.insert(loots, v)
+            end
         end
     end
 
     if self.inst:HasTag("burnt") and math.random() < .4 then
         table.insert(loots, "charcoal") -- Add charcoal to loot for burnt structures
+    end
+
+    return loots
+end
+
+function LootDropper:GetAllPossibleLoot(setuploot)
+    local loots = {}
+
+    -- NOTES(DiogoW): We don't want to run lootsetupfn if this function is not called for debugging purposes or for creating scrapbook data.
+    if setuploot and self.lootsetupfn then
+        self:lootsetupfn()
+    end
+
+    if self.randomhauntedloot then
+        for k,v in pairs(self.randomhauntedloot) do
+            loots[v.prefab] = true
+        end
+    end
+
+    if self.randomloot then
+        for k,v in pairs(self.randomloot) do
+            loots[v.prefab] = true
+        end
+    end
+
+    if self.chanceloot then
+        for k,v in pairs(self.chanceloot) do
+            loots[v.prefab] = true
+        end
+    end
+
+    if self.chanceloottable then
+        local loot_table = LootTables[self.chanceloottable]
+        if loot_table then
+            for i, entry in ipairs(loot_table) do
+                local prefab = entry[1]
+                loots[prefab] = true
+            end
+        end
+    end
+
+    if not self.droppingchanceloot and self.ifnotchanceloot then
+        for k,v in pairs(self.ifnotchanceloot) do
+            loots[v.prefab] = true
+        end
+    end
+
+    if self.loot then
+        for k, prefab in ipairs(self.loot) do
+            loots[prefab] = true
+        end
+    end
+
+    local wintersfeast_loot = self.GetWintersFeastOrnaments ~= nil and self.GetWintersFeastOrnaments(self.inst) or TUNING.WINTERS_FEAST_TREE_DECOR_LOOT[string.upper(self.inst.prefab)] or nil
+
+    if wintersfeast_loot ~= nil and wintersfeast_loot.special ~= nil then
+        loots[wintersfeast_loot.special] = true
     end
 
     return loots
@@ -276,15 +342,20 @@ function LootDropper:SpawnLootPrefab( lootprefab, pt, linked_skinname, skin_id, 
                 if self.inst.components.inventoryitem ~= nil then
                     loot.components.inventoryitem:InheritMoisture(self.inst.components.inventoryitem:GetMoisture(), self.inst.components.inventoryitem:IsWet())
                 else
-                    loot.components.inventoryitem:InheritMoisture(TheWorld.state.wetness, TheWorld.state.iswet)
+					loot.components.inventoryitem:InheritWorldWetnessAtTarget(self.inst)
                 end
             end
 
-        -- here? so we can run a full drop loot?
+            -- here? so we can run a full drop loot?
             self:FlingItem(loot, pt)
 
             loot:PushEvent("on_loot_dropped", {dropper = self.inst})
             self.inst:PushEvent("loot_prefab_spawned", {loot = loot})
+
+            -- make it smoulder when dropped if the parent was in controlled burn
+            if self.inst.components.burnable and self.inst.components.burnable:GetControlledBurn() and loot.components.burnable then
+                loot.components.burnable:StartWildfire()
+            end
 
             return loot
         end
@@ -298,6 +369,7 @@ function LootDropper:DropLoot(pt)
             self.inst.components.burnable:IsBurning() and
             (self.inst.components.fueled == nil or self.inst.components.burnable.ignorefuel)) then
 
+
         local isstructure = self.inst:HasTag("structure")
         for k, v in pairs(prefabs) do
             if TUNING.BURNED_LOOT_OVERRIDES[v] ~= nil then
@@ -310,6 +382,8 @@ function LootDropper:DropLoot(pt)
             --     while hammering AFTER burnt give back good ingredients.
             --     It *should* ALWAYS return ash based on certain types of
             --     ingredients (wood), but we'll let them have this one :O
+            elseif self.inst.components.burnable and self.inst.components.burnable:GetControlledBurn() then
+                -- Leave it be, but we will drop it smouldering.
             elseif (not isstructure and not self.inst:HasTag("tree")) or self.inst:HasTag("hive") then -- because trees have specific burnt loot and "hive"s are structures...
                 prefabs[k] = "ash"
             end

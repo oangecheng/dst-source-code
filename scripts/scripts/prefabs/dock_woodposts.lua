@@ -66,10 +66,14 @@ local function fn()
     inst.AnimState:SetBuild("dock_woodposts")
     inst.AnimState:PlayAnimation("idle1")
 
+    inst.scrapbook_inspectonseen = true
+
     inst.entity:SetPristine()
     if not TheWorld.ismastersim then
         return inst
     end
+
+    inst.scrapbook_anim = "idle3"
 
     ---------------------------------------------------------------
     inst:AddComponent("lootdropper")
@@ -117,7 +121,6 @@ local function itemfn()
     inst.AnimState:SetBank("dock_woodposts")
     inst.AnimState:SetBuild("dock_woodposts")
     inst.AnimState:PlayAnimation("item")
-    inst.scrapbook_anim = "item"
 
     MakeInventoryFloatable(inst, "med", 0.2, 0.75)
     

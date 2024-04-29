@@ -1,12 +1,17 @@
+local SourceModifierList = require("util/sourcemodifierlist")
+
 local function PercentChanged(inst, data)
-    if inst.components.armor ~= nil and
-        data.percent ~= nil and
-        data.percent <= 0 and
-        inst.components.inventoryitem ~= nil and
-        inst.components.inventoryitem.owner ~= nil then
-        inst.components.inventoryitem.owner:PushEvent("armorbroke", { armor = inst })
-        --ProfileStatsSet("armor_broke_"..inst.prefab, true)
-    end
+	if inst.components.armor ~= nil and data.percent ~= nil then
+		if inst.components.forgerepairable ~= nil then
+			inst.components.forgerepairable:SetRepairable(data.percent < 1)
+		end
+		if data.percent <= 0 and
+			inst.components.inventoryitem ~= nil and
+			inst.components.inventoryitem.owner ~= nil then
+			inst.components.inventoryitem.owner:PushEvent("armorbroke", { armor = inst })
+			--ProfileStatsSet("armor_broke_"..inst.prefab, true)
+		end
+	end
 end
 
 local Armor = Class(function(self, inst)
@@ -15,8 +20,21 @@ local Armor = Class(function(self, inst)
     self.maxcondition = 100
     self.tags = nil
     self.weakness = nil
+
+    self.conditionlossmultipliers = SourceModifierList(self.inst)
+
+	--self.onfinished = nil
+	--self.keeponfinished = nil
     self.inst:ListenForEvent("percentusedchange", PercentChanged)
 end)
+
+function Armor:SetOnFinished(fn)
+	self.onfinished = fn
+end
+
+function Armor:SetKeepOnFinished(keep)
+	self.keeponfinished = keep ~= false
+end
 
 function Armor:InitCondition(amount, absorb_percent)
     self.condition = amount
@@ -86,10 +104,12 @@ function Armor:SetCondition(amount)
         ProfileStatsSet("armor", self.inst.prefab)
 
         if self.onfinished ~= nil then
-            self.onfinished()
+			self.onfinished(self.inst)
         end
 
-        self.inst:Remove()
+		if not self.keeponfinished then
+			self.inst:Remove()
+		end
     end
 end
 
@@ -134,6 +154,8 @@ function Armor:GetBonusDamage(attacker, weapon)
 end
 
 function Armor:TakeDamage(damage_amount)
+    damage_amount = damage_amount * self.conditionlossmultipliers:Get()
+
     self:SetCondition(self.condition - damage_amount)
     if self.ontakedamage ~= nil then
         self.ontakedamage(self.inst, damage_amount)

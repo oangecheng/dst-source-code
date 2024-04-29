@@ -4,7 +4,6 @@ require "behaviours/faceentity"
 require "behaviours/chaseandattack"
 require "behaviours/runaway"
 require "behaviours/doaction"
---require "behaviours/choptree"
 require "behaviours/findlight"
 require "behaviours/panic"
 require "behaviours/chattynode"
@@ -114,7 +113,10 @@ local function GetTraderFn(inst)
     for i, v in ipairs(players) do
         if inst.components.trader:IsTryingToTradeWithMe(v) then
 
-            inst.components.npc_talker:Say(getstring(inst,STRINGS.HERMITCRAB_ATTEMPT_TRADE), nil, true)
+            local gfl = inst.getgeneralfriendlevel(inst)
+            local chatter_name = "HERMITCRAB_ATTEMPT_TRADE."..gfl
+            inst.components.npc_talker:Chatter(chatter_name, math.random(#(STRINGS["HERMITCRAB_ATTEMPT_TRADE"][gfl])), nil, nil, true)
+
             if inst.components.timer:TimerExists("speak_time") then
                 inst.components.timer:SetTimeLeft("speak_time", TUNING.HERMITCRAB.SPEAKTIME)
             else
@@ -191,7 +193,7 @@ local function getfriendlevelspeech(inst, target)
     if not inst.components.timer:TimerExists("speak_time") then
 
         local level = inst.components.friendlevels.level
-        local str = STRINGS.HERMITCRAB_GREETING[level][math.random(1,#STRINGS.HERMITCRAB_GREETING[level])]
+        local str = STRINGS.HERMITCRAB_GREETING[level][math.random(#STRINGS.HERMITCRAB_GREETING[level])]
 
         if type(str) == "table" then
             local new = {}
@@ -259,7 +261,11 @@ local function GetFaceTargetFn(inst)
 
     if shouldface and not inst.sg:HasStateTag("busy") and not inst.sg:HasStateTag("alert") and not inst.hasgreeted then
         local str = getfriendlevelspeech(inst, target)
-        if str then inst.components.npc_talker:Say(str, nil, true) end
+        if str then
+            -- TODO (SAM) Leaving this as Say for now, because some of the getfriendspeechlevel options
+            -- format in the player's name.
+            inst.components.npc_talker:Say(str, nil, true)
+        end
         inst.hasgreeted = true
     end
 
@@ -289,7 +295,15 @@ end
 
 local function DoCommentAction(inst)
     if inst.comment_data then
-        return BufferedAction(inst, nil, ACTIONS.COMMENT, nil, inst.comment_data.pos)
+        if inst.comment_data.speech then
+            return BufferedAction(inst, nil, ACTIONS.COMMENT, nil, inst.comment_data.pos, nil, inst.comment_data.distance)
+        else
+            local buffered_action = BufferedAction(inst, nil, ACTIONS.WALKTO, nil, inst.comment_data.pos, nil, inst.comment_data.distance)
+            if buffered_action then
+                buffered_action:AddSuccessAction(function() inst.comment_data = nil end)
+            end
+            return buffered_action
+        end
     end
 end
 
@@ -317,13 +331,7 @@ local function DoHarvestBerries(inst)
     if source then
         local x,y,z = source.Transform:GetWorldPosition()
         local ents = TheSim:FindEntities(x,y,z, inst.island_radius, PICKABLE_TAGS)
-        local target = nil
-        if #ents > 0 then
-            for i,ent in ipairs(ents)do
-                target = ent
-                break
-            end
-        end
+        local target = (#ents > 0 and ents[1]) or nil
         if target then
             return BufferedAction(inst, target, ACTIONS.PICK)
         end
@@ -373,7 +381,11 @@ local function runawaytest(inst)
         end
         if player and not inst.sg:HasStateTag("busy") and not inst.hasgreeted then
             local str = getfriendlevelspeech(inst, player)
-            if str then inst.components.npc_talker:Say(str,nil,true) end
+            if str then
+                -- TODO (SAM) Leaving this as Say for now, because some of the getfriendspeechlevel options
+                -- format in the player's name.
+                inst.components.npc_talker:Say(str, nil, true)
+            end
             inst.hasgreeted = true
         end
         return true
@@ -387,7 +399,7 @@ local function DoBottleToss(inst)
             local x,y,z = source.Transform:GetWorldPosition()
             local ents = TheSim:FindEntities(x,y,z, inst.island_radius, FISHING_MARKER_TAGS)
             if #ents > 0 then
-                local pos = Vector3(ents[math.random(1,#ents)].Transform:GetWorldPosition())
+                local pos = ents[math.random(1,#ents)]:GetPosition()
 
                 if pos then
                     local equipped = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
@@ -408,6 +420,28 @@ local function DoBottleToss(inst)
     end
 end
 
+local SITTABLE_TAGS = {"cansit"}
+local SITTABLE_WONT_TAGS = {"uncomfortable_chair"}
+local function DoChairSit(inst)
+    if not inst:HasTag("sitting_on_chair") and not inst.components.timer:TimerExists("sat_on_chair") then
+        local source = inst.CHEVO_marker
+        if source then
+            local x,y,z = source.Transform:GetWorldPosition()
+            local ents = TheSim:FindEntities(x,y,z, inst.island_radius, SITTABLE_TAGS, SITTABLE_WONT_TAGS)
+            local target = nil
+            if #ents > 0 then
+                for _, ent in ipairs(ents)do
+                    target = ent
+                    break
+                end
+            end
+            if target then
+                return BufferedAction(inst, target, ACTIONS.SITON)
+            end
+        end
+    end
+end
+
 local function DoTalkQueue(inst)
     if inst.components.npc_talker:haslines() and not inst.sg:HasStateTag("talking") and not inst.sg:HasStateTag("busy") and not inst.components.timer:TimerExists("speak_time") then
         inst.components.npc_talker:donextline()
@@ -420,6 +454,13 @@ local function DoThrow(inst)
     end
 end
 
+local CHATTERPARAMS_LOW = {
+	echotochatpriority = CHATPRIORITIES.LOW,
+}
+local CHATTERPARAMS_HIGH = {
+	echotochatpriority = CHATPRIORITIES.HIGH,
+}
+
 local HermitBrain = Class(Brain, function(self, inst)
     Brain._ctor(self, inst)
 end)
@@ -430,34 +471,43 @@ function HermitBrain:OnStart()
         PriorityNode{
             WhileNode( function() return not self.inst.sg:HasStateTag("mandatory") end, "unfriendly",
                 PriorityNode{
-                ChattyNode(self.inst, function(inst) return getstring(inst,STRINGS.HERMITCRAB_ATTEMPT_TRADE) end,
-                    FaceEntity(self.inst, GetTraderFn, KeepTraderFn)),
-                FaceEntity(self.inst, GetTraderFn, KeepTraderFn),
-                IfNode( function() return runawaytest(self.inst) end, "unfriendly",
+                    WhileNode( function() return self.inst.comment_data ~= nil end, "comment",
+                        DoAction(self.inst, DoCommentAction, "comment", true, 10 )),
+                    ChattyNode(self.inst, {
+                            name = function(inst) return "HERMITCRAB_ATTEMPT_TRADE."..inst.getgeneralfriendlevel(inst) end,
+                            chatterparams = CHATTERPARAMS_LOW,
+                        },
+                        FaceEntity(self.inst, GetTraderFn, KeepTraderFn)),
+                    FaceEntity(self.inst, GetTraderFn, KeepTraderFn),
+                    IfNode( function() return runawaytest(self.inst) end, "unfriendly",
                         RunAway(self.inst, "player", START_RUN_DIST, STOP_RUN_DIST)),
-                IfNode( function() return self.inst.components.friendlevels.level > TUNING.HERMITCRAB.UNFRIENDLY_LEVEL end, "friendly",
-                      FaceEntity(self.inst, GetFaceTargetFn, KeepFaceTargetFn)),
-                WhileNode( function() return self.inst.comment_data ~= nil end, "comment",
-                            DoAction(self.inst, DoCommentAction, "comment", true )),
-                DoAction(self.inst, DoReel, "reel", true ),
-                IfNode( function() return not self.inst.sg:HasStateTag("alert") and not self.inst.sg:HasStateTag("npc_fishing") and not self.inst.sg:HasStateTag("busy") and not self.inst.components.locomotor.dest end, "not fishing",
-                    PriorityNode{
-                        DoAction(self.inst, DoHarvestMeat, "meat harvest", true ),
-                        DoAction(self.inst, DoHarvestBerries, "berry harvest", true ),
-                        DoAction(self.inst, DoFishingAction, "gone fishing", true ),
-                        DoAction(self.inst, DoBottleToss, "bottle", true ),
-                        Wander(self.inst, GetHomePos, MAX_WANDER_DIST, nil, nil, nil, nil, {should_run = false})
-                    },0.5),
+                    IfNode( function() return self.inst.components.friendlevels.level > TUNING.HERMITCRAB.UNFRIENDLY_LEVEL end, "friendly",
+                        FaceEntity(self.inst, GetFaceTargetFn, KeepFaceTargetFn, 7)),
+                    DoAction(self.inst, DoReel, "reel", true ),
+                    IfNode( function() return not self.inst.sg:HasStateTag("alert")
+                                        and not self.inst.sg:HasStateTag("npc_fishing")
+                                        and not self.inst.sg:HasStateTag("busy")
+                                        and not self.inst.components.locomotor.dest end, "Not Acting",
+                        PriorityNode{
+                            DoAction(self.inst, DoHarvestMeat, "meat harvest", true ),
+                            DoAction(self.inst, DoHarvestBerries, "berry harvest", true ),
+                            DoAction(self.inst, DoChairSit, "sit on chairs", true ),
+                            DoAction(self.inst, DoFishingAction, "gone fishing", true ),
+                            DoAction(self.inst, DoBottleToss, "bottle", true ),
+                            IfNode( function() return not self.inst.sg:HasStateTag("sitting") end, "not sitting",
+                                Wander(self.inst, GetHomePos, MAX_WANDER_DIST, nil, nil, nil, nil, {should_run = false})
+                            ),
+                        },0.5),
                 },0.5),
         }, 0.5)
 
     local night = WhileNode( function() return not TheWorld.state.isday and not allnighttest(self.inst) end, "IsNight",
         PriorityNode{
             RunAway(self.inst, "player", START_RUN_DIST, STOP_RUN_DIST, function(target) return ShouldRunAway(self.inst, target) end ),
-            ChattyNode(self.inst, function(inst) return getstring(inst,STRINGS.HERMITCRAB_GO_HOME) end ,
+            ChattyNode(self.inst, { name = "HERMITCRAB_GO_HOME", chatterparams = CHATTERPARAMS_LOW },
                 WhileNode( function() return not TheWorld.state.iscaveday or not self.inst:IsInLight() end, "Cave nightness",
                     DoAction(self.inst, GoHomeAction, "go home", true ))),
-            ChattyNode(self.inst, function(inst) return getstring(inst,STRINGS.HERMITCRAB_PANIC) end,
+            ChattyNode(self.inst, { name = "HERMITCRAB_PANIC", chatterparams = CHATTERPARAMS_LOW },
                 Panic(self.inst)),
         }, 1)
 
@@ -466,7 +516,7 @@ function HermitBrain:OnStart()
         {
 
             WhileNode( function() return BrainCommon.ShouldTriggerPanic(self.inst) end, "PanicHaunted",
-                ChattyNode(self.inst, function(inst) return getstring(inst,STRINGS.HERMITCRAB_PANICHAUNT) end,
+                ChattyNode(self.inst, { name = "HERMITCRAB_PANICHAUNT", chatterparams = CHATTERPARAMS_LOW },
                     Panic(self.inst))),
             RunAway(self.inst, function(guy) return guy:HasTag("pig") and guy.components.combat and guy.components.combat.target == self.inst end, RUN_AWAY_DIST, STOP_RUN_AWAY_DIST ),
 
@@ -477,7 +527,7 @@ function HermitBrain:OnStart()
             IfNode( function() return not self.inst.sg:HasStateTag("busy") and TheWorld.state.issnowing and has_coat(self.inst) and not using_coat(self.inst) end, "coat",
                     DoAction(self.inst, EquipCoat, "coat", true )),
             IfNode( function() return not self.inst.sg:HasStateTag("busy") and not TheWorld.state.issnowing and using_coat(self.inst) end, "stop coat",
-                    DoAction(self.inst, UnEquipBody, "stop umbrella", true )),
+                    DoAction(self.inst, UnEquipBody, "stop coat", true )),
 
             DoAction(self.inst, DoThrow, "toss item", true ),
             DoAction(self.inst, DoTalkQueue, "finish talking", true ),

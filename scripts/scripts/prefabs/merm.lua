@@ -168,7 +168,12 @@ end
 local MERM_TAGS = { "merm" }
 local MERM_IGNORE_TAGS = { "FX", "NOCLICK", "DECOR", "INLIMBO", "player" }
 local function MermSort(a, b) -- Better than bubble!
-    return a.components.follower:GetLoyaltyPercent() < b.components.follower:GetLoyaltyPercent()
+    local ap = a.components.follower:GetLoyaltyPercent()
+    local bp = b.components.follower:GetLoyaltyPercent()
+    if ap == bp then
+        return a.GUID < b.GUID
+    end
+    return ap < bp
 end
 local function GetOtherMerms(inst, radius, maxcount)
     local x, y, z = inst.Transform:GetWorldPosition()
@@ -504,10 +509,8 @@ local function OnUnmarkForTeleport(inst, data)
 end
 
 local function battlecry(combatcmp, target)
-    local strtbl =
-        combatcmp.inst:HasTag("guard") and
-        "MERM_BATTLECRY" or
-        "MERM_BATTLECRY"
+    local strtbl = (combatcmp.inst:HasTag("guard") and "MERM_GUARD_BATTLECRY")
+        or "MERM_BATTLECRY"
     return strtbl, math.random(#STRINGS[strtbl])
 end
 

@@ -9,6 +9,18 @@ local prefabs =
 	"slingshotammo_rock_proj",
 }
 
+local SCRAPBOOK_DEPS =
+{
+    "slingshotammo_rock",
+    "slingshotammo_gold",
+    "slingshotammo_marble",
+    "slingshotammo_thulecite",
+    "slingshotammo_freeze",
+    "slingshotammo_slow",
+    "slingshotammo_poop",
+    "trinket_1",
+}
+
 local PROJECTILE_DELAY = 2 * FRAMES
 
 local function OnEquip(inst, owner)
@@ -112,6 +124,9 @@ local function fn()
         return inst
     end
 
+    inst.scrapbook_adddeps = SCRAPBOOK_DEPS
+    inst.scrapbook_weapondamage = { TUNING.SLINGSHOT_AMMO_DAMAGE_ROCKS, TUNING.SLINGSHOT_AMMO_DAMAGE_MAX }
+
     inst:AddComponent("inspectable")
 
     inst:AddComponent("inventoryitem")
@@ -132,6 +147,7 @@ local function fn()
     inst:AddComponent("container")
     inst.components.container:WidgetSetup("slingshot")
 	inst.components.container.canbeopened = false
+    inst.components.container.stay_open_on_hide = true
     inst:ListenForEvent("itemget", OnAmmoLoaded)
     inst:ListenForEvent("itemlose", OnAmmoUnloaded)
 

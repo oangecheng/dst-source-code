@@ -414,7 +414,10 @@ function Builder:GetIngredientWetness(ingredients)
         for k, v in pairs(ents) do
             table.insert(wetness,
             {
-                wetness = k.components.inventoryitem ~= nil and k.components.inventoryitem:GetMoisture() or TheWorld.state.wetness,
+				wetness =
+					(k.components.inventoryitem ~= nil and k.components.inventoryitem:GetMoisture()) or
+					(k.components.rainimmunity == nil and TheWorld.state.wetness) or
+					0,
                 num = v,
             })
         end
@@ -562,7 +565,7 @@ end
 
 function Builder:DoBuild(recname, pt, rotation, skin)
     local recipe = GetValidRecipe(recname)
-    if recipe ~= nil and (self:IsBuildBuffered(recname) or self:HasIngredients(recipe)) then
+    if recipe ~= nil and (self:IsBuildBuffered(recname) or self:HasIngredients(recipe)) and not PREFAB_SKINS_SHOULD_NOT_SELECT[skin] then
         if recipe.placer ~= nil and
             self.inst.components.rider ~= nil and
             self.inst.components.rider:IsRiding() then
@@ -819,6 +822,9 @@ end
 --------------------------------------------------------------------------
 
 function Builder:MakeRecipeFromMenu(recipe, skin)
+    if not self.inst.components.inventory:IsOpenedBy(self.inst) then
+        return -- NOTES(JBK): The inventory was hidden by gameplay do not allow crafting.
+    end
     if self:HasIngredients(recipe) then
 		if recipe.placer == nil then
 			--Need to determine this NOW before calling async MakeRecipe
@@ -922,6 +928,10 @@ function Builder:MakeRecipeFromMenu(recipe, skin)
 end
 
 function Builder:MakeRecipeAtPoint(recipe, pt, rot, skin)
+    if not self.inst.components.inventory:IsOpenedBy(self.inst) then
+        return -- NOTES(JBK): The inventory was hidden by gameplay do not allow crafting.
+    end
+
     if recipe.placer ~= nil and
         self:KnowsRecipe(recipe) and
         self:IsBuildBuffered(recipe.name) and
@@ -931,6 +941,10 @@ function Builder:MakeRecipeAtPoint(recipe, pt, rot, skin)
 end
 
 function Builder:BufferBuild(recname)
+    if not self.inst.components.inventory:IsOpenedBy(self.inst) then
+        return -- NOTES(JBK): The inventory was hidden by gameplay do not allow crafting.
+    end
+
     local recipe = GetValidRecipe(recname)
     if recipe ~= nil and recipe.placer ~= nil and not self:IsBuildBuffered(recname) and self:HasIngredients(recipe) then
 		local knows_no_temp = self:KnowsRecipe(recipe, true)

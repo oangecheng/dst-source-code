@@ -67,6 +67,7 @@ return{
 			KITCOON_HIDEANDSEEK_ONE_GAME_PER_DAY = "They look tired. Let's play again tomorrow!",
             MANNEQUIN_EQUIPSWAPFAILED = "Nah, it looks better on me.",
             PILLOWFIGHT_NO_HANDPILLOW = "Hey, don't I need a pillow first?",
+            NOTMYBERNIE = "Sorry. Wrong Bernie. As you were.",
 		},
 		OPEN_CRAFTING =
 		{
@@ -84,7 +85,7 @@ return{
             NO_RACERS = "A race isn't any fun without someone to beat.",
         },
 
-		DISMANTLE =
+		DISMANTLE = 
 		{
 			COOKING = "I'm not going to interrupt it while it's cooking.",
 			INUSE = "But I want to use it!",
@@ -207,7 +208,7 @@ return{
 			--MapSpotRevealer/messagebottle
 			MESSAGEBOTTLEMANAGER_NOT_FOUND = "No point trying to read this here.",--Likely trying to read messagebottle treasure map in caves
 
-            STASH_MAP_NOT_FOUND = "Huh. Monkeys are really bad at making maps.",-- Likely trying to read stash map  in world without stash
+            STASH_MAP_NOT_FOUND = "Huh. Monkeys are really bad at making maps.",-- Likely trying to read stash map  in world without stash                  
         },
         WRAPBUNDLE =
         {
@@ -395,6 +396,10 @@ return{
 		CASTAOE =
 		{
 --fallback to speech_wilson.lua 			NO_MAX_SANITY = "only_used_by_waxwell",
+            NOT_ENOUGH_EMBERS = "I need more embers! Heh. Better get back to burning.",
+            NO_TARGETS = "There is nothing scary to burn nearby.",
+            CANT_SPELL_MOUNTED = "My beast is too flamable for that kind of fun.",
+            SPELL_ON_COOLDOWN = "I need to give it a moment.", 
 		},
     },
 
@@ -520,10 +525,15 @@ return{
 	ANNOUNCE_HIGHRESEARCH = "So much information!",
 	ANNOUNCE_HOUNDS = "Show yourself!",
 	ANNOUNCE_WORMS = "I do NOT wanna see what made that sound!",
+    ANNOUNCE_ACIDBATS = "Well that's not good.",
 	ANNOUNCE_HUNGRY = "I need food!",
 	ANNOUNCE_HUNT_BEAST_NEARBY = "I'll find you!",
 	ANNOUNCE_HUNT_LOST_TRAIL = "Ohh... he got away.",
 	ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "Boooo, I lost track of him in the mud.",
+    ANNOUNCE_HUNT_START_FORK = "I don't like the look of those marks... not that I'm scared or anything!",
+    ANNOUNCE_HUNT_SUCCESSFUL_FORK = "Heh... I've got the drop on 'em!",
+    ANNOUNCE_HUNT_WRONG_FORK = "Did you hear something? Er... must be my imagination...",
+    ANNOUNCE_HUNT_AVOID_FORK = "I'm not scared, I'd just... rather go this way!",
 	ANNOUNCE_INV_FULL = "I can only carry so much!!",
 	ANNOUNCE_KNOCKEDOUT = "Argh, my little head!",
 	ANNOUNCE_LOWRESEARCH = "Boo, that was boring.",
@@ -795,8 +805,10 @@ return{
 	},
 
 --fallback to speech_wilson.lua     ANNOUNCE_NOINSPIRATION = "only_used_by_wathgrithr",
+--fallback to speech_wilson.lua     ANNOUNCE_NOTSKILLEDENOUGH = "only_used_by_wathgrithr",
 --fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_TAUNT_BUFF = "only_used_by_wathgrithr",
 --fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_PANIC_BUFF = "only_used_by_wathgrithr",
+--fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_REVIVE_BUFF = "only_used_by_wathgrithr",
 
 --fallback to speech_wilson.lua     ANNOUNCE_WANDA_YOUNGTONORMAL = "only_used_by_wanda",
 --fallback to speech_wilson.lua     ANNOUNCE_WANDA_NORMALTOOLD = "only_used_by_wanda",
@@ -897,6 +909,37 @@ return{
     ANNOUNCE_SHADOW_RIFT_MAX = "Did anyone else see that weird glow?",
 
     ANNOUNCE_SCRAPBOOK_FULL = "Looks like stuff I already know.",
+
+    ANNOUNCE_CHAIR_ON_FIRE = "This is great!",
+
+    ANNOUNCE_HEALINGSALVE_ACIDBUFF_DONE = "I think my Acid Repellent wore off, that's a kind of burn I DON'T like.",
+
+    ANNOUNCE_COACH = 
+    {
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+    },
+    ANNOUNCE_WOLFGANG_WIMPY_COACHING = "only_used_by_wolfgang",
+    ANNOUNCE_WOLFGANG_MIGHTY_COACHING = "only_used_by_wolfgang",
+    ANNOUNCE_WOLFGANG_BEGIN_COACHING = "only_used_by_wolfgang",
+    ANNOUNCE_WOLFGANG_END_COACHING = "only_used_by_wolfgang",
+    ANNOUNCE_WOLFGANG_NOTEAM = 
+    {
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+    },
+
+    ANNOUNCE_YOTD_NOBOATS = "Everyone cram close to the starting tower so we can get this over with!",
+    ANNOUNCE_YOTD_NOCHECKPOINTS = "Uuugh, I forgot to put up the stupid checkpoints!",
+    ANNOUNCE_YOTD_NOTENOUGHBOATS = "I guess I should make some room, in case anyone else joins.",
 
 	BATTLECRY =
 	{
@@ -1412,18 +1455,25 @@ return{
         {
             GENERIC = "Gross. This tree is sick all over.",
             BLOOM = "Ack! It stinks!",
+            ACIDCOVERED = "I should check if it will still burn.",
         },
         MUSHTREE_MEDIUM =
         {
             GENERIC = "Gross. It smells like leprechaun butt.",
             BLOOM = "It's spreading junk everywhere.",
+            ACIDCOVERED = "I should check if it will still burn.",
         },
         MUSHTREE_SMALL =
         {
             GENERIC = "Gross. It's all mushroomy.",
             BLOOM = "Ew, I don't want to get too close.",
+            ACIDCOVERED = "I should check if it will still burn.",
         },
-        MUSHTREE_TALL_WEBBED = "That one got what it deserves.",
+        MUSHTREE_TALL_WEBBED =
+        {
+            GENERIC = "That one got what it deserves.",
+            ACIDCOVERED = "I should check if it will still burn.",
+        },
         SPORE_TALL =
         {
             GENERIC = "It's like colorful sparks!",
@@ -1812,6 +1862,9 @@ return{
         CHESSPIECE_EYEOFTERROR = "I still feel an evil presence watching me...",
         CHESSPIECE_TWINSOFTERROR = "Great, another creepy statue.",
         CHESSPIECE_DAYWALKER = "How come jerks always seem to get statues?",
+        CHESSPIECE_DEERCLOPS_MUTATED = "We kicked its butt, and then we kicked it again.",
+        CHESSPIECE_WARG_MUTATED = "I SAID we should've burned it, but nope, nobody listens to me...",
+        CHESSPIECE_BEARGER_MUTATED = "I guess I'd be cranky too if I was woken up from the Big Sleep.",
 
         CHESSJUNK1 = "Dead windup horsey.",
         CHESSJUNK2 = "Dead windup priest.",
@@ -1900,7 +1953,11 @@ return{
 		DRAGONFLY = "It's filled with fire!",
 		ARMORDRAGONFLY = "Yay! More FIRE!!!",
 		DRAGON_SCALES = "Oooooooh! I LIKE those.",
-		DRAGONFLYCHEST = "I'm not sure why you'd want something that DOESN'T burn...",
+		DRAGONFLYCHEST =
+		{
+			GENERIC = "I'm not sure why you'd want something that DOESN'T burn...",
+            UPGRADED_STACKSIZE = "Why hide away so much potential kindling?",
+		},
 		DRAGONFLYFURNACE =
 		{
 			HAMMERED = "That's certainly a look.",
@@ -2188,6 +2245,7 @@ return{
 		KNIGHT = "It's a pony!",
 		KOALEFANT_SUMMER = "We will be great friends!",
 		KOALEFANT_WINTER = "He sure looks warm...",
+		KOALEFANT_CARCASS = "It's dead. Shall I do the honors?",
 		KRAMPUS = "Stay back, you big jerk!",
 		KRAMPUS_SACK = "The holidays came early this year!",
 		LEIF = "He looks flammable!",
@@ -2549,6 +2607,7 @@ return{
 		SILK = "Mmmmmm. Smooth.",
 		SKELETON = "I hope you at least went out in a blaze of glory.",
 		SCORCHED_SKELETON = "Ewwwwwwwwwww!",
+        SKELETON_NOTPLAYER = "Nasty! Who left their smelly old skeleton here?",
 		SKULLCHEST = "Ooooh, spooky!", --removed
 		SMALLBIRD =
 		{
@@ -2665,8 +2724,11 @@ return{
 		{
 			GENERIC = "It's a trunk for my junk.",
 			BURNT = "The trunk burned nicely.",
+            UPGRADED_STACKSIZE = "A big trunk for all my junk.",
 		},
 		TREASURECHEST_TRAP = "Dirty trick!",
+        CHESTUPGRADE_STACKSIZE = "More space to stash stuff? Sounds good to me!", -- Describes the kit upgrade item.
+		COLLAPSEDCHEST = "Nice, free stuff!",
 		SACRED_CHEST =
 		{
 			GENERIC = "A very very old chest.",
@@ -2965,6 +3027,8 @@ return{
 		WALL_MOONROCK_ITEM = "I guess I could carry it.",
 		WALL_DREADSTONE = "Couldn't we have made walls out of literally anything else?",
 		WALL_DREADSTONE_ITEM = "Uuuuugh, building is so much wooork...",
+        WALL_SCRAP = "This looks like a fire hazard. Trust me.",
+        WALL_SCRAP_ITEM = "This will be a fire hazard. Trust me.",
 		FENCE = "I'm not painting that.",
         FENCE_ITEM = "No point just leaving it on the ground.",
         FENCE_GATE = "I guess we could pen stuff in with it.",
@@ -4075,6 +4139,7 @@ return{
         DUSTMERINGUE = "Yeah, I don't think I'm THAT hungry.",
 
         SHROOMCAKE = "Cake's cake, pass it here.",
+        SHROOMBAIT = "I dare someone to try it.",
 
         NIGHTMAREGROWTH = "That's probably not... great...",
 
@@ -4363,7 +4428,7 @@ return{
 		KITCOONDEN =
 		{
 			GENERIC = "They're so small that they all fit.",
-            BURNT = "Nice. Hope they evacuated, though. ",
+            BURNT = "Nice. Hope they evacuated, though.",
 			PLAYING_HIDEANDSEEK = "They're out playing, let's go find em'!",
 			PLAYING_HIDEANDSEEK_TIME_ALMOST_UP = "Time's almost up, they're not gonna hide at home!!! Or is that what they want me to think... nope, it's empty, aargh!",
 		},
@@ -4431,6 +4496,10 @@ return{
         BIRD_MUTANT_SPITTER = "Oh yeah?! Two can play at that game... PTOOEY!",
 
         WAGSTAFF_NPC = "Uuuugh, old people always seem to need help with something or other.",
+
+        WAGSTAFF_NPC_MUTATIONS = "Now what?",
+        WAGSTAFF_NPC_WAGPUNK = "That's right, old man. Move along.",
+
         ALTERGUARDIAN_CONTAINED = "What's that weird machine?",
 
         WAGSTAFF_TOOL_1 = "I've got a feeling this belongs to that old guy.",
@@ -4543,6 +4612,9 @@ return{
         DUMBBELL_GEM = "Did he really need to make it so fancy?",
         POTATOSACK = "I could make it a roasted potato sack, just say the word!",
 
+        DUMBBELL_HEAT = "Let's get you all fired up for your workout, big guy!",
+        DUMBBELL_REDGEM = "Yeah! Feel the burn!!",
+        DUMBBELL_BLUEGEM = "Ugh! Why is it so cold?",
 
         TERRARIUMCHEST =
 		{
@@ -4566,6 +4638,26 @@ return{
         SHIELDOFTERROR ="At least there's no eye gunk on it.",
         TWINOFTERROR1 = "Hey no fair, it brought backup!",
         TWINOFTERROR2 = "Hey no fair, it brought backup!",
+
+		-- Cult of the Lamb
+		COTL_TRINKET = "Finder's keepers.",
+		TURF_COTL_GOLD = "It reflects the firelight nicely.",
+		TURF_COTL_BRICK = "A bunch of bricks.",
+		COTL_TABERNACLE_LEVEL1 =
+		{
+			LIT = "That's better.",
+			GENERIC = "Aww, you want something to burn, don't you?",
+		},
+		COTL_TABERNACLE_LEVEL2 =
+		{
+			LIT = "See? Things just look better when they're on fire.",
+			GENERIC = "Aww, you want something to burn, don't you?",
+		},
+		COTL_TABERNACLE_LEVEL3 =
+		{
+			LIT = "Burn, burn, burn!",
+			GENERIC = "Aww, you want something to burn, don't you?",
+		},
 
         -- Year of the Catcoon
         CATTOY_MOUSE = "I don't think I've ever actually seen a normal mouse around here.",
@@ -4778,6 +4870,12 @@ return{
 			GENERIC = "How crazy would I have to be to try and break that pillar?",
 			EXPOSED = "It won't break. I didn't try that hard, but still.",
 		},
+		DAYWALKER2 =
+		{
+			GENERIC = "Maybe I was wrong about him.",
+			BURIED = "He's going to be one cranky pig.",
+			HOSTILE = "Temper, temper. Some things never change.",
+		},
 		ARMORDREADSTONE = "It's fine I guess.",
 		DREADSTONEHAT = "Do I have to wear it? On my head??",
 
@@ -4796,6 +4894,7 @@ return{
 		LUNAR_FORGE = "What gives? That little fire doesn't even feel warm!",
 		LUNAR_FORGE_KIT = "Right. Now I guess I have to build it.",
 
+		LUNARPLANT_KIT = "Do I look like the kind of person who fixes things? Ugh, fiiiiine...",
 		ARMOR_LUNARPLANT = "I make it look good.",
 		LUNARPLANTHAT = "How am I supposed to see in that thing?",
 		BOMB_LUNARPLANT = "Heh. Think fast!",
@@ -4803,6 +4902,8 @@ return{
 		SWORD_LUNARPLANT = "It's okay, but now I really want a fire sword.",
 		PICKAXE_LUNARPLANT = "The dumb plant still gets to hit stuff. It's what it would've wanted.",
 		SHOVEL_LUNARPLANT = "Alright, time to find some stuff to dig up!",
+
+		BROKEN_FORGEDITEM = "Welp, looks like it's busted.",
 
         PUNCHINGBAG = "Think fast, dummy!",
 
@@ -4816,6 +4917,7 @@ return{
         FUSED_SHADELING_BOMB = "They sure go out with a bang.",
 
 		VOIDCLOTH = "Finders keepers!",
+		VOIDCLOTH_KIT = "Do I look like the kind of person who fixes things? Ugh, fiiiiine...",
 		VOIDCLOTHHAT = "You never know who might really be hiding under that hood.",
 		ARMOR_VOIDCLOTH = "I think I look good in red.",
 
@@ -4833,6 +4935,220 @@ return{
         DREADSTONE_STACK = "It's growing from way down below.",
         
         SCRAPBOOK_PAGE = "Another page for the emergency kindling supply- I mean scrapbook.",
+
+        LEIF_IDOL = "See how fun it is to burn trees? I knew he'd come around.",
+        WOODCARVEDHAT = "Oooh, what a flammable- I mean, fancy hat!",
+        WALKING_STICK = "That'll make a nice poker stick.",
+
+        IPECACSYRUP = "Eww, the smell's enough to make you sick!",
+        BOMB_LUNARPLANT_WORMWOOD = "Wormwood must've been messing around with that one.", -- Unused
+        WORMWOOD_MUTANTPROXY_CARRAT =
+        {
+        	DEAD = "Ew, it's dead.",
+        	GENERIC = "I wanna roast it!",
+        	HELD = "It keeps squirming.",
+        	SLEEPING = "It's snoring.",
+        },
+        WORMWOOD_MUTANTPROXY_LIGHTFLIER = "I'd rather use fire to light my way.",
+		WORMWOOD_MUTANTPROXY_FRUITDRAGON =
+		{
+			GENERIC = "They're pretty cute.",
+			RIPE = "Mmm... Roast dragonfruit.",
+			SLEEPING = "Good night, little guy.",
+		},
+
+        SUPPORT_PILLAR_SCAFFOLD = "Hmm. That looks suspiciously like work.",
+        SUPPORT_PILLAR = "I don't wanna be here when that thing finally breaks.",
+        SUPPORT_PILLAR_COMPLETE = "It's nice not having to worry about rocks falling on my head.",
+        SUPPORT_PILLAR_BROKEN = "I guess I'll have to keep an eye out for falling rocks again.",
+
+		SUPPORT_PILLAR_DREADSTONE_SCAFFOLD = "Hmm. That looks suspiciously like work.",
+		SUPPORT_PILLAR_DREADSTONE = "I don't wanna be here when that thing finally breaks.",
+		SUPPORT_PILLAR_DREADSTONE_COMPLETE = "Cool. Wonder if it will burn.",
+		SUPPORT_PILLAR_DREADSTONE_BROKEN = "Somebody should really repair this.",
+
+        WOLFGANG_WHISTLE = "I can't NOT listen to him when he's holding a shiny whistle!",
+
+        -- Rifts 3
+
+        MUTATEDDEERCLOPS = "Er... no hard feelings, right?",
+        MUTATEDWARG = "Don't worry, you're still gonna go down in flames.",
+        MUTATEDBEARGER = "Did I ever mention my best friend is a bear?",
+
+        LUNARFROG = "Ew, ew, ew!! Too many eyes!!",
+
+        DEERCLOPSCORPSE =
+        {
+            GENERIC  = "That body looks cold. I should fix that.",
+            BURNING  = "Nice and toasty!",
+            REVIVING = "That's... not good.",
+        },
+
+        WARGCORPSE =
+        {
+            GENERIC  = "Ugh. I can't just leave that thing lying around.",
+            BURNING  = "Who doesn't like a bonfire?",
+            REVIVING = "Oh come ON!!",
+        },
+
+        BEARGERCORPSE =
+        {
+            GENERIC  = "I should burn it. Just in case.",
+            BURNING  = "It's so relaxing to watch it burn.",
+            REVIVING = "I knew I should've burnt it when I had the chance!!",
+        },
+
+        BEARGERFUR_SACK = "Can't believe we made a cooler out of you.",
+        HOUNDSTOOTH_BLOWPIPE = "If only it shot flaming teeth.",
+        DEERCLOPSEYEBALL_SENTRYWARD =
+        {
+            GENERIC = "But how will anything burn?",    -- Enabled.
+            NOEYEBALL = "There we go.",  -- Disabled.
+        },
+        DEERCLOPSEYEBALL_SENTRYWARD_KIT = "Fine. I'll build it. But I might burn it later.",
+
+        SECURITY_PULSE_CAGE = "It's empty. So what?",
+        SECURITY_PULSE_CAGE_FULL = "Great, it glows. But does it burn?",
+
+		CARPENTRY_STATION =
+        {
+            GENERIC = "I love stuff made out of wood! It burns so well!",
+            BURNT = "See?",
+        },
+
+        WOOD_TABLE = -- Shared between the round and square tables.
+        {
+            GENERIC = "That will definitely burn.",
+            HAS_ITEM = "That will definitely burn.",
+            BURNT = "Yup. It burned.",
+        },
+
+        WOOD_CHAIR =
+        {
+            GENERIC = "That will definitely burn.",
+            OCCUPIED = "You sure you want to sit there? That chair may spontaneously combust.",
+            BURNT = "Aww, it's over.",
+        },
+
+        DECOR_CENTERPIECE = "Okay.",
+        DECOR_LAMP = "A torch works just as well.",
+        DECOR_FLOWERVASE =
+        {
+            GENERIC = "Just a bunch of dumb flowers.",
+            EMPTY = "It's empty. Might as well burn it.",
+            WILTED = "Those need replacing.",
+            FRESHLIGHT = "Not as good as a fire, but at least we won't be in the dark.",
+            OLDLIGHT = "We're gonna be in the dark soon.",
+        },
+        DECOR_PICTUREFRAME =
+        {
+            GENERIC = "It's fine.",
+            UNDRAWN = "My burning desire isn't to draw.",
+        },
+        DECOR_PORTRAITFRAME = "It's missing the fire in their eyes.",
+
+        PHONOGRAPH = "Oh, Maxwell will love this.",
+        RECORD = "Hey Max, it's your favorite!",
+        RECORD_CREEPYFOREST = "It's always nice to have some music while you're busy burning stuff.",
+        RECORD_DANGER = "There's something so nostalgic about the way it pops and crackles.",
+        RECORD_DAWN = "It's always nice to have some music while you're busy burning stuff.",
+        RECORD_DRSTYLE = "There's something so nostalgic about the way it pops and crackles.",
+        RECORD_DUSK = "It's always nice to have some music while you're busy burning stuff.",
+        RECORD_EFS = "There's something so nostalgic about the way it pops and crackles.",
+        RECORD_END = "It's always nice to have some music while you're busy burning stuff.",
+        RECORD_MAIN = "There's something so nostalgic about the way it pops and crackles.",
+        RECORD_WORKTOBEDONE = "It's always nice to have some music while you're busy burning stuff.",
+
+        ARCHIVE_ORCHESTRINA_MAIN = "It won't burn? Well, I'm out of ideas.",
+
+        WAGPUNKHAT = "Aww, it's a hat that teaches nerds how to fight!",
+        ARMORWAGPUNK = "It looks pretty fireproof, but there's only one way to know for sure...",
+        WAGSTAFF_MACHINERY = "Someone really should burn this scrap heap.",
+        WAGPUNK_BITS = "What am I supposed to do with that?",
+        WAGPUNKBITS_KIT = "Nice doodad.",
+
+        WAGSTAFF_MUTATIONS_NOTE = "Looks important. I'll burn it later.",
+
+        -- Meta 3
+
+        BATTLESONG_INSTANT_REVIVE = "Hey look, fancy kindling!",
+
+        WATHGRITHR_IMPROVEDHAT = "I don't think I could pull it off like she does.",
+        SPEAR_WATHGRITHR_LIGHTNING = "Zapping is almost as fun as burning.",
+
+        BATTLESONG_CONTAINER = "A kindling container!",
+
+        SADDLE_WATHGRITHR = "Think of how cool I'd look riding into battle on that!",
+
+        WATHGRITHR_SHIELD = "If I know Wigfrid, she'll still find a way to use it as a weapon.",
+
+        BATTLESONG_SHADOWALIGNED = "Hey look, fancy kindling!",
+        BATTLESONG_LUNARALIGNED = "Hey look, fancy kindling!",
+
+		SHARKBOI = "Fire beats ice any day of the week.",
+        BOOTLEG = "Ugh, it smells like old feet!",
+        OCEANWHIRLPORTAL = "Er, can't we take the scenic route instead?",
+
+        EMBERLIGHT = "I made that. No big deal.",
+        WILLOW_EMBER = "Aren't they beautiful?",
+
+        -- Year of the Dragon
+        YOTD_DRAGONSHRINE =
+        {
+            GENERIC = "All hail the fire breather!",
+            EMPTY = "It's hungry for charcoal.",
+            BURNT = "Nice.",
+        },
+
+        DRAGONBOAT_KIT = "Who wants to build this thing? Anyone?",
+        DRAGONBOAT_PACK = "All the boat junk you could ever need in one package.",
+
+        BOATRACE_CHECKPOINT = "Yup. That's a checkpoint.",
+        BOATRACE_CHECKPOINT_THROWABLE_DEPLOYKIT = "Does this thing even float?",
+        BOATRACE_START = "Let's just get this over with.",
+        BOATRACE_START_THROWABLE_DEPLOYKIT = "Does it HAVE to go in the water?",
+
+        BOATRACE_PRIMEMATE = "That thing better not cheat.",
+        BOATRACE_SPECTATOR_DRAGONLING = "Alright little guy, ready to watch me win?",
+
+        YOTD_STEERINGWHEEL = "I'm great at steering! I don't even crash that often!",
+        YOTD_STEERINGWHEEL_ITEM = "Can't sail without that.",
+        YOTD_OAR = "It feels wrong to put it in the water... burning it after should even things out.",
+        YOTD_ANCHOR = "It better be the only thing going into the water today.",
+        YOTD_ANCHOR_ITEM = "Ooo, let's build an anchor.",
+        MAST_YOTD = "Fly my pretty, fly!",
+        MAST_YOTD_ITEM = "You can't call it \"sailing\" if you don't have a sail.",
+        BOAT_BUMPER_YOTD = "Alright, a boat with teeth is kinda cool.",
+        BOAT_BUMPER_YOTD_KIT = "I guess building some bumpers is better than sinking.",
+        BOATRACE_SEASTACK = "Don't you dare hit my boat!",
+        BOATRACE_SEASTACK_THROWABLE_DEPLOYKIT = "Maybe I could have some fun with this...",
+        BOATRACE_SEASTACK_MONKEY = "Don't you dare hit my boat!",
+        BOATRACE_SEASTACK_MONKEY_THROWABLE_DEPLOYKIT = "Maybe I could have some fun with this...",
+        MASTUPGRADE_LAMP_YOTD = "There's fire in its eyes.",
+        MASTUPGRADE_LAMP_ITEM_YOTD = "Alternatively, I could just set the mast on fire.",
+        WALKINGPLANK_YOTD = "I'm not setting foot on that, no matter how good it looks!",
+        CHESSPIECE_YOTD = "Too many boats, not enough fire.",
+
+        -- Rifts / Meta QoL
+
+        HEALINGSALVE_ACID = "Gross. It's mine.",
+
+        BEESWAX_SPRAY = "The scariest part is how bad it smells.",
+        WAXED_PLANT = "So it's just gonna stay that way forever?", -- Used for all waxed plants, from farm plants to trees.
+
+        STORAGE_ROBOT = {
+            GENERIC = "It frees up my time to burn things.",
+            BROKEN = "Only thing left to do is melt it down. I'll stoke up the furnace!",
+        },
+
+        SCRAP_MONOCLEHAT = "Am I gonna start saying stuff like \"quite\" and \"indubitably\"?",
+        SCRAPHAT = "Heh. I like it!",
+
+        FENCE_JUNK = "Not the prettiest fence in the world, but it works.",
+        JUNK_PILE = "I'm not too proud to rifle through some trash.",
+        JUNK_PILE_BIG = "Yeeaahh, I don't think I want anything in there THAT bad.",
+
+        ARMOR_LUNARPLANT_HUSK = "This must be one of Wormwood's.",
     },
 
     DESCRIBE_GENERIC = "I have no idea what that is!",

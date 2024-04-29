@@ -36,7 +36,7 @@ local KitcoonPuppet = require "widgets/kitcoonpuppet"
 local SHOW_DST_DEBUG_HOST_JOIN = BRANCH == "dev"
 local SHOW_QUICKJOIN = false
 
-local IS_BETA = BRANCH == "staging" --or BRANCH == "dev"
+local IS_BETA = BRANCH == "staging" or BRANCH == "dev"
 local IS_DEV_BUILD = BRANCH == "dev"
 
 local function PlayBannerSound(inst, self, sound)
@@ -178,6 +178,13 @@ local function MakeYOTCBanner(self, banner_root, anim)
         anim:GetAnimState():OverrideSymbol("ear2", "dst_menu_carrat_swaps", color.."_ear2")
         anim:GetAnimState():OverrideSymbol("tail", "dst_menu_carrat_swaps", color.."_tail")
     end
+end
+
+local function MakeYOTDBanner(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_yotd")
+    anim:GetAnimState():SetBank ("dst_menu_yotd")
+    anim:SetScale(.667)
+    anim:GetAnimState():PlayAnimation("loop", true)
 end
 
 local function MakeYOTCatcoonBanner(self, banner_root, anim)
@@ -344,6 +351,56 @@ local function MakeShadowRiftBanner(self, banner_root, anim)
     anim:SetScale(.667)
 end
 
+local function MakeMeta2Banner(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_meta2_cotl")
+    anim:GetAnimState():SetBank("dst_menu_meta2")
+    anim:GetAnimState():PlayAnimation("loop", true)
+    anim:SetScale(.667)
+end
+
+local function MakeLunarMutantsBanner(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_rift3_BG")
+    anim:GetAnimState():SetBank("dst_menu_rift3_BG")
+    anim:GetAnimState():PlayAnimation("loop", true)
+    anim:SetScale(.667)
+    anim:GetAnimState():Hide("HOLLOW")
+
+    local anim_front = banner_root:AddChild(UIAnim())
+    anim_front:GetAnimState():SetBuild("dst_menu_rift3")
+    anim_front:GetAnimState():SetBank ("dst_menu_rift3")
+    anim_front:GetAnimState():PlayAnimation("loop", true)
+    anim_front:SetScale(.667)
+    anim_front:GetAnimState():Hide("HOLLOW")
+end
+
+local function MakeMeta3Banner(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_meta3")
+    anim:GetAnimState():SetBank("dst_menu_meta3")
+    anim:GetAnimState():PlayAnimation("loop", true)
+    anim:SetScale(.667)
+end
+
+local function MakeRiftsMetaQoLBanner(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_riftsqol")
+    anim:GetAnimState():SetBank("banner")
+    anim:GetAnimState():PlayAnimation("loop", true)
+    anim:SetScale(.667)
+end
+
+local function MakeLunarMutantsBanner_hallowednights(self, banner_root, anim)
+    anim:GetAnimState():SetBuild("dst_menu_rift3_BG")
+    anim:GetAnimState():SetBank("dst_menu_rift3_BG")
+    anim:GetAnimState():PlayAnimation("loop", true)
+    anim:SetScale(.667)
+
+    local anim_front = banner_root:AddChild(UIAnim())
+    anim_front:GetAnimState():SetBuild("dst_menu_rift3")
+    anim_front:GetAnimState():SetBank ("dst_menu_rift3")
+    anim_front:GetAnimState():PlayAnimation("loop", true)
+    anim_front:SetScale(.667)
+end
+
+
 local function MakeDefaultBanner(self, banner_root, anim)
 	local banner_height = 350
 	banner_root:SetPosition(0, RESOLUTION_Y / 2 - banner_height / 2 + 1 ) -- positioning for when we had the top banner art
@@ -393,9 +450,15 @@ function MakeBanner(self)
 
 	if IS_BETA then
 		title_str = STRINGS.UI.MAINSCREEN.MAINBANNER_BETA_TITLE
-        
-        MakeShadowRiftBanner(self, banner_root, anim)
 
+		--*** !!! ***
+		--REMINDER: Banner changes in beta need to go in the default "else" block below too!
+		--
+		--REMINDER: Check MakeBannerFront as well!
+		--
+        MakeRiftsMetaQoLBanner(self, banner_root, anim)
+    elseif IsSpecialEventActive(SPECIAL_EVENTS.YOTD) then
+        MakeYOTDBanner(self, banner_root, anim)
     elseif IsSpecialEventActive(SPECIAL_EVENTS.YOTR) then
         MakeYOTRBanner(self, banner_root, anim)
 	elseif IsSpecialEventActive(SPECIAL_EVENTS.YOTC) then
@@ -404,12 +467,17 @@ function MakeBanner(self)
         MakeYOTCatcoonBanner(self, banner_root, anim)
 	elseif IsSpecialEventActive(SPECIAL_EVENTS.HALLOWED_NIGHTS) then
 		--MakeDramaBanner(self, banner_root, anim)
-        MakeHallowedNightsBanner(self, banner_root, anim)
+        --MakeHallowedNightsBanner(self, banner_root, anim)
+        MakeMeta3Banner(self, banner_root, anim)
 	elseif IsSpecialEventActive(SPECIAL_EVENTS.CARNIVAL) then
-        MakeShadowRiftBanner(self, banner_root, anim) -- FIXME(JBK): Comment this when the shadow rift update is done.
-        --MakeCawnivalBanner(self, banner_root, anim) -- FIXME(JBK): Uncomment this when the shadow rift update is done.
+        --MakeMeta2Banner(self, banner_root, anim)
+        MakeCawnivalBanner(self, banner_root, anim)
 	else
-		MakeShadowRiftBanner(self, banner_root, anim)
+		--*** !!! ***
+		--REMINDER: Check MakeBannerFront as well!
+		--
+        MakeRiftsMetaQoLBanner(self, banner_root, anim)
+		--MakeMeta2Banner(self, banner_root, anim)
         --MakeDramaBanner(self, banner_root, anim)
         --MakeDefaultBanner(self, banner_root, anim)
         --MakePiratesBanner(self, banner_root, anim)
@@ -424,27 +492,24 @@ function MakeBanner(self)
         ]]
 	end
 
-	if title_str then
-		if title_str ~= nil then
-			local x = 170
-			local y = 75
-			local text_width = 880
+    if title_str ~= nil then
+        local x, y = 170, 19
+        local text_width = 880
+        local font_size = 22
 
-			local font_size = 22
-			local title = banner_root:AddChild(Text(self.info_font, font_size, title_str, UICOLOURS.HIGHLIGHT_GOLD))
-			title:SetRegionSize(text_width, 2*(font_size + 2))
-			title:SetHAlign(ANCHOR_RIGHT)
-			title:SetPosition(x, y + 4)
+        local shadow = banner_root:AddChild(Text(self.info_font, font_size, title_str, UICOLOURS.BLACK))
+        local title  = banner_root:AddChild(Text(self.info_font, font_size, title_str, UICOLOURS.HIGHLIGHT_GOLD))
 
-			local shadow = banner_root:AddChild(Text(self.info_font, font_size, title_str, UICOLOURS.BLACK))
-			shadow:SetRegionSize(text_width, 2*(font_size + 2))
-			shadow:SetHAlign(ANCHOR_RIGHT)
-			shadow:SetPosition(x + 1.5, y - 1.5)
-			shadow:MoveToBack()
-		end
-	end
+        shadow:SetRegionSize(text_width, 2*(font_size + 2))
+        title:SetRegionSize(text_width, 2*(font_size + 2))
+        shadow:SetHAlign(ANCHOR_RIGHT)
+        title:SetHAlign(ANCHOR_RIGHT)
+        
+        shadow:SetPosition(x + 2, y - 2)
+        title:SetPosition(x, y)
+    end
 
-	return banner_root
+    return banner_root
 end
 
 --------------------------------------------------------------------------------
@@ -471,14 +536,19 @@ end
 -- For drawing things in front of the MOTD panels
 local function MakeBannerFront(self)
     if IS_BETA then
-        local banner_front = Widget("banner_front")
+		--*** !!! ***
+		--REMINDER: Banner changes in beta need to go in the default "else" block below too!
+		--
+
+        --[[local banner_front = Widget("banner_front")
         banner_front:SetPosition(0, 0)
         banner_front:SetClickable(false)
         local anim = banner_front:AddChild(UIAnim())
 
         MakeDramaBannerFront(self, banner_front, anim)
 
-        return banner_front
+        return banner_front]]
+		return nil
 
     elseif IsSpecialEventActive(SPECIAL_EVENTS.YOTC) then
         return nil
@@ -620,17 +690,18 @@ function MultiplayerMainScreen:DoInit()
 	-- new MOTD
 
     local kit_puppet_positions = {
-        { x = 90.0, y = 20.0, scale = 0.75 },
-        { x = 390.0, y = 20.0, scale = 0.75 },
+        { x = 90.0, y = -25.0, scale = 0.75 },
+        { x = 390.0, y = -25.0, scale = 0.75 },
     }
     self.kit_puppet = self.fixed_root:AddChild(KitcoonPuppet( Profile, nil, kit_puppet_positions ))
 
 	if TheFrontEnd.MotdManager:IsEnabled() then
-		local motd_panel = MainMenuMotdPanel({font = self.info_font, x = 100, y = -150,
+		local motd_panel = MainMenuMotdPanel({font = self.info_font, x = 100, y = -180,
 			on_no_focusforward = self.menu,
 			on_to_skins_cb = function( filter_info ) self:GotoShop( filter_info ) end,
 			})
 		if self.motd_panel == nil then
+            motd_panel:SetScale(0.84)
 			self.motd_panel = self.fixed_root:AddChild(motd_panel)
 		end
 	else
@@ -1101,6 +1172,10 @@ function MultiplayerMainScreen:OnBecomeInactive()
 end
 
 function MultiplayerMainScreen:FinishedFadeIn()
+    if not TheFrontEnd:GetAccountManager():HasAuthToken() then
+        -- NOTES(JBK): We should not try doing any inventory actions without a logged in player.
+        return
+    end
     if HasNewSkinDLCEntitlements() then
         if IsSteam() or IsRail() then
             local popup_screen = PopupDialogScreen( STRINGS.UI.PURCHASEPACKSCREEN.GIFT_RECEIVED_TITLE, STRINGS.UI.PURCHASEPACKSCREEN.GIFT_RECEIVED_BODY,

@@ -67,6 +67,7 @@ return{
 			KITCOON_HIDEANDSEEK_ONE_GAME_PER_DAY = "If we play any more, it's gonna be a chore.",
             MANNEQUIN_EQUIPSWAPFAILED = "Oh what a shame, I thought it would suit you.",
             PILLOWFIGHT_NO_HANDPILLOW = "A pillow must be promptly procured.",
+            NOTMYBERNIE = "Willow! What are you doin' while your bruin causes such ruin?",
 		},
 		OPEN_CRAFTING =
 		{
@@ -84,7 +85,7 @@ return{
             NO_RACERS = "Now that's quite the trick, invisible racing Carrats!",
         },
 
-		DISMANTLE =
+		DISMANTLE = 
 		{
 			COOKING = "I'm afraid the pot is far too hot!",
 			INUSE = "Another soul has use of it right now.",
@@ -207,7 +208,7 @@ return{
 			--MapSpotRevealer/messagebottle
 			MESSAGEBOTTLEMANAGER_NOT_FOUND = "Not here, my dear.",--Likely trying to read messagebottle treasure map in caves
 
-            STASH_MAP_NOT_FOUND = "There's no rhyme or riddle to it.",-- Likely trying to read stash map  in world without stash
+            STASH_MAP_NOT_FOUND = "There's no rhyme or riddle to it.",-- Likely trying to read stash map  in world without stash                  
         },
         WRAPBUNDLE =
         {
@@ -395,6 +396,10 @@ return{
 		CASTAOE =
 		{
 --fallback to speech_wilson.lua 			NO_MAX_SANITY = "only_used_by_waxwell",
+            NOT_ENOUGH_EMBERS = "only_used_by_willow",
+            NO_TARGETS = "only_used_by_willow",
+            CANT_SPELL_MOUNTED = "only_used_by_willow",
+            SPELL_ON_COOLDOWN = "only_used_by_willow", 
 		},
     },
 
@@ -518,10 +523,15 @@ return{
 	ANNOUNCE_HIGHRESEARCH = "My brain's grown three sizes this day!",
 	ANNOUNCE_HOUNDS = "The beasts are baying!",
 	ANNOUNCE_WORMS = "Something approaches from beneath!",
+    ANNOUNCE_ACIDBATS = "That sounds like bats.",
 	ANNOUNCE_HUNGRY = "Oh no, I'm hungry again.",
 	ANNOUNCE_HUNT_BEAST_NEARBY = "I love a game of hide and seek!",
 	ANNOUNCE_HUNT_LOST_TRAIL = "You win this round!",
 	ANNOUNCE_HUNT_LOST_TRAIL_SPRING = "Sabotaged by this realm's mushiness.",
+    ANNOUNCE_HUNT_START_FORK = "The game is afoot! Or rather, a claw! Hyuyu!",
+    ANNOUNCE_HUNT_SUCCESSFUL_FORK = "Aha! Advantage goes to the imp.",
+    ANNOUNCE_HUNT_WRONG_FORK = "My impish senses are tingling - something watches!",
+    ANNOUNCE_HUNT_AVOID_FORK = "A trail for the tenderfooted.",
 	ANNOUNCE_INV_FULL = "I only have two paws.",
 	ANNOUNCE_KNOCKEDOUT = "Oh, good morning!",
 	ANNOUNCE_LOWRESEARCH = "That wasn't very enlightening.",
@@ -793,8 +803,10 @@ return{
 	},
 
 --fallback to speech_wilson.lua     ANNOUNCE_NOINSPIRATION = "only_used_by_wathgrithr",
+--fallback to speech_wilson.lua     ANNOUNCE_NOTSKILLEDENOUGH = "only_used_by_wathgrithr",
 --fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_TAUNT_BUFF = "only_used_by_wathgrithr",
 --fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_PANIC_BUFF = "only_used_by_wathgrithr",
+--fallback to speech_wilson.lua     ANNOUNCE_BATTLESONG_INSTANT_REVIVE_BUFF = "only_used_by_wathgrithr",
 
 --fallback to speech_wilson.lua     ANNOUNCE_WANDA_YOUNGTONORMAL = "only_used_by_wanda",
 --fallback to speech_wilson.lua     ANNOUNCE_WANDA_NORMALTOOLD = "only_used_by_wanda",
@@ -895,6 +907,37 @@ return{
     ANNOUNCE_SHADOW_RIFT_MAX = "Calling that \"light\" wouldn't be quite right.",
 
     ANNOUNCE_SCRAPBOOK_FULL = "I already know everything there is to know, hyuyu!",
+
+    ANNOUNCE_CHAIR_ON_FIRE = "This is fine.",
+
+    ANNOUNCE_HEALINGSALVE_ACIDBUFF_DONE = "Oh what a pain, I'm not safe from acid rain!",
+
+    ANNOUNCE_COACH = 
+    {
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+        "only_used_by_wolfgang",
+    },
+    ANNOUNCE_WOLFGANG_WIMPY_COACHING = "only_used_by_wolfgang",
+    ANNOUNCE_WOLFGANG_MIGHTY_COACHING = "only_used_by_wolfang",
+    ANNOUNCE_WOLFGANG_BEGIN_COACHING = "only_used_by_wolfang",
+    ANNOUNCE_WOLFGANG_END_COACHING = "only_used_by_wolfang",
+    ANNOUNCE_WOLFGANG_NOTEAM = 
+    {
+        "only_used_by_wolfang",
+        "only_used_by_wolfang",
+        "only_used_by_wolfang",
+    },
+
+    ANNOUNCE_YOTD_NOBOATS = "Me and the start are too far apart.",
+    ANNOUNCE_YOTD_NOCHECKPOINTS = "Whoopsie! I'll make a point to check first.",
+    ANNOUNCE_YOTD_NOTENOUGHBOATS = "I should make space, so someone can join the race.",
 
 	BATTLECRY =
 	{
@@ -1410,18 +1453,25 @@ return{
         {
             GENERIC = "A massive mushroom! Did I quaff a shrinking potion?",
             BLOOM = "Delightfully disgusting!",
+            ACIDCOVERED = "Me thinks it stinks.",
         },
         MUSHTREE_MEDIUM =
         {
             GENERIC = "A massive mushroom! Did I quaff a shrinking potion?",
             BLOOM = "How wonderfully un-wonderful!",
+            ACIDCOVERED = "Me thinks it stinks.",
         },
         MUSHTREE_SMALL =
         {
             GENERIC = "A massive mushroom! Did I quaff a shrinking potion?",
             BLOOM = "Hyuyu! How wretched!",
+            ACIDCOVERED = "Me thinks it stinks.",
         },
-        MUSHTREE_TALL_WEBBED = "She's shy so she's wearing her veil.",
+        MUSHTREE_TALL_WEBBED =
+        {
+            GENERIC = "She's shy so she's wearing her veil.",
+            ACIDCOVERED = "Me thinks it stinks.",
+        },
         SPORE_TALL =
         {
             GENERIC = "Dazzling!",
@@ -1811,6 +1861,9 @@ return{
         CHESSPIECE_EYEOFTERROR = "He's gone, no matter how you look at it, hyuyu!",
         CHESSPIECE_TWINSOFTERROR = "What an eye-catching statue, hyuyu!",
         CHESSPIECE_DAYWALKER = "A boorish boar's bust!",
+        CHESSPIECE_DEERCLOPS_MUTATED = "She got quite the eyeful.",
+        CHESSPIECE_WARG_MUTATED = "Must we memorialize the mutated mutt?",
+        CHESSPIECE_BEARGER_MUTATED = "It bears a strong resemblance.",
 
         CHESSJUNK1 = "It looks quite broke, and that's no joke!",
         CHESSJUNK2 = "It looks quite broke, and that's no joke!",
@@ -1899,7 +1952,11 @@ return{
 		DRAGONFLY = "Fear me! I'm a scary imp!",
 		ARMORDRAGONFLY = "Ooo, I've always wanted to be scaly.",
 		DRAGON_SCALES = "I prefer fur to scales.",
-		DRAGONFLYCHEST = "Chest to impress.",
+		DRAGONFLYCHEST =
+		{
+			GENERIC = "Chest to impress.",
+            UPGRADED_STACKSIZE = "Scaled-up storage, hyuyu!",
+		},
 		DRAGONFLYFURNACE =
 		{
 			HAMMERED = "It lost its glamor to the hammer.",
@@ -2187,6 +2244,7 @@ return{
 		KNIGHT = "A knight in rusted armor!",
 		KOALEFANT_SUMMER = "A gentle beast with tiny horns.",
 		KOALEFANT_WINTER = "How do you do? Why are you blue?",
+		KOALEFANT_CARCASS = "Once gentle beast, now someone's feast.",
 		KRAMPUS = "Heh heh. No hard feelings?",
 		KRAMPUS_SACK = "He should have known I would not hold back.",
 		LEIF = "No need to fight, my great tree friend!",
@@ -2548,6 +2606,7 @@ return{
 		SILK = "A present from the spider's ilk.",
 		SKELETON = "The soul is long gone.",
 		SCORCHED_SKELETON = "Someone had a whoopsie.",
+        SKELETON_NOTPLAYER = "Love to stay and chew the fat, but you seem lacking of that.",
 		SKULLCHEST = "Let me take a peek inside!", --removed
 		SMALLBIRD =
 		{
@@ -2664,8 +2723,11 @@ return{
 		{
 			GENERIC = "A storage place for bits and bobs.",
 			BURNT = "Oh no, our treasure!",
+            UPGRADED_STACKSIZE = "There's room to spare for things in there.",
 		},
 		TREASURECHEST_TRAP = "What have we here?",
+        CHESTUPGRADE_STACKSIZE = "Now that's bending the rules a little, hyuyu!", -- Describes the kit upgrade item.
+		COLLAPSEDCHEST = "Infinite space, gone without a trace?",
 		SACRED_CHEST =
 		{
 			GENERIC = "Ooohoohoo, it's probably cursed!",
@@ -2964,6 +3026,8 @@ return{
 		WALL_MOONROCK_ITEM = "It's of no use there on the ground.",
 		WALL_DREADSTONE = "To keep you out, or keep me in?",
 		WALL_DREADSTONE_ITEM = "It's of no use there on the ground.",
+        WALL_SCRAP = "Who would have thunk? A wall of junk.",
+        WALL_SCRAP_ITEM = "Who would have thunk? A wall of junk.",
 		FENCE = "To keep you out, or keep me in?",
         FENCE_ITEM = "It's of no use there on the ground.",
         FENCE_GATE = "For temporary visiting.",
@@ -3846,7 +3910,7 @@ return{
         SPICE_SUGAR = "A saccharine collection of liquefied confection.",
         SPICE_CHILI = "I'll spike some mortal's food. Hyuyu!",
         SPICE_SALT = "Careful with that stuff!",
-        MONSTERTARTARE = "Monster flesh that's very fresh. ",
+        MONSTERTARTARE = "Monster flesh that's very fresh.",
         FRESHFRUITCREPES = "Fruits and berries put to bed.",
         FROGFISHBOWL = "I'd rather have a nice fresh soul.",
         POTATOTORNADO = "I think I remember when I used to eat food. Maybe.",
@@ -4074,6 +4138,7 @@ return{
         DUSTMERINGUE = "Hyuyuyu! The pranks I could pull with these!",
 
         SHROOMCAKE = "There's no room in my stomach, I'm afraid.",
+        SHROOMBAIT = "As sure as the oozing, this'll have you snoozing.",
 
         NIGHTMAREGROWTH = "Methinks we'd best be on our way!",
 
@@ -4430,6 +4495,10 @@ return{
         BIRD_MUTANT_SPITTER = "This peculiar storm has changed its form.",
 
         WAGSTAFF_NPC = "Hyuyuyu! He's not all there!",
+
+        WAGSTAFF_NPC_MUTATIONS = "Shall I assist with his to-do list?",
+        WAGSTAFF_NPC_WAGPUNK = "Perhaps he's late for an important date.",
+
         ALTERGUARDIAN_CONTAINED = "Oh ho! It seems he has some tricks up his sleeve.",
 
         WAGSTAFF_TOOL_1 = "Hoohoo! You're not from around this plane, are you?",
@@ -4542,6 +4611,9 @@ return{
         DUMBBELL_GEM = "He's turned those gemstones into gymstones, hyuyu!",
         POTATOSACK = "Hyuyuyu, wouldn't it be fun to hide inside and give him a scare?",
 
+        DUMBBELL_HEAT = "A warm stone for muscle tone.",
+        DUMBBELL_REDGEM = "Fire and gym stone!",
+        DUMBBELL_BLUEGEM = "It'll knock you out cold, hyuyuyu!",
 
         TERRARIUMCHEST =
 		{
@@ -4558,13 +4630,33 @@ return{
 
         FROZENBANANADAIQUIRI = "Don't the mortals like to innovate? Hyuyu.",
         BUNNYSTEW = "Are mortals attracted to this smell?",
-        MILKYWHITES = "This loot from our fight does not bring delight. ",
+        MILKYWHITES = "This loot from our fight does not bring delight.",
 
         CRITTER_EYEOFTERROR = "I'm glad we could make amends, my ocular friend!",
 
         SHIELDOFTERROR ="I stole the grin right off of him, hyuyu!",
         TWINOFTERROR1 = "Double double, we're in trouble!",
         TWINOFTERROR2 = "Double double, we're in trouble!",
+
+		-- Cult of the Lamb
+		COTL_TRINKET = "Hyuyu, how tempting!",
+		TURF_COTL_GOLD = "All that gold, and this is what we have to show floor it.",
+		TURF_COTL_BRICK = "These bricks should do the trick.",
+		COTL_TABERNACLE_LEVEL1 =
+		{
+			LIT = "Let's linger by the light of this little lamb.",
+			GENERIC = "How it yearns for something to burn.",
+		},
+		COTL_TABERNACLE_LEVEL2 =
+		{
+			LIT = "The lamb is lit, why not stay for a bit?",
+			GENERIC = "How it yearns for something to burn.",
+		},
+		COTL_TABERNACLE_LEVEL3 =
+		{
+			LIT = "The lamb of gold, what a sight to behold.",
+			GENERIC = "How it yearns for something to burn.",
+		},
 
         -- Year of the Catcoon
         CATTOY_MOUSE = "Wind the bobbin up, pull, pull!",
@@ -4777,6 +4869,12 @@ return{
 			GENERIC = "A terrible fate, to be locked in this state.",
 			EXPOSED = "Why hide this stone inside?",
 		},
+		DAYWALKER2 =
+		{
+			GENERIC = "Freed indeed.",
+			BURIED = "Just my luck to find him stuck… again.",
+			HOSTILE = "Not to belabor, but you've a pattern of behavior.",
+		},
 		ARMORDREADSTONE = "All blows will be blocked by this armor of rock.",
 		DREADSTONEHAT = "A stone fortress for my brain.",
 
@@ -4795,6 +4893,7 @@ return{
 		LUNAR_FORGE = "There isn't any iron in that forge, is there?",
 		LUNAR_FORGE_KIT = "Shall we forge ahead?",
 
+		LUNARPLANT_KIT = "A stitch here and there for a quick repair.",
 		ARMOR_LUNARPLANT = "Strong and light, quite good in a fight.",
 		LUNARPLANTHAT = "It has me looking on the bright side, hyuyu!",
 		BOMB_LUNARPLANT = "This will be the start of some wonderful pranks.",
@@ -4802,6 +4901,8 @@ return{
 		SWORD_LUNARPLANT = "A swish to and fro will cut down my foe.",
 		PICKAXE_LUNARPLANT = "To bash and break.",
 		SHOVEL_LUNARPLANT = "Dig a hole to who knows where!",
+
+		BROKEN_FORGEDITEM = "This broken pile might still be worthwhile.",
 
         PUNCHINGBAG = "It does not complain, for it feels no pain!",
 
@@ -4815,6 +4916,7 @@ return{
         FUSED_SHADELING_BOMB = "Keep away, I don't want to play!",
 
 		VOIDCLOTH = "Bits of tattered reality. And it comes in my color!",
+		VOIDCLOTH_KIT = "A stitch here and there for a quick repair.",
 		VOIDCLOTHHAT = "A hood of night, that blocks out all light.",
 		ARMOR_VOIDCLOTH = "It broke the chains of its previous plane.",
 
@@ -4832,6 +4934,220 @@ return{
         DREADSTONE_STACK = "Who knows where it grows from?",
         
         SCRAPBOOK_PAGE = "Where is it from? Not knowing is half the fun!",
+
+        LEIF_IDOL = "A nice carving, but the pose is a little wooden, hyuyu!",
+        WOODCARVEDHAT = "Perhaps I can borrow it, if I axe nicely.",
+        WALKING_STICK = "A walking stick for walking quick.",
+
+        IPECACSYRUP = "Hyuyu! Who knew the plant was such a prankster?",
+        BOMB_LUNARPLANT_WORMWOOD = "That plant has a mischievous streak after all, hyuyu!", -- Unused
+        WORMWOOD_MUTANTPROXY_CARRAT =
+        {
+        	DEAD = "Ding-dong, the carrot's dead.",
+        	GENERIC = "Does it have a soul, one wonders?",
+        	HELD = "Hello hello, strange orange soul.",
+        	SLEEPING = "Good night, sleep tight, don't let the humans bite.",
+        },
+        WORMWOOD_MUTANTPROXY_LIGHTFLIER = "Bloom and glow!",
+		WORMWOOD_MUTANTPROXY_FRUITDRAGON =
+		{
+			GENERIC = "Little lizard, sharp and pointy!",
+			RIPE = "That color looks great on you, hyuyu!",
+			SLEEPING = "Hyuyu, catching some shuteye are we?",
+		},
+
+        SUPPORT_PILLAR_SCAFFOLD = "A pile of pillar-in-progress.",
+        SUPPORT_PILLAR = "Alas and alack, the stone has a crack!",
+        SUPPORT_PILLAR_COMPLETE = "Thank you for your support, hyuyu!",
+        SUPPORT_PILLAR_BROKEN = "All that trouble for a pile of rubble.",
+
+		SUPPORT_PILLAR_DREADSTONE_SCAFFOLD = "A pile of pillar-in-progress.",
+		SUPPORT_PILLAR_DREADSTONE = "Alas and alack, the stone has a crack!",
+		SUPPORT_PILLAR_DREADSTONE_COMPLETE = "What a marvel! Shame it's not marble.",
+		SUPPORT_PILLAR_DREADSTONE_BROKEN = "The Pillar of Dread looks rather dead, hyuyu!",
+
+        WOLFGANG_WHISTLE = "Who knew a whistle held such sway, it makes folks listen to what you say!",
+
+        -- Rifts 3
+
+        MUTATEDDEERCLOPS = "My, you're looking sharp! New haircut?",
+        MUTATEDWARG = "This Rover has had quite the makeover!",
+        MUTATEDBEARGER = "I prefer the bare bear... barely.",
+
+        LUNARFROG = "Ever seen such a sight as a hopping night light?",
+
+        DEERCLOPSCORPSE =
+        {
+            GENERIC  = "Ol' One-Eyed has gone and died!",
+            BURNING  = "I was just yearning for the smell of burning.",
+            REVIVING = "A refund? I'm stunned.",
+        },
+
+        WARGCORPSE =
+        {
+            GENERIC  = "A mutt in a permanent rut, hyuyu!",
+            BURNING  = "This hot dog needs a bun.",
+            REVIVING = "Death doesn't stick? Must be a new trick.",
+        },
+
+        BEARGERCORPSE =
+        {
+            GENERIC  = "Hibernation? More like termination! Hyuyu!",
+            BURNING  = "I'd love some toast to go with this roast!",
+            REVIVING = "The brute is reviving. Who did the unaliving?",
+        },
+
+        BEARGERFUR_SACK = "Is that where the mortals pack food away for the winter?",
+        HOUNDSTOOTH_BLOWPIPE = "A toothsome tooter shooter.",
+        DEERCLOPSEYEBALL_SENTRYWARD =
+        {
+            GENERIC = "What the eye sees stays icy! Hyuyu!",    -- Enabled.
+            NOEYEBALL = "It turned a blind eye!",  -- Disabled.
+        },
+        DEERCLOPSEYEBALL_SENTRYWARD_KIT = "I'll keep my eye on the prize, hyuyu!",
+
+        SECURITY_PULSE_CAGE = "It's orbless, more or less.",
+        SECURITY_PULSE_CAGE_FULL = "It absorbed the orb!",
+
+		CARPENTRY_STATION =
+        {
+            GENERIC = "The mortal need to feel productive, if I may be so reductive.",
+            BURNT = "Who misunderstood it would be good to build it all of wood?",
+        },
+
+        WOOD_TABLE = -- Shared between the round and square tables.
+        {
+            GENERIC = "Now, will the tables turn?",
+            HAS_ITEM = "The centerpiece has been set.",
+            BURNT = "Hyuyu! How silly!",
+        },
+
+        WOOD_CHAIR =
+        {
+            GENERIC = "I'll take a seat and rest my feet.",
+            OCCUPIED = "Move your rear, I want to sit here!",
+            BURNT = "I see this seat's been taken.",
+        },
+
+        DECOR_CENTERPIECE = "How wonderfully useless!",
+        DECOR_LAMP = "This little lamp's light is quite a delight.",
+        DECOR_FLOWERVASE =
+        {
+            GENERIC = "The space in the vase is filled with flowers.",
+            EMPTY = "There's nothing placed within the vase.",
+            WILTED = "Tiny flower on the table... you aren't looking very stable.",
+            FRESHLIGHT = "A light so bright I might still see at night!",
+            OLDLIGHT = "I'll try not to pout when that light soon goes out.",
+        },
+        DECOR_PICTUREFRAME =
+        {
+            GENERIC = "A limited edition artist's rendition!",
+            UNDRAWN = "What a shame, just an empty frame.",
+        },
+        DECOR_PORTRAITFRAME = "A picture perfect portrait.",
+
+        PHONOGRAPH = "Ooo, music! I'm practically giddy!",
+        RECORD = "Encore!",
+        RECORD_CREEPYFOREST = "What a cheeky little tune.",
+        RECORD_DANGER = "Oh dear, what have we here?",
+        RECORD_DAWN = "A delight at first light!",
+        RECORD_DRSTYLE = "I think I heard this in a dream.",
+        RECORD_DUSK = "That's it?",
+        RECORD_EFS = "Oh dear, what have we here?",
+        RECORD_END = "That's it?",
+        RECORD_MAIN = "What a cheeky little tune.",
+        RECORD_WORKTOBEDONE = "Oh dear, what have we here?",
+
+        ARCHIVE_ORCHESTRINA_MAIN = "This floor is soundly built, hyuyu!",
+
+        WAGPUNKHAT = "This should help me blow off some steam, hyuyu!",
+        ARMORWAGPUNK = "Don't leer at my gear.",
+        WAGSTAFF_MACHINERY = "This whole lot has been left to rot.",
+        WAGPUNK_BITS = "I'll have to settle for these scraps of metal.",
+        WAGPUNKBITS_KIT = "An automatic mechanical mechanic? Fantastic!",
+
+        WAGSTAFF_MUTATIONS_NOTE = "The writings of a visionary, or the ravings of a madman? Who's to say!",
+
+        -- Meta 3
+
+        BATTLESONG_INSTANT_REVIVE = "Singing is good for the soul.",
+
+        WATHGRITHR_IMPROVEDHAT = "One horn must do if not born with two.",
+        SPEAR_WATHGRITHR_LIGHTNING = "That is a shockingly good point.",
+
+        BATTLESONG_CONTAINER = "I've been told I can carry a tune.",
+
+        SADDLE_WATHGRITHR = "That'll be the saddle to ride cattle into battle, hyuyu!",
+
+        WATHGRITHR_SHIELD = "She'll wield this shield on the battlefield.",
+
+        BATTLESONG_SHADOWALIGNED = "Singing is good for the soul.",
+        BATTLESONG_LUNARALIGNED = "Singing is good for the soul.",
+
+		SHARKBOI = "That's one cool customer, hyuyu!",
+        BOOTLEG = "Hyuyu! Who cobbled this together?",
+        OCEANWHIRLPORTAL = "Oooh goodie! A watery vortex for little ol' Wortox!",
+
+        EMBERLIGHT = "Aren't you a bit big for a will-o'-the-wisp?",
+        WILLOW_EMBER = "only_used_by_willow",
+
+        -- Year of the Dragon
+        YOTD_DRAGONSHRINE =
+        {
+            GENERIC = "What delightful surprises are you hoarding?",
+            EMPTY = "Rumble and grumble, it wants charcoal!",
+            BURNT = "Someone went and started the fun without me!",
+        },
+
+        DRAGONBOAT_KIT = "Whereabouts to set this boat afloat?",
+        DRAGONBOAT_PACK = "A fully-stocked boat, ready to float!",
+
+        BOATRACE_CHECKPOINT = "There's a point in need of checking!",
+        BOATRACE_CHECKPOINT_THROWABLE_DEPLOYKIT = "Where should I place the next stop for the race?",
+        BOATRACE_START = "The fun has just begun!",
+        BOATRACE_START_THROWABLE_DEPLOYKIT = "Shall I get started?",
+
+        BOATRACE_PRIMEMATE = "A challenger, I see. You won't catch me!",
+        BOATRACE_SPECTATOR_DRAGONLING = "Clap! Clap if you believe in me!",
+
+        YOTD_STEERINGWHEEL = "I'll give the wheel a spin and see if I win!",
+        YOTD_STEERINGWHEEL_ITEM = "I can see the appeal of a steering wheel.",
+        YOTD_OAR = "I'll win today, even if I must claw my way. Hyuyu!",
+        YOTD_ANCHOR = "Dipped in gold, now dropped in the drink.",
+        YOTD_ANCHOR_ITEM = "Such funny ship things I could build.",
+        MAST_YOTD = "Sails of shimmering scales.",
+        MAST_YOTD_ITEM = "A mast to sail the ocean vast.",
+        BOAT_BUMPER_YOTD = "Ever been bitten by a boat before?",
+        BOAT_BUMPER_YOTD_KIT = "But idle hands are such good playthings!",
+        BOATRACE_SEASTACK = "Buoy ahoy!",
+        BOATRACE_SEASTACK_THROWABLE_DEPLOYKIT = "Hyuyu, a bouncing baby buoy!",
+        BOATRACE_SEASTACK_MONKEY = "Buoy ahoy!",
+        BOATRACE_SEASTACK_MONKEY_THROWABLE_DEPLOYKIT = "Hyuyu, a bouncing baby buoy!",
+        MASTUPGRADE_LAMP_YOTD = "How kind to share your bright glare!",
+        MASTUPGRADE_LAMP_ITEM_YOTD = "A light to lead us through the night.",
+        WALKINGPLANK_YOTD = "A last resort, dressed up for sport.",
+        CHESSPIECE_YOTD = "From hot to stone cold.",
+
+        -- Rifts / Meta QoL
+
+        HEALINGSALVE_ACID = "It'll heal, seal, even congeal! Get Slimy Salve today! What a steal!",
+
+        BEESWAX_SPRAY = "A frightful fragrance for freezing flora!",
+        WAXED_PLANT = "It's kept fresh with fear.", -- Used for all waxed plants, from farm plants to trees.
+
+        STORAGE_ROBOT = {
+            GENERIC = "Ol' Kramps would love this.",
+            BROKEN = "It either starts, or we harvest for parts!",
+        },
+
+        SCRAP_MONOCLEHAT = "My my, that distant look in your eye!",
+        SCRAPHAT = "A piece of scrap, fashioned into a cap!",
+
+        FENCE_JUNK = "A metal fence for our defense.",
+        JUNK_PILE = "Could it hide a surprise inside?",
+        JUNK_PILE_BIG = "I won't fall for that, hyuyu!",
+
+        ARMOR_LUNARPLANT_HUSK = "Prickly plant protection, perfection!",
     },
 
     DESCRIBE_GENERIC = "Ooo, a mystery!",

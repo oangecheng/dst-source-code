@@ -7,8 +7,6 @@ local rock_ice_assets =
 local prefabs =
 {
     "ice",
-    "rocks",
-    "flint",
     "ice_puddle",
     "ice_splash",
 }
@@ -185,9 +183,10 @@ local function SetStage(inst, stage, source, snap_to_stage)
     end
 end
 
-local function OnWorked(inst, worker, workleft)
+local function OnWorked(inst, worker, workleft, numworks)
     if workleft <= 0 then
-		local snap_to_stage = not (worker:HasTag("character") or worker:HasTag("shadowminion"))
+		local crit = numworks >= 1000
+		local snap_to_stage = crit or not (worker:HasTag("character") or worker:HasTag("shadowminion"))
         SetStage(inst, "empty", "work", snap_to_stage)
         if inst.stage == "empty" then
             inst.SoundEmitter:PlaySound("dontstarve_DLC001/common/iceboulder_smash")
@@ -291,6 +290,20 @@ local function GetStatus(inst)
     return inst.stage == "empty" and "MELTED" or nil
 end
 
+local function Sink(inst)
+                
+    for s,stage in ipairs(STAGES)do
+        if stage.name == inst.stage and stage.icecount and stage.icecount > 0 then
+            local pt = inst:GetPosition()
+            for i=1,stage.icecount do
+                inst.components.lootdropper:SpawnLootPrefab("ice", pt)
+            end
+        end
+    end
+
+    inst:Remove()
+end
+
 local function rock_ice_fn()
     local inst = CreateEntity()
 
@@ -302,6 +315,8 @@ local function rock_ice_fn()
 
     inst.AnimState:SetBank("ice_boulder")
     inst.AnimState:SetBuild("ice_boulder")
+
+    inst.scrapbook_anim = "full"
 
     MakeObstaclePhysics(inst, 1)
 
@@ -373,6 +388,9 @@ local function rock_ice_fn()
 
     inst:ListenForEvent("firemelt", StartFireMelt)
     inst:ListenForEvent("stopfiremelt", StopFireMelt)
+    inst:ListenForEvent("abandon_ship", Sink)
+
+    
 
     inst:WatchWorldState("cycles", DayEnd)
 

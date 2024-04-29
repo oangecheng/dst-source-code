@@ -241,7 +241,7 @@ local function fn()
     inst.AnimState:SetBuild("worm")
     inst.AnimState:PlayAnimation("idle_loop", true)
     inst.scrapbook_anim = "atk"
-    inst.scrapbook_setanim = 0.37
+    inst.scrapbook_animpercent = 0.37
 
     inst:AddTag("monster")
     inst:AddTag("hostile")
@@ -310,6 +310,10 @@ local function fn()
 
     inst:AddComponent("lootdropper")
     inst.components.lootdropper:SetLoot({ "monstermeat", "monstermeat", "monstermeat", "monstermeat", "wormlight" })
+
+    inst:AddComponent("acidinfusible")
+    inst.components.acidinfusible:SetFXLevel(1)
+    inst.components.acidinfusible:SetMultipliers(TUNING.ACID_INFUSION_MULT.BERSERKER)
 
     --Disable this task for worm attacks
     inst.HomeTask = inst:DoPeriodicTask(3, LookForHome)

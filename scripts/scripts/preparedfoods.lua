@@ -473,6 +473,7 @@ local foods =
 			eater:AddDebuff("healthregenbuff", "healthregenbuff")
         end,
         floater = {"small", nil, 0.85},
+		scrapbook_healthvalue = 122, -- First tick + total ticks
 	},
 
     --new!
@@ -893,6 +894,7 @@ local foods =
 			eater:AddDebuff("sweettea_buff", "sweettea_buff")
         end,
 		card_def = {ingredients = {{"forgetmelots", 1}, {"honey", 1}, {"ice", 2}} },
+		scrapbook_sanityvalue = 45 -- first tick + total ticks
 	},
 
 	koalefig_trunk =
@@ -1060,6 +1062,33 @@ local foods =
         oneat_desc = STRINGS.UI.COOKBOOK.FOOD_EFFECTS_BEEFALO,
 		OnPutInInventory = function(inst, owner) if owner ~= nil and owner:IsValid() then owner:PushEvent("learncookbookstats", inst.food_basename or inst.prefab) end end,
 	},
+
+    shroombait =
+    {
+        test = function(cooker, names, tags)
+            return ((names.moon_cap or 0) >= 2 ) and names.monstermeat  --names.moon_cap
+        end,
+        priority = 30,
+        foodtype = FOODTYPE.MEAT,
+        health = -TUNING.HEALING_MED,
+        hunger = TUNING.CALORIES_MEDSMALL,
+        sanity = -TUNING.SANITY_MED,
+        perishtime = TUNING.PERISH_SLOW,
+        cooktime = 1,
+        overridebuild = "cook_pot_food11",
+        floater = {"med", 0.05, 1.0},
+        oneat_desc = STRINGS.UI.COOKBOOK.FOOD_EFFECTS_SLEEP,
+        oneatenfn = function(inst, eater)
+			if eater.components.sleeper ~= nil then
+	            eater.components.sleeper:AddSleepiness(10, TUNING.PANFLUTE_SLEEPTIME)
+	        elseif eater.components.grogginess ~= nil then
+	            eater.components.grogginess:AddGrogginess(10, TUNING.PANFLUTE_SLEEPTIME)
+	        else
+	            eater:PushEvent("knockedout")
+	        end
+        end,
+    },	
+
 }
 
 for k, v in pairs(foods) do

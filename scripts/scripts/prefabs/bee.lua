@@ -120,7 +120,8 @@ local RETARGET_ONEOF_TAGS = { "character", "animal", "monster" }
 local function KillerRetarget(inst)
     return FindEntity(inst, SpringCombatMod(8),
         function(guy)
-            return inst.components.combat:CanTarget(guy)
+            return inst.components.combat:CanTarget(guy) and
+                not (guy.components.skilltreeupdater and guy.components.skilltreeupdater:IsActivated("wormwood_bugs"))
         end,
         RETARGET_MUST_TAGS,
         RETARGET_CANT_TAGS,
@@ -131,7 +132,8 @@ local function SpringBeeRetarget(inst)
     return TheWorld.state.isspring and
         FindEntity(inst, 4,
             function(guy)
-                return inst.components.combat:CanTarget(guy)
+                return inst.components.combat:CanTarget(guy) and
+                    not (guy.components.skilltreeupdater and guy.components.skilltreeupdater:IsActivated("wormwood_bugs"))
             end,
 			RETARGET_MUST_TAGS,
 			RETARGET_CANT_TAGS,
@@ -238,6 +240,7 @@ local function commonfn(build, tags)
 
     MakeFeedableSmallLivestock(inst, TUNING.TOTAL_DAY_TIME*2, OnPickedUp, OnDropped)
 
+
     inst.buzzing = true
     inst.EnableBuzz = EnableBuzz
     inst.OnEntityWake = OnWake
@@ -284,6 +287,8 @@ local function workerbee()
     MakeHauntableChangePrefab(inst, "killerbee")
 	inst.components.hauntable.panicable = true
 
+    inst.incineratesound = inst.sounds.death
+
     return inst
 end
 
@@ -309,6 +314,8 @@ local function killerbee()
 
     MakeHauntablePanic(inst)
     inst:ListenForEvent("spawnedfromhaunt", OnSpawnedFromHaunt)
+
+    inst.incineratesound = inst.sounds.death
 
     return inst
 end

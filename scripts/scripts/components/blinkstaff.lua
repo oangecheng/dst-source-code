@@ -19,8 +19,8 @@ function BlinkStaff:ResetSoundFX()
 end
 
 function BlinkStaff:SetSoundFX(presound, postsound)
-    self.presound = presound or self.presound
-    self.postsound = postsound or self.postsound
+    self.presound = presound
+    self.postsound = postsound
 end
 
 function BlinkStaff:SpawnEffect(inst)
@@ -46,11 +46,11 @@ local function OnBlinked(caster, self, dpt)
         caster.sg.statemem.onstopblinking()
     end
 	local pt = dpt:GetPosition()
-	if pt ~= nil and TheWorld.Map:IsPassableAtPoint(pt:Get()) and not TheWorld.Map:IsGroundTargetBlocked(pt) then
+	if pt ~= nil and TheWorld.Map:IsPassableAtPoint(pt:Get()) and not TheWorld.Map:IsGroundTargetBlocked(pt) then -- NOTES(JBK): Keep in sync with wortox. [BATELE]
 	    caster.Physics:Teleport(pt:Get())
 	end
     self:SpawnEffect(caster)
-    if self.postsound ~= "" then
+    if self.postsound and self.postsound ~= "" then
         caster.SoundEmitter:PlaySound(self.postsound)
     end
 end
@@ -65,7 +65,7 @@ function BlinkStaff:Blink(pt, caster)
     end
 
     self:SpawnEffect(caster)
-    if self.presound ~= "" then
+    if self.presound and self.presound ~= "" then
         caster.SoundEmitter:PlaySound(self.presound)
     end
 

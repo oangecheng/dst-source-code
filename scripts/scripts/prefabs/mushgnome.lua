@@ -10,7 +10,6 @@ local prefabs =
 {
     "character_fire",
     "livinglog",
-    "log",
     "spore_moon",
     "spore_moon_coughout",
     "moon_cap",
@@ -106,6 +105,7 @@ local function normal_fn()
     inst.Light:SetFalloff(0.5)
     inst.Light:SetRadius(0.6)
 
+    inst:AddTag("moon_spore_protection")
     inst:AddTag("leif")
     inst:AddTag("monster")
     inst:AddTag("tree")
@@ -114,11 +114,14 @@ local function normal_fn()
     inst.AnimState:SetBank("grotto_mushgnome")
     inst.AnimState:SetBuild("grotto_mushgnome")
     inst.AnimState:PlayAnimation("idle_loop", true)
+    inst.scrapbook_anim = "idle_loop"
 
     inst.entity:SetPristine()
     if not TheWorld.ismastersim then
         return inst
     end
+
+    inst.scrapbook_damage = 0
 
     local color = .5 + math.random() * .5
     inst.AnimState:SetMultColour(color, color, color, 1)

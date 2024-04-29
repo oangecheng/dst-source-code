@@ -98,11 +98,9 @@ end
 
 local function spawnback(inst)
     local back = SpawnPrefab("lunarthrall_plant_back")
-    --back.Transform:SetPosition(inst.Transform:GetWorldPosition())
     back.AnimState:SetFinalOffset(-1)
     inst.back = back
 	table.insert(inst.highlightchildren, back)
-    back:ListenForEvent("onremove", function() back:Remove() end, inst)
 
     back:ListenForEvent("death", function()
         local self = inst.components.burnable
@@ -119,13 +117,12 @@ local function spawnback(inst)
     inst.tintcolor = color
     inst.AnimState:SetMultColour(color, color, color, 1)
     back.AnimState:SetMultColour(color, color, color, 1)
-    inst:AddChild(back)
 
+	back.entity:SetParent(inst.entity)
     inst.components.colouradder:AttachChild(back)
 end
 
 local function infest(inst,target)
-
     if target then
         
         if target.components.pickable then
@@ -141,7 +138,6 @@ local function infest(inst,target)
         inst.components.entitytracker:TrackEntity("targetplant", target)
         target.lunarthrall_plant = inst
         inst.Transform:SetPosition(target.Transform:GetWorldPosition())
-        spawnback(inst)
         local bbx1, bby1, bbx2, bby2 = target.AnimState:GetVisualBB()
         local bby = bby2 - bby1
         if bby < 2 then
@@ -408,8 +404,8 @@ local function CreateFlame()
     inst.AnimState:SetBank("lunarthrall_plant")
     inst.AnimState:SetBuild("lunarthrall_plant_front")
     inst.AnimState:PlayAnimation("gestalt_fx", true)
-    inst.AnimState:SetMultColour(0.6,0.6,0.6,0.6)
-    inst.AnimState:SetLightOverride(1)
+	inst.AnimState:SetMultColour(1, 1, 1, 0.6)
+	inst.AnimState:SetLightOverride(0.1)
     inst.AnimState:SetFrame( math.random(inst.AnimState:GetCurrentAnimationNumFrames()) -1)
     inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
 
@@ -437,6 +433,9 @@ local function fn()
     inst.AnimState:PlayAnimation("idle_med", true)
     inst.AnimState:SetFinalOffset(1)
     inst.scrapbook_anim = "scrapbook"
+    inst.scrapbook_specialinfo = "LUNARTHRALLPLANT"
+    inst.scrapbook_planardamage = TUNING.LUNARTHRALL_PLANT_PLANAR_DAMAGE
+
 
     inst.customPlayAnimation = customPlayAnimation
     inst.customPushAnimation = customPushAnimation
@@ -446,6 +445,8 @@ local function fn()
     inst:AddTag("lunar_aligned")
     inst:AddTag("hostile")
     inst:AddTag("lunarthrall_plant")
+    inst:AddTag("retaliates")
+    inst:AddTag("NPCcanaggro")
 
 	inst.highlightchildren = {}
 
@@ -507,6 +508,8 @@ local function fn()
     MakeLargeBurnableCharacter(inst,"follow_gestalt_fx")
 
     inst:SetStateGraph("SGlunarthrall_plant")
+
+	spawnback(inst)
 
     return inst
 end
@@ -763,6 +766,7 @@ local function vineendfn()
     inst:AddTag("lunarthrall_plant_end")
     inst:AddTag("hostile")
     inst:AddTag("soulless")
+    inst:AddTag("NPCcanaggro")
 
     inst.AnimState:SetBank("lunarthrall_plant_vine")
     inst.AnimState:SetBuild("lunarthrall_plant_vine")

@@ -568,6 +568,10 @@ local function tree(name, stage, data)
 
         MakeSnowCoveredPristine(inst)
 
+        inst.scrapbook_specialinfo = "TREE"
+        inst.scrapbook_proxy = "palmconetree_tall"
+        inst.scrapbook_speechname = inst.prefab
+
         inst.entity:SetPristine()
 
         if not TheWorld.ismastersim then
@@ -630,6 +634,8 @@ local function tree(name, stage, data)
 
         -------------------
         MakeHauntableWorkAndIgnite(inst)
+
+        MakeWaxablePlant(inst)
 
         -------------------
         inst.OnSave = on_save

@@ -30,7 +30,7 @@ local actionhandlers =
 
 local events =
 {
-    EventHandler("locomote", function(inst, data)
+	EventHandler("locomote", function(inst, data)
         if inst.sg:HasStateTag("busy") then
             return
         end
@@ -40,8 +40,16 @@ local events =
         if is_moving and not should_move then
             inst.sg:GoToState("idle")
         elseif not is_moving and should_move then
+			--V2C: Added "dir" param so we don't have to add "canrotate" to all interruptible states
+			if data and data.dir then
+				inst.Transform:SetRotation(data.dir)
+			end
             inst.sg:GoToState("run")
         elseif data.force_idle_state and not (is_moving or should_move or inst.sg:HasStateTag("idle")) then
+			--V2C: Added "dir" param so we don't have to add "canrotate" to all interruptible states
+			if data and data.dir then
+				inst.Transform:SetRotation(data.dir)
+			end
             inst.sg:GoToState("idle")
         end
     end),
@@ -75,9 +83,15 @@ local states =
     State{
         name = "idle",
         tags = { "idle", "canrotate" },
+
         onenter = function(inst)
-            inst.components.locomotor:Stop()
-            inst.components.locomotor:Clear()
+			if inst.sg.lasttags and not inst.sg.lasttags["busy"] then
+				inst.components.locomotor:StopMoving()
+			else
+				inst.components.locomotor:Stop()
+				inst.components.locomotor:Clear()
+			end
+			inst:ClearBufferedAction()
 
             if not inst.AnimState:IsCurrentAnimation("idle") then
                 inst.AnimState:PlayAnimation("idle", true)
@@ -395,7 +409,7 @@ local states =
 
         onenter = function(inst)
             inst.components.locomotor:Stop()
-            inst.AnimState:PlayAnimation("dissipate", false)
+			inst.AnimState:PlayAnimation("dissipate")
             inst.SoundEmitter:PlaySound("dontstarve/ghost/ghost_haunt", nil, nil, true)
         end,
 

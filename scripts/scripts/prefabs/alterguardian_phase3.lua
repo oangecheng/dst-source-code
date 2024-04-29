@@ -308,22 +308,21 @@ local function hauntchancefn(inst)
 end
 
 local function dropLootFn(lootdropper)
+    if IsSpecialEventActive(SPECIAL_EVENTS.WINTERS_FEAST) then
+        local SELECTION = {
+            "winter_ornament_boss_celestialchampion1",
+            "winter_ornament_boss_celestialchampion2",
+            "winter_ornament_boss_celestialchampion3",
+            "winter_ornament_boss_celestialchampion4",
+        }
 
-        if IsSpecialEventActive(SPECIAL_EVENTS.WINTERS_FEAST) then
-            local SELECTION = {
-                "winter_ornament_boss_celestialchampion1",
-                "winter_ornament_boss_celestialchampion2",
-                "winter_ornament_boss_celestialchampion3",
-                "winter_ornament_boss_celestialchampion4",
-            }
-        
-            for i=1,2 do
-                local ornamentnum = math.random(1,#SELECTION)
-                local ornament = SELECTION[ornamentnum]
-                table.remove(SELECTION,ornamentnum)
-                lootdropper:AddChanceLoot(ornament, 1)
-            end
+        for _=1,2 do
+            local ornamentnum = math.random(1,#SELECTION)
+            local ornament = SELECTION[ornamentnum]
+            table.remove(SELECTION,ornamentnum)
+            lootdropper:AddChanceLoot(ornament, 1)
         end
+    end
 end
 
 local function trackattackers(inst,data)
@@ -385,6 +384,8 @@ local function fn()
     inst:AddTag("scarytoprey")
     inst:AddTag("soulless")
     inst:AddTag("lunar_aligned")
+
+    inst.scrapbook_proxy = "alterguardian_phase1"
 
     inst._musicdirty = net_event(inst.GUID, "alterguardian_phase3._musicdirty", "musicdirty")
     inst._playingmusic = false
@@ -453,7 +454,8 @@ local function fn()
     MakeHugeFreezableCharacter(inst)
     inst.components.freezable:SetResistance(8)
 
-    MakeHauntableGoToStateWithChanceFunction(inst, "atk_stab", hauntchancefn, TUNING.ALTERGUARDIAN_PHASE3_ATTACK_PERIOD, TUNING.HAUNT_SMALL)
+	inst:AddComponent("hauntable")
+	inst.components.hauntable:SetHauntValue(TUNING.HAUNT_TINY)
 
     inst.DoTraps = do_traps
     inst.TrackTrap = track_trap

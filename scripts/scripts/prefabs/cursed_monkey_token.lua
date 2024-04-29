@@ -77,6 +77,9 @@ local function fn()
         return inst
     end
 
+	inst.scrapbook_tex = "cursed_beads4"
+    inst.scrapbook_specialinfo = "CURSEDMONKEYTOKEN"
+
     inst:AddComponent("inventoryitem")
     inst.components.inventoryitem.canonlygoinpocket = true
 

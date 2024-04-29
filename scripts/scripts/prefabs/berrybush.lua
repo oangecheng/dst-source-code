@@ -237,7 +237,6 @@ local function createbush(name, inspectname, berryname, master_postinit)
         "dug_"..name,
         "perd",
         "twigs",
-        "spoiled_food",
     }
 
     local function fn()
@@ -272,6 +271,8 @@ local function createbush(name, inspectname, berryname, master_postinit)
         setberries(inst, 1)
 
         MakeSnowCoveredPristine(inst)
+
+        inst.scrapbook_specialinfo = "NEEDFERTILIZER"
 
         inst.entity:SetPristine()
         if not TheWorld.ismastersim then
@@ -312,6 +313,8 @@ local function createbush(name, inspectname, berryname, master_postinit)
         inst:ListenForEvent("onwenthome", shake)
         MakeSnowCovered(inst)
         MakeNoGrowInWinter(inst)
+
+        MakeWaxablePlant(inst)
 
         master_postinit(inst)
 

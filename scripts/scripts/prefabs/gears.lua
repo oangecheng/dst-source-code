@@ -17,6 +17,8 @@ local function fn()
     inst.AnimState:SetBuild("gears")
     inst.AnimState:PlayAnimation("idle")
 
+    inst.pickupsound = "metal"
+
     inst:AddTag("molebait")
 
     MakeInventoryFloatable(inst, "med", nil, 0.7)
@@ -45,6 +47,7 @@ local function fn()
     inst:AddComponent("repairer")
     inst.components.repairer.repairmaterial = MATERIALS.GEARS
     inst.components.repairer.workrepairvalue = TUNING.REPAIR_GEARS_WORK
+    inst.components.repairer.healthrepairvalue = TUNING.REPAIR_GEARS_HEALTH
 
     MakeHauntableLaunchAndSmash(inst)
 

@@ -9,6 +9,7 @@ local prefabs =
 	"voidcloth",
 	"horrorfuel",
 	"nightmarefuel",
+	"winter_ornament_shadowthralls",
 }
 
 local brain = require("brains/shadowthrall_hands_brain")
@@ -123,6 +124,16 @@ end
 
 --------------------------------------------------------------------------
 
+local function GetWintersFeastOrnaments(inst)
+	local horns = inst.components.entitytracker:GetEntity("horns")
+	local wings = inst.components.entitytracker:GetEntity("wings")
+
+	return horns == nil and wings == nil and { basic = 1, special = "winter_ornament_shadowthralls" } or nil
+end
+
+--------------------------------------------------------------------------
+
+
 local function CreateFlameFx()
 	local inst = CreateEntity()
 
@@ -169,6 +180,12 @@ local function CreateFabricFx()
 	return inst
 end
 
+local function OnColourChanged(inst, r, g, b, a)
+	for i, v in ipairs(inst.highlightchildren) do
+		v.AnimState:SetAddColour(r, g, b, a)
+	end
+end
+
 --------------------------------------------------------------------------
 
 local function fn()
@@ -200,6 +217,8 @@ local function fn()
 	inst.scrapbook_anim ="scrapbook"
 	inst.scrapbook_overridedata ={{"fx_fabric", "shadow_thrall_wings", "fx_fabric"},{"fx_fabric_particle", "shadow_thrall_wings", "fx_fabric_particle"},{"fx_flame_black", "shadow_thrall_wings", "fx_flame_black"},{"fx_flame_red", "shadow_thrall_wings", "fx_flame_red"}}
 
+	inst:AddComponent("colouraddersync")
+
 	--Dedicated server does not need to spawn the local fx
 	if not TheNet:IsDedicated() then
 		local flames = CreateFlameFx()
@@ -215,6 +234,8 @@ local function fn()
 		fabric2.Follower:FollowSymbol(inst.GUID, "fx_fabric_swap2", nil, nil, nil, true)
 
 		inst.highlightchildren = { flames, fabric1, fabric2 }
+
+		inst.components.colouraddersync:SetColourChangedFn(OnColourChanged)
 	end
 
 	inst.displaynamefn = DisplayNameFn
@@ -255,10 +276,12 @@ local function fn()
 
 	inst:AddComponent("lootdropper")
 	inst.components.lootdropper:SetChanceLootTable("shadowthrall_hands")
+	inst.components.lootdropper.GetWintersFeastOrnaments = GetWintersFeastOrnaments
 	inst.components.lootdropper.y_speed = 4
 	inst.components.lootdropper.y_speed_variance = 3
 	inst.components.lootdropper.spawn_loot_inside_prefab = true
 
+	inst:AddComponent("colouradder")
 	inst:AddComponent("knownlocations")
 	inst:AddComponent("entitytracker")
 

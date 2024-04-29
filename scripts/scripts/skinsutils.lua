@@ -648,34 +648,39 @@ function GetSkinUsableOnString(item_type, popup_txt)
 
 	local skin_str = GetSkinName(item_type)
 
-	local usable_on_str = ""
+	local usable_on_str
 	if skin_data ~= nil and skin_data.base_prefab ~= nil then
-		if skin_data.granted_items == nil then
-			local item_str = STRINGS.NAMES[string.upper(skin_data.base_prefab)]
-			usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON, { skin = skin_str, item = item_str })
-		else
-			local item1_str = STRINGS.NAMES[string.upper(skin_data.base_prefab)]
-			local item2_str = nil
-			local item3_str = nil
-
-			local granted_skin_data = GetSkinData(skin_data.granted_items[1])
-			if granted_skin_data ~= nil and granted_skin_data.base_prefab ~= nil then
-				item2_str = STRINGS.NAMES[string.upper(granted_skin_data.base_prefab)]
-			end
-			granted_skin_data = GetSkinData(skin_data.granted_items[2])
-			if granted_skin_data ~= nil and granted_skin_data.base_prefab ~= nil then
-				item3_str = STRINGS.NAMES[string.upper(granted_skin_data.base_prefab)]
-			end
-
-			if item3_str == nil then
-				usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE, { skin = skin_str, item1 = item1_str, item2 = item2_str })
-			else
-				usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_3_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_3, { skin = skin_str, item1 = item1_str, item2 = item2_str, item3 = item3_str })
-			end
-		end
+        local item1_str, item2_str, item3_str
+        item1_str = STRINGS.NAMES[string.upper(skin_data.base_prefab)]
+        if skin_data.granted_items ~= nil then
+            local granted_skin_data = GetSkinData(skin_data.granted_items[1])
+            if granted_skin_data ~= nil and granted_skin_data.base_prefab ~= nil then
+                item2_str = STRINGS.NAMES[string.upper(granted_skin_data.base_prefab)]
+                if item2_str == item1_str then
+                    item2_str = nil
+                end
+            end
+            granted_skin_data = GetSkinData(skin_data.granted_items[2])
+            if granted_skin_data ~= nil and granted_skin_data.base_prefab ~= nil then
+                item3_str = STRINGS.NAMES[string.upper(granted_skin_data.base_prefab)]
+                if item2_str == nil and item3_str ~= item1_str then
+                    item2_str = item3_str
+                    item3_str = nil
+                elseif item1_str == item3_str or item2_str == item3_str then
+                    item3_str = nil
+                end
+            end
+        end
+        if item2_str == nil then
+            usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON, { skin = skin_str, item = item1_str })
+        elseif item3_str == nil then
+            usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE, { skin = skin_str, item1 = item1_str, item2 = item2_str })
+        else
+            usable_on_str = subfmt(popup_txt and STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_3_POPUP or STRINGS.UI.SKINSSCREEN.USABLE_ON_MULTIPLE_3, { skin = skin_str, item1 = item1_str, item2 = item2_str, item3 = item3_str })
+        end
 	end
 
-	return usable_on_str
+	return usable_on_str or ""
 end
 
 function IsUserCommerceAllowedOnItemData(item_data)
@@ -1525,7 +1530,7 @@ function GetNextOwnedSkin(prefab, cur_skin)
 			end
 		end
 		for i = found + 1, #skin_list do
-			if TheInventory:CheckOwnership(skin_list[i]) then
+			if not PREFAB_SKINS_SHOULD_NOT_SELECT[skin_list[i]] and TheInventory:CheckOwnership(skin_list[i]) then
 				new_skin = skin_list[i]
 				break
 			end
@@ -1548,7 +1553,7 @@ function GetPrevOwnedSkin(prefab, cur_skin)
 			end
 		end
 		for i = found - 1, 1, -1 do
-			if TheInventory:CheckOwnership(skin_list[i]) then
+			if not PREFAB_SKINS_SHOULD_NOT_SELECT[skin_list[i]] and TheInventory:CheckOwnership(skin_list[i]) then
 				new_skin = skin_list[i]
 				break
 			end
@@ -1938,7 +1943,7 @@ function GetBoxPopupLayoutDetails( num_item_types )
 	elseif num_item_types == 19 then
 		columns = 7
 		resize_root = true
-	elseif num_item_types == 22 or num_item_types == 24 then
+	elseif num_item_types == 22 or num_item_types == 23 or num_item_types == 24 then
 		columns = 8
 		resize_root_small = true
 	elseif num_item_types == 31 or num_item_types == 35 then

@@ -152,15 +152,7 @@ local function donextcollapse(inst)
             elseif v.components.pickable ~= nil
                 and v.components.pickable:CanBePicked()
                 and not v:HasTag("intense") then
-                local num = v.components.pickable.numtoharvest or 1
-                local product = v.components.pickable.product
-                local x1, y1, z1 = v.Transform:GetWorldPosition()
-                v.components.pickable:Pick(inst) -- only calling this to trigger callbacks on the object
-                if product ~= nil and num > 0 then
-                    for i = 1, num do
-                        SpawnPrefab(product).Transform:SetPosition(x1, 0, z1)
-                    end
-                end
+				v.components.pickable:Pick(inst)
             elseif v.components.combat ~= nil
                 and v.components.health ~= nil
                 and not v.components.health:IsDead() then
@@ -242,6 +234,10 @@ local function fn()
     inst:AddTag("NOCLICK")
 
     inst:SetDeployExtraSpacing(4)
+
+    inst.scrapbook_anim = "scrapbook"
+    inst.scrapbook_specialinfo = "ANTLIONSINKHOLE"
+    inst.scrapbook_inspectonseen = true
 
     inst.entity:SetPristine()
 

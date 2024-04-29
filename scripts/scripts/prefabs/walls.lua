@@ -221,7 +221,7 @@ function MakeWallType(data)
         end
 
         inst:AddComponent("repairer")
-        inst.components.repairer.repairmaterial = data.name == "ruins" and MATERIALS.THULECITE or data.name
+        inst.components.repairer.repairmaterial = (data.name == "ruins" and MATERIALS.THULECITE) or (data.name == "scrap" and MATERIALS.GEARS) or data.name
         inst.components.repairer.healthrepairvalue = data.repairhealth or data.maxhealth / 6
 
         if data.flammable then
@@ -314,11 +314,14 @@ function MakeWallType(data)
             return inst
         end
 
+        inst.scrapbook_specialinfo = "WALLS"
+        inst.scrapbook_anim = "half"
+
         inst:AddComponent("inspectable")
         inst:AddComponent("lootdropper")
 
         inst:AddComponent("repairable")
-        inst.components.repairable.repairmaterial = data.name == "ruins" and MATERIALS.THULECITE or data.name
+        inst.components.repairable.repairmaterial = (data.name == "ruins" and MATERIALS.THULECITE) or (data.name == "scrap" and MATERIALS.GEARS) or data.name
         inst.components.repairable.onrepaired = onrepaired
         inst.components.repairable.testvalidrepairfn = ValidRepairFn
 
@@ -412,6 +415,18 @@ local walldata =
 		repairhealth = TUNING.REPAIR_DREADSTONE_HEALTH * 4,
 		buildsound = "dontstarve/common/place_structure_stone",
 	},
+    {
+        name ="scrap",
+        material = "stone",
+        tags = { "stone", "scrap" },
+        loot = "wagpunk_bits",
+        maxloots = 1,
+        maxwork = TUNING.SCRAPWALL_WORK,
+        maxhealth = TUNING.SCRAPWALL_HEALTH,
+        playerdamagemod = TUNING.SCRAPWALL_PLAYERDAMAGEMOD,
+        repairhealth = TUNING.REPAIR_SCRAP_HEALTH * 4,
+        buildsound = "dontstarve/common/place_structure_stone",
+    },    
 }
 for i, v in ipairs(walldata) do
     local wall, item, placer = MakeWallType(v)

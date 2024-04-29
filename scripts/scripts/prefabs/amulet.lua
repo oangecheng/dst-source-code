@@ -384,6 +384,8 @@ end
 local function red()
     local inst = commonfn("redamulet", "resurrector", true)
 
+    inst.scrapbook_specialinfo = "REDAMULET"
+
     if not TheWorld.ismastersim then
         return inst
     end
