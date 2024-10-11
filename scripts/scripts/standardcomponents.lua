@@ -418,7 +418,7 @@ function MakeFlyingCharacterPhysics(inst, mass, rad)
     phys:SetDamping(5)
     phys:SetCollisionGroup(COLLISION.FLYERS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     phys:CollidesWith(COLLISION.FLYERS)
     phys:SetCapsule(rad, 1)
     return phys
@@ -431,7 +431,7 @@ function MakeTinyFlyingCharacterPhysics(inst, mass, rad)
     phys:SetDamping(5)
     phys:SetCollisionGroup(COLLISION.FLYERS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     phys:SetCapsule(rad, 1)
     return phys
 end
@@ -458,7 +458,7 @@ function MakeFlyingGiantCharacterPhysics(inst, mass, rad)
     phys:SetDamping(5)
     phys:SetCollisionGroup(COLLISION.GIANTS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     --phys:CollidesWith(COLLISION.OBSTACLES)
     phys:CollidesWith(COLLISION.CHARACTERS)
     phys:CollidesWith(COLLISION.GIANTS)
@@ -473,7 +473,7 @@ function MakeGhostPhysics(inst, mass, rad)
     phys:SetDamping(5)
     phys:SetCollisionGroup(COLLISION.CHARACTERS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     --phys:CollidesWith(COLLISION.OBSTACLES)
     phys:CollidesWith(COLLISION.CHARACTERS)
     phys:CollidesWith(COLLISION.GIANTS)
@@ -488,7 +488,7 @@ function MakeTinyGhostPhysics(inst, mass, rad)
     phys:SetDamping(5)
     phys:SetCollisionGroup(COLLISION.CHARACTERS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     phys:SetCapsule(rad, 1)
     return phys
 end
@@ -497,7 +497,7 @@ function ChangeToGhostPhysics(inst)
     local phys = inst.Physics
     phys:SetCollisionGroup(COLLISION.CHARACTERS)
     phys:ClearCollisionMask()
-    phys:CollidesWith((TheWorld.has_ocean and COLLISION.GROUND) or COLLISION.WORLD)
+    phys:CollidesWith((TheWorld:CanFlyingCrossBarriers() and COLLISION.GROUND) or COLLISION.WORLD)
     --phys:CollidesWith(COLLISION.OBSTACLES)
     phys:CollidesWith(COLLISION.CHARACTERS)
     phys:CollidesWith(COLLISION.GIANTS)
@@ -730,7 +730,7 @@ local function oneat(inst)
     end
 end
 
-local function onperish(inst)
+local function onperish(inst, donotremove)
     local owner = inst.components.inventoryitem.owner
     if owner ~= nil then
 		local loots
@@ -766,6 +766,13 @@ local function onperish(inst)
 				container:GiveItem(v)
 			end
 		end
+    else
+        if inst.components.lootdropper ~= nil then
+            inst.components.lootdropper:DropLoot()
+        end
+        if not donotremove then
+            inst:Remove()
+        end
     end
 end
 
@@ -791,6 +798,35 @@ function MakeSmallPerishableCreature(inst, starvetime, oninventory, ondropped)
 
     inst.components.inventoryitem:SetOnDroppedFn(function(inst)
         inst.components.perishable:StopPerishing()
+        if ondropped ~= nil then
+            ondropped(inst)
+        end
+    end)
+end
+
+function MakeSmallPerishableCreatureAlwaysPerishing(inst, starvetime, oninventory, ondropped, onperishpre)
+    MakeSmallPerishableCreaturePristine(inst)
+
+    --We want to see the warnings for duplicating perishable
+    inst:AddComponent("perishable")
+    inst.components.perishable:SetPerishTime(starvetime)
+    inst.components.perishable:StartPerishing()
+    inst.components.perishable:SetOnPerishFn(function(inst)
+        local donotremove = false
+        if onperishpre ~= nil then
+            donotremove = onperishpre(inst)
+        end
+        print("RH perish", donotremove)
+        onperish(inst, donotremove)
+    end)
+
+    inst.components.inventoryitem:SetOnPutInInventoryFn(function(inst, owner)
+        if oninventory ~= nil then
+            oninventory(inst, owner)
+        end
+    end)
+
+    inst.components.inventoryitem:SetOnDroppedFn(function(inst)
         if ondropped ~= nil then
             ondropped(inst)
         end
@@ -1603,8 +1639,14 @@ local function OnStartRegrowth(inst, data)
     -- NOTES(JBK): inst will most likely be not valid right after this.
     TheWorld:PushEvent("beginregrowth", inst)
 end
+function RemoveFromRegrowthManager(inst)
+    inst:RemoveEventCallback("onremove", OnStartRegrowth)
+    inst:RemoveEventCallback("despawnedfromhaunt", RemoveFromRegrowthManager)
+    inst.OnStartRegrowth = nil
+end
 function AddToRegrowthManager(inst)
     inst:ListenForEvent("onremove", OnStartRegrowth)
+    inst:ListenForEvent("despawnedfromhaunt", RemoveFromRegrowthManager)
     inst.OnStartRegrowth = OnStartRegrowth -- For any special cases that need to call this.
 end
 

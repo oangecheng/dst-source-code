@@ -607,6 +607,7 @@ local ExampleLayout =
 			},
 		}),
         ["TentaclePillar"] = StaticLayout.Get("map/static_layouts/tentacle_pillar"),
+		["TentaclePillarToAtrium"] = StaticLayout.Get("map/static_layouts/tentacle_pillar_atrium"),
 
 --------------------------------------------------------------------------------
 -- Eyebone
@@ -1107,8 +1108,8 @@ local ExampleLayout =
 		fill_mask = PLACE_MASK.IGNORE_IMPASSABLE_BARREN_RESERVED,
 		areas = 
 		{
-			item_area1 = {math.random() >= .5 and "spoiled_fish_small" or "spoiled_fish"},
-			item_area2 = {math.random() >= .5 and "twigs" or "cutgrass"},
+			item_area1 = function() return {math.random() >= .5 and "spoiled_fish_small" or "spoiled_fish"} end,
+			item_area2 = function() return {math.random() >= .5 and "twigs" or "cutgrass"} end,
 			mast_area = {"mast_broken"},
 			fishing_item_area = {"chum"},
 			seastack_area = function() return math.random() < 0.9 and {"seastack"} or nil end
@@ -1121,10 +1122,10 @@ local ExampleLayout =
 		fill_mask = PLACE_MASK.IGNORE_IMPASSABLE_BARREN_RESERVED,
 		areas = 
 		{
-			item_area1 = {math.random() >= .5 and "oar" or "oar_driftwood"},
-			item_area2 = {math.random() >= .5 and "twigs" or "cutgrass"},
+			item_area1 = function() return {math.random() >= .5 and "oar" or "oar_driftwood"} end,
+			item_area2 = function() return {math.random() >= .5 and "twigs" or "cutgrass"} end,
 			mast_area = {},
-			fishing_item_area = {math.random() >= .5 and "oceanfishinglure_hermit_snow" or "oceanfishinglure_hermit_heavy"},
+			fishing_item_area = function() return {math.random() >= .5 and "oceanfishinglure_hermit_snow" or "oceanfishinglure_hermit_heavy"} end,
 			seastack_area = function() return math.random() < 0.9 and {"seastack"} or nil end
 		},
 	}),

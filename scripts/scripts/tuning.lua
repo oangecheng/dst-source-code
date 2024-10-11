@@ -560,6 +560,8 @@ function Tune(overrides)
 
         PIPE_DART_DAMAGE = 100,
         YELLOW_DART_DAMAGE = 60,
+        SLEEP_DART_SLEEPINESS = 1,
+        SLEEP_DART_SLEEPTIME = 15,
 
         PENGUIN_DAMAGE = 33,
         PENGUIN_HEALTH = 150,
@@ -1376,6 +1378,10 @@ function Tune(overrides)
                 HERMITCRABSHOP = 7,
             }),
 
+            RABBITKINGSHOP = TechTree.Create({
+                RABBITKINGSHOP = 2,
+            }),
+
             TURFCRAFTING = TechTree.Create({
                 TURFCRAFTING = 2,
                 MASHTURFCRAFTING = 2,
@@ -1405,6 +1411,10 @@ function Tune(overrides)
 
             CARPENTRY_STATION = TechTree.Create({
                 CARPENTRY = 2,
+            }),
+
+            CARPENTRY_STATION_STONE = TechTree.Create({
+                CARPENTRY = 3,
             }),
 		},
 
@@ -2329,6 +2339,7 @@ function Tune(overrides)
         MONKEY_HEALTH = 125,
         MONKEY_ATTACK_PERIOD = 2,
         MONKEY_MELEE_RANGE = 3,
+        MONKEY_RANGED_DAMAGE = 0,
         MONKEY_RANGED_RANGE = 17,
         MONKEY_MOVE_SPEED = 7,
         MONKEY_NIGHTMARE_CHASE_DIST = 40,
@@ -2348,7 +2359,7 @@ function Tune(overrides)
         MOSSLING_DAMAGE = 50,
         MOSSLING_ATTACK_PERIOD = 3,
         MOSSLING_ATTACK_RANGE = 2,
-        MOSSLING_WALK_SPEED = 5,
+        MOSSLING_WALK_SPEED = 8, --5
 
         TOADSTOOL_HEALTH = 52500,
         TOADSTOOL_ATTACK_RANGE = 7,
@@ -2782,6 +2793,7 @@ function Tune(overrides)
 		--T2
 		MAGICIAN_TOPHAT_SHADOW_LEVEL = 2,
 		BATBAT_SHADOW_LEVEL = 2,
+        RABBITKINGSPEAR_SHADOW_LEVEL = 2,
 		ARMORSLURPER_SHADOW_LEVEL = 2,
 		SHIELDOFTERROR_SHADOW_LEVEL = 2,
 		NIGHTSWORD_SHADOW_LEVEL = 2,
@@ -2798,6 +2810,8 @@ function Tune(overrides)
 		ARMOR_VOIDCLOTH_SHADOW_LEVEL = 3,
 		VOIDCLOTH_SCYTHE_SHADOW_LEVEL = 3,
 		VOIDCLOTH_UMBRELLA_SHADOW_LEVEL = 3,
+		SHADOW_BATTLEAXE_SHADOW_LEVEL = 3,
+		VOIDCLOTH_BOOMERANG_SHADOW_LEVEL = 3,
 		--T4
 		THURIBLE_SHADOW_LEVEL = 4,
 
@@ -3192,6 +3206,7 @@ function Tune(overrides)
         ANTLION_SLOW_DOWN = .4,
         ANTLION_CAST_RANGE = 15,
         ANTLION_CAST_MAX_RANGE = 20,
+        ANTLION_DEAGGRO_DIST = 30, -- NOTES(JBK): This was never declared so this value is just an approximate.
         ANTLION_WALL_CD = 20,
         ANTLION_HIT_RECOVERY = 1,
         ANTLION_EAT_HEALING = 200,
@@ -5154,9 +5169,12 @@ function Tune(overrides)
         CRABKING_HEALTH = 12000,
         CRABKING_HEALTH_BONUS = 1000,
 
+
+
         CRABKING_CLAW_BOATDAMAGE = 35,
         CRABKING_CLAW_HEALTH = 200,
         CRABKING_CLAW_HEALTH_BOOST = 200,
+        CRABKING_CLAW_HEALTH_BOOST_MAXGEM = 400,
         CRABKING_CLAW_WALK_SPEED = 1,
         CRABKING_CLAW_RUN_SPEED = 4,
         CRABKING_CLAW_RESPAWN_DELAY = 30,-- time each claw must regen for before being spawnable
@@ -5212,9 +5230,10 @@ function Tune(overrides)
 
         CRABKING_ICEWALL_HEALTH = 100,
         CRABKING_ICEWALL_HEALTH_BONUS = 200,
+        CRABKING_ICEWALL_HEALTH_BONUS_MAXGEM = 400,
 
-        CRABKING_MOB_HEALTH = 200,
-        CRABKING_MOB_HEALTH_BONUS = 40,
+        CRABKING_MOB_HEALTH = 200,        
+        CRABKING_MOB_HEALTH_BONUS_MAXGEM = 200,
         CRABKING_MOB_DAMAGE = 30,
         CRABKING_MOB_ATTACK_PERIOD = 4,
         CRABKING_MOB_ATTACK_RANGE = 3,
@@ -5236,6 +5255,7 @@ function Tune(overrides)
         CRABKING_CANNONTOWER_HULL_SMASH_DAMAGE = 40,
         CRABKING_MORTAR_DAMAGE = 20,
         CRABKING_MORTAR_DAMAGE_BONUS = 5,
+        CRABKING_MORTAR_MAXGEM_DAMAGE_BONUS = 25,
 
         CRABKING_WAVE_ATTACK_TIMEOUT_TIME = 8,
 
@@ -7214,6 +7234,20 @@ function Tune(overrides)
 		SHADOWTHRALL_WINGS_DAMAGE = 25,
 		SHADOWTHRALL_WINGS_PLANAR_DAMAGE = 30,
 
+		SHADOWTHRALL_MOUTH_HEALTH = 800,
+		SHADOWTHRALL_MOUTH_WALKSPEED = 6,
+		SHADOWTHRALL_MOUTH_ATTACK_PERIOD = 4,
+		SHADOWTHRALL_MOUTH_ATTACK_RANGE = 4,
+		SHADOWTHRALL_MOUTH_STEALTH_ATTACK_GROUP_PERIOD = 4,
+		SHADOWTHRALL_MOUTH_STEALTH_ATTACK_PERIOD = 8,
+		SHADOWTHRALL_MOUTH_STEALTH_ATTACK_RANGE = 12,
+		SHADOWTHRALL_MOUTH_BITE_GROUP_PERIOD = 3, --must be shorter than attack_period, or stealthed will never get a turn
+		SHADOWTHRALL_MOUTH_BITE_DAMAGE = 35,
+		SHADOWTHRALL_MOUTH_BITE_PLANAR_DAMAGE = 20,
+		SHADOWTHRALL_MOUTH_LEAP_DAMAGE = 15,
+		SHADOWTHRALL_MOUTH_LEAP_PLANAR_DAMAGE = 10,
+		SHADOWTHRALL_MOUTH_LEAP_COOLDOWN = 14,
+
 		SHADOWTHRALL_AGGRO_RANGE = 12,
 		SHADOWTHRALL_DEAGGRO_RANGE = 40,
 
@@ -7692,7 +7726,6 @@ function Tune(overrides)
         OTTER_DAMAGE = 35,
         OTTER_RUNSPEED = 6,
         OTTER_WALKSPEED = 3,
-        OTTER_HIT_RANGE = 2,
         OTTER_ATTACK_RANGE = 3,
         OTTER_ATTACK_PERIOD = 4,
         OTTER_KEEPTARGET_DISTANCE = 20,
@@ -7808,11 +7841,191 @@ function Tune(overrides)
         MERMKING_PAULDRONBUFF_DEFENSEPERCENT = 0.15,
         MERMKING_PAULDRONBUFF_DEFENSEPERCENT_PLAYER = 0.10,
 
-        MERM_LUNAR_GUARD_HEALTH = 660+40,
-        MERM_LUNAR_HEALTH = (250 * 2)+40,
+        MERM_LUNAR_GUARD_EXTRA_HEALTH = 40,
+        MERM_LUNAR_EXTRA_HEALTH = 40,
         MERM_LUNAR_THORN_DAMAGE = 40,
 
+        -- Rifts 4
+        WORM_BOSS_HEALTH = 5000,
+        WORM_BOSS_DAMAGE = 14,
+        WORM_BOSS_SPINES = 14,
+        WORM_BOSS_MELEE_RANGE = 6,
+        WORM_BOSS_TARGET_DIST = 40,
+        WORM_BOSS_EAT_CREATURE_RANGE = 1.5,
+        WORM_BOSS_EAT_RANGE = 2,
+        WORM_BOSS_KNOCKBACK_RANGE = 2,
+        WORM_BOSS_DAYS = 25,
 
+        SPAWN_GELBLOBS = true, -- For world settings.
+        MIN_GELBLOBS_PER_SPAWNER = 5,
+        MAX_GELBLOBS_PER_SPAWNER = 10,
+        MAX_GELBLOBS_TOTAL_IN_WORLD = 100,
+        MIN_GELBLOB_DIST_FROM_EACHOTHER = 3,
+        MAX_GELBLOB_DIST_FROM_SPAWNER = 12,
+        MIN_GELBLOB_SPAWN_DELAY = 0.25,
+        VARIANCE_GELBLOB_SPAWN_DELAY = 1,
+        COOLDOWN_GELBLOB_SPAWNER_TIME = 5 * day_time,
+		GELBLOB_HEALTH = 600,
+		GELBLOB_DAMAGE = 20,
+		GELBLOB_PLANAR_DAMAGE = 20,
+
+        RUINSNIGHTMARE_SPEED = 5,
+        RUINSNIGHTMARE_SPEED_RIFTS = 6.5,
+        RUINSNIGHTMARE_HEALTH = 850,
+        RUINSNIGHTMARE_DAMAGE = 50,
+        RUINSNIGHTMARE_PLANAR_DAMAGE = 25, -- During rifts.
+        RUINSNIGHTMARE_ATTACK_RANGE = 3.5,
+        RUINSNIGHTMARE_ATTACK_PERIOD = 1.5,
+        RUINSNIGHTMARE_HORNATTACK_CHANCE = .75,
+
+        RUINSNIGHTMARE_SPAWN_CHANCE = .4,
+        RUINSNIGHTMARE_SPAWN_CHANCE_RIFTS = .9,
+
+        SHADOW_BEEF_BELL_POOP_DISAPPEAR_TIME = 5,
+        SHADOW_BEEF_BELL_CURSE_HEALTH_PENALTY = .5,
+        SHADOW_BEEF_BELL_CURSE_SANITY_DELTA = -100,
+        SHADOW_BEEF_BELL_REVIVE_COOLDOWN = 15 * total_day_time,
+
+        SHADOW_BATTLEAXE = {
+            USES = 200,
+            MAX_HUNGER = 500,
+            HUNGER_GAIN_ONKILL = 500 * .1,
+            DAMAGE = wilson_attack * 2 - 30,
+            LIFE_STEAL_SANITY_LOSS_SCALE = .5,
+            LEVEL_THRESHOLDS = { 0, 3, 6, 9},
+
+            TALK_INTERVAL = {
+                OVERTIME = 30,
+
+                -- Matches string naming...
+                CHOPPING = 10,
+                CHOPPING_WOODIE = 10,
+                STARVING = 5,
+                CREATURE_KILLED = 5,
+            },
+
+            RECENT_TARGET_TIME = 5,
+
+            LEVEL = {
+                {
+                    PLANAR_DAMAGE = 10,
+                    CHOPPING_EFFICIENCY = 1.50,
+                    LIFE_STEAL = 0,
+                    HUNGER_RATE = 0, -- Actually paused.
+                },
+                {
+                    PLANAR_DAMAGE = 14,
+                    CHOPPING_EFFICIENCY = 1.75,
+                    LIFE_STEAL = wilson_attack * .050,
+                    HUNGER_RATE = 0.05, -- ~20.8 days.
+                },
+                {
+                    PLANAR_DAMAGE = 18,
+                    CHOPPING_EFFICIENCY = 2.00,
+                    LIFE_STEAL = wilson_attack * .075,
+                    HUNGER_RATE = 0.1, -- ~10.4 days.
+                },
+                {
+                    PLANAR_DAMAGE = 22,
+                    CHOPPING_EFFICIENCY = 2.25,
+                    LIFE_STEAL = wilson_attack * .100,
+                    HUNGER_RATE = 0.2, -- ~5.2 days.
+                },
+            },
+        },
+
+        VOIDCLOTH_BOOMERANG_ATTACK_DIST = 10,
+        VOIDCLOTH_BOOMERANG_ATTACK_DIST_MAX = 14,
+        VOIDCLOTH_BOOMERANG_USES = 85,
+        VOIDCLOTH_BOOMERANG_DAMAGE =        { min = 5, max = wilson_attack*.8 },
+        VOIDCLOTH_BOOMERANG_PLANAR_DAMAGE = { min = 5, max = wilson_attack*.8 },
+        VOIDCLOTH_BOOMERANG_VS_LUNAR_BONUS = 1.25,
+        VOIDCLOTH_BOOMERANG_SPEEDMULT = 1.1,
+        VOIDCLOTH_BOOMERANG_PROJECTILE =
+        {
+            LAUNCH_SPEED = 15,
+            RETURN_SPEED = 7.5,
+            MAX_ACTIVE = 3,
+            SETBONUS_MAX_ACTIVE = 4,
+        },
+
+        WEAPONS_NIGHTMARE_VS_LUNAR_BONUS = 1.1,
+
+        SADDLE_SHADOW_BONUS_DAMAGE = 0,
+        SADDLE_SHADOW_USES = 12,
+        SADDLE_SHADOW_SPEEDMULT = 1.45,
+        SADDLE_SHADOW_ABSORPTION = 0.6 * multiplayer_armor_absorption_modifier,
+        SADDLE_SHADOW_PLANAR_DEF = 15,
+        SADDLE_SHADOW_PLANAR_DAMAGE = 18,
+        SADDLE_SHADOW_SHADOW_RESIST = 0.9,
+        SADDLE_SHADOW_VS_LUNAR_BONUS = 1.1,
+
+        ROPEBRIDGE_LENGTH_TILES = 6, -- How many tiles in a line can this make for each construction.
+        ROPEBRIDGE_HEALTH = 200,
+        ROPEBRIDGE_EARTHQUAKE_DAMAGE_TAKEN = 50,
+        ROPEBRIDGE_EARTHQUAKE_TIMETOBREAK = 3, -- 3 seconds is enough to run over the length in case a player is on it as it is breaking.
+
+        -- rabbitkingmanager
+        RABBITKING_SPAWN_DISTANCE = 6,
+        RABBITKING_MEATCHECK_DISTANCE_SQ = 144, -- 12*12
+        RABBITKING_TELEPORT_DISTANCE_SQ = 900, -- 30*30
+        RABBITKING_CARROTS_NEEDED = 12,
+        RABBITKING_CARROTS_NEEDED_VARIANCE = 4,
+        RABBITKING_NAUGHTINESS_NEEDED = 20,
+        RABBITKING_NAUGHTINESS_NEEDED_VARIANCE = 10,
+        RABBITKING_LUCKY_ODDS = 0.01, -- Percentage of a regular rabbit upgrading to a lucky one.
+        RABBITKING_LUCKY_ODDS_QUAKER = 0.1, -- Same but for quaker which is more infrequent to happen.
+
+        -- rabbitking
+        RABBITKING_RUN_SPEED = 7,
+        RABBITKING_HEALTH = 2000,
+        RABBITKING_DAMAGE = 75,
+        RABBITKING_STUN_DURATION = 5,
+        RABBITKING_STOLEN_MANRABBIT_LOYALTY_TIME = 60,
+        RABBITKING_COOLDOWN = 1 * day_time,
+        RABBITKING_ABILITY_CD_POSTSTUN = 1,
+        RABBITKING_ABILITY_SUMMON_CD = 60,
+        RABBITKING_ABILITY_SUMMON_CD_START = 3,
+        RABBITKING_ABILITY_SUMMON_COUNT = 3,
+        RABBITKING_ABILITY_SUMMON_HP = 400,
+        RABBITKING_ABILITY_SUMMON_ATTACK_PERIOD = 3,
+        RABBITKING_ABILITY_SUMMON_DAMAGE = 40,
+        RABBITKING_ABILITY_DROPKICK_CD = 12,
+        RABBITKING_ABILITY_DROPKICK_CD_START = 10,
+        RABBITKING_ABILITY_DROPKICK_CD_NOSUMMONS = 8,
+        RABBITKING_ABILITY_DROPKICK_SPEED = 12,
+        RABBITKING_ABILITY_DROPKICK_MAXAIRTIME = 1,
+        RABBITKING_ABILITY_DROPKICK_HITRADIUS = 1.5,
+        RABBITKING_ABILITY_DROPKICK_KNOCKBACKRADIUS = 4,
+
+        --rabbitking goodies
+        ARMOR_CARROTLURE_PERISHTIME = 5 * day_time,
+        ARMOR_CARROTLURE_RANGE = 12,
+        ARMOR_CARROTLURE_MAXFOLLOWERS = 10,
+        RABBITKINGHORN_RANGE = 12,
+        RABBITKINGHORN_USES = 3,
+        RABBITKINGHORN_DURATION = day_time * 0.5,
+        RABBITKINGSPEAR_SCARE_RADIUS = 4,
+        RABBITKINGSPEAR_DAMAGE = wilson_attack * 1.5,
+        RABBITKINGSPEAR_DAMAGE_BONUS = 1.4,
+        RABBITKINGSPEAR_SANITY_DELTA = -5,
+        RABBITKINGSPEAR_USES = 125,
+
+        -- Item mimic
+        ITEMMIMIC_AUTO_REVEAL_BASE = total_day_time,
+        ITEMMIMIC_AUTO_REVEAL_RAND = total_day_time,
+        ITEMMIMIC_CAP = 10,
+
+        -- Chest mimic
+        CHEST_MIMIC_HEALTH = 950,
+        CHEST_MIMIC_DAMAGE = 30,
+        CHEST_MIMIC_PLANAR_DAMAGE = 20,
+        CHEST_MIMIC_ATTACK_PERIOD = 3,
+        CHEST_MIMIC_TARGET_DIST = 20,
+        CHEST_MIMIC_WALK_SPEED = 6.0,
+        CHEST_MIMIC_CHANCE = 0.33,
+
+        SHADOWHEART_HOP_SPEED = 7.0,
     }
 
     TUNING_MODIFIERS = {}

@@ -24,7 +24,7 @@ local function GetIdleAnim(inst)
     return "idle_loop"
 end
 
-local function tool_or_chop(inst)    
+local function tool_or_chop(inst)
     local hand_item = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
     return (hand_item ~= nil and hand_item.components.tool ~= nil and "use_tool")
         or "chop"
@@ -33,7 +33,7 @@ end
 local function tool_or_mine(inst)
     local hand_item = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
     return (hand_item ~= nil and hand_item.components.tool ~= nil and "use_tool")
-        or "mine"   
+        or "mine"
 end
 
 local actionhandlers =
@@ -57,6 +57,7 @@ local events =
     CommonHandlers.OnDeath(),
     CommonHandlers.OnHop(),
 	CommonHandlers.OnSink(),
+    CommonHandlers.OnFallInVoid(),
 
     --CommonHandlers.OnAttack(),
     EventHandler("doattack", function(inst)
@@ -107,7 +108,7 @@ local events =
     end),
     EventHandler("demutated", function(inst,data)
         inst.sg:GoToState("lunar_revert",data)
-    end),    
+    end),
 
     EventHandler("onmermkingcreated_anywhere", function(inst)
         inst.sg:GoToState("buff")
@@ -390,7 +391,7 @@ local states =
         {
             TimeEvent(10*FRAMES, function(inst)
                 local food = inst:GetBufferedAction().target
-                inst:PerformBufferedAction() 
+                inst:PerformBufferedAction()
                 if food and food:HasTag("moonglass_piece") then
                     inst:TestForLunarMutation(food)
                 end
@@ -486,8 +487,9 @@ local states =
             TimeEvent(14 * FRAMES, function(inst)
                 local act = inst:GetBufferedAction()
                 local target = act.target
-                local tool = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS) 
-                if target and target:IsValid() and target.components.workable and tool then
+                local tool = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
+
+                if tool ~= nil and target ~= nil and target:IsValid() and target.components.workable ~= nil and target.components.workable:CanBeWorked() then
                     target.components.workable:WorkedBy(inst,tool.components.tool:GetEffectiveness(act.action))
                     tool:OnUsedAsItem(act.action, inst, target)
                 end
@@ -506,8 +508,8 @@ local states =
 
                 if target ~= nil and target:HasTag("stump") and act.action == ACTIONS.DIG then
                     inst.SoundEmitter:PlaySound("dontstarve/wilson/use_axe_tree")
-                end                
-            
+                end
+
                 inst:PerformBufferedAction()
             end),
         },
@@ -516,7 +518,7 @@ local states =
         {
             EventHandler("animover", go_to_idle),
         },
-    }, 
+    },
 
     State{
         name = "use_building",
@@ -750,7 +752,7 @@ local states =
         timeline =
         {
             FrameEvent(12, function(inst)
-                
+
                 if inst.components.follower.leader == nil then
                     inst:Remove()
                 else
@@ -775,7 +777,7 @@ local states =
 
                 if inst.components.follower.leader == nil then
                     inst:Remove()
-                else                
+                else
                     local x0, y0, z0 = inst.Transform:GetWorldPosition()
                     for k = 1, 4 --[[# of attempts]] do
                         local x = x0 + math.random() * 20 - 10
@@ -790,7 +792,7 @@ local states =
                 end
             end),
         },
-    }, 
+    },
 
     State{
         name = "appear",
@@ -811,7 +813,7 @@ local states =
         {
             EventHandler("animover", go_to_idle)
         },
-    }, 
+    },
 
 
     State{
@@ -829,9 +831,9 @@ local states =
 
             inst.SoundEmitter:PlaySound("meta4/lunar_merm/transform")
 
-            local fx = SpawnPrefab("merm_splash")            
+            local fx = SpawnPrefab("merm_splash")
             inst.SoundEmitter:PlaySound("dontstarve/characters/wurt/merm/buff")
-            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())            
+            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
         end,
 
         timeline =
@@ -868,9 +870,9 @@ local states =
 
             inst.SoundEmitter:PlaySound("meta4/lunar_merm/transform")
 
-            local fx = SpawnPrefab("merm_splash")            
+            local fx = SpawnPrefab("merm_splash")
             inst.SoundEmitter:PlaySound("dontstarve/characters/wurt/merm/buff")
-            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())  
+            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
         end,
         timeline =
         {
@@ -934,12 +936,12 @@ CommonStates.AddCombatStates(states,
             if inst:HasTag("shadowminion") then
                 inst.sg:GoToState("hit_shadow")
             end
-            inst.SoundEmitter:PlaySound(inst.sounds.hit) 
+            inst.SoundEmitter:PlaySound(inst.sounds.hit)
         end),
     },
     deathtimeline =
     {
-        TimeEvent(0, function(inst) 
+        TimeEvent(0, function(inst)
             if inst.TestForShadowDeath then
                 inst:TestForShadowDeath()
             end
@@ -954,6 +956,7 @@ CommonStates.AddSimpleState(states, "refuse", "pig_reject", { "busy" })
 CommonStates.AddFrozenStates(states)
 CommonStates.AddHopStates(states, true, { pre = "boat_jump_pre", loop = "boat_jump_loop", pst = "boat_jump_pst"})
 CommonStates.AddSinkAndWashAshoreStates(states)
+CommonStates.AddVoidFallStates(states)
 CommonStates.AddSimpleActionState(states, "pickup", "pig_pickup", 10 * FRAMES, { "busy" })
 
 return StateGraph("merm", states, events, "idle", actionhandlers)

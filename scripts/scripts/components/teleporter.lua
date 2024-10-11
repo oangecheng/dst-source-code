@@ -76,6 +76,18 @@ function Teleporter:UseTemporaryExit(doer, temporaryexit)
     return success
 end
 
+local function ShouldTeleportFollower(follower)
+    if follower.components.follower and follower.components.follower.noleashing then
+        return false
+    end
+
+    if follower.components.inventoryitem and follower.components.inventoryitem:IsHeld() then
+        return false
+    end
+
+    return true
+end
+
 function Teleporter:Activate(doer)
     if not self:IsActive() then
         return false
@@ -109,7 +121,7 @@ function Teleporter:Activate(doer)
 
     if doer.components.leader ~= nil then
         for follower, v in pairs(doer.components.leader.followers) do
-			if not (follower.components.follower ~= nil and follower.components.follower.noleashing) then
+			if ShouldTeleportFollower(follower) then
 				self:Teleport(follower)
 			end
         end
@@ -120,7 +132,9 @@ function Teleporter:Activate(doer)
         for k, item in pairs(doer.components.inventory.itemslots) do
             if item.components.leader ~= nil then
                 for follower, v in pairs(item.components.leader.followers) do
-                    self:Teleport(follower)
+                    if ShouldTeleportFollower(follower) then
+                        self:Teleport(follower)
+                    end
                 end
             end
         end
@@ -130,7 +144,9 @@ function Teleporter:Activate(doer)
                 for j, item in pairs(equipped.components.container.slots) do
                     if item.components.leader ~= nil then
                         for follower, v in pairs(item.components.leader.followers) do
-                            self:Teleport(follower)
+                            if ShouldTeleportFollower(follower) then
+                                self:Teleport(follower)
+                            end
                         end
                     end
                 end
@@ -300,19 +316,28 @@ local function ondoerarrive(inst, self, doer)
     self:PushDoneTeleporting(doer)
 end
 
-function Teleporter:ReceivePlayer(doer, source)
+function Teleporter:ReceivePlayer(doer, source, skiptime)
     if self.onActivateByOther ~= nil then
         self.onActivateByOther(self.inst, source, doer)
     end
 
+	if skiptime then
+		skiptime = math.min(skiptime, self.travelarrivetime)
+		if not self.stopcamerafades then
+			skiptime = math.min(skiptime, self.travelcameratime)
+		end
+	else
+		skiptime = 0
+	end
+
     self.numteleporting = self.numteleporting + 1
     if not self.stopcamerafades then
         doer:ScreenFade(false)
-        self.inst:DoTaskInTime(self.travelcameratime, oncameraarrive, doer)
+		self.inst:DoTaskInTime(self.travelcameratime - skiptime, oncameraarrive, doer)
     else
         doer._failed_doneteleporting = true -- Hack for wisecracker to not change event parameters.
     end
-    self.inst:DoTaskInTime(self.travelarrivetime, ondoerarrive, self, doer)
+	self.inst:DoTaskInTime(self.travelarrivetime - skiptime, ondoerarrive, self, doer)
 end
 
 function Teleporter:Target(otherTeleporter)

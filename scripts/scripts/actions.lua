@@ -122,11 +122,37 @@ local function ExtraDeployDist(doer, dest, bufferedaction)
 			return 8 - ACTIONS.DEPLOY.distance
 		end
 
+		local doer_x, doer_y, doer_z = doer.Transform:GetWorldPosition()
 		local target_x, target_y, target_z = dest:GetPoint()
+		local use_extra_space = false
 
-		local is_on_water = TheWorld.Map:IsOceanTileAtPoint(target_x, 0, target_z) and not TheWorld.Map:IsPassableAtPoint(target_x, 0, target_z)
-		if is_on_water then
-			return ((invobject and invobject:HasTag("usedeployspacingasoffset") and invobject.replica.inventoryitem ~= nil and invobject.replica.inventoryitem:DeploySpacingRadius()) or 0) + 1.0
+		if TheWorld.Map:IsPassableAtPoint(doer_x, 0, doer_z) then
+			--doer on land or boat
+
+			if TheWorld.has_ocean then
+				if TheWorld.Map:IsOceanTileAtPoint(target_x, 0, target_z) and not TheWorld.Map:IsPassableAtPoint(target_x, 0, target_z) then
+					--target on ocean
+					use_extra_space = true
+				end
+			elseif TheWorld.Map:IsInvalidTileAtPoint(target_x, 0, target_z) then
+				--target on void
+				use_extra_space = true
+			end
+		else
+			--doer on ocean or void
+
+			if TheWorld.Map:IsPassableAtPoint(target_x, 0, target_z) then
+				--target on land or boat
+				use_extra_space = true
+			end
+		end
+
+		if use_extra_space then
+			if invobject and invobject:HasTag("usedeployspacingasoffset") then
+				local inventoryitem = invobject.replica.inventoryitem
+				return (inventoryitem and inventoryitem:DeploySpacingRadius() or 0) + 1
+			end
+			return 1
 		end
 	end
     return 0
@@ -178,7 +204,7 @@ ACTIONS_MAP_REMAP = {}
 
 function SetClientRequestedAction(actioncode, mod_name)
     if mod_name then
-        CLIENT_REQUESTED_ACTION = MOD_ACTIONS_BY_ACTION_CODE[mod_name] and MOD_ACTIONS_BY_ACTION_CODE[mod_name][actioncode]
+        CLIENT_REQUESTED_ACTION = MOD_ACTIONS_BY_ACTION_CODE[mod_name] and MOD_ACTIONS_BY_ACTION_CODE[mod_name][actioncode] or nil
     else
         CLIENT_REQUESTED_ACTION = ACTIONS_BY_ACTION_CODE[actioncode]
     end
@@ -271,6 +297,7 @@ ACTIONS =
     ADDWETFUEL = Action({ mount_valid=true, paused_valid=true }),
     LIGHT = Action({ priority=-4 }),
     EXTINGUISH = Action({ priority=0 }),
+    STOKEFIRE = Action({ rmb=true, mount_valid=true, distance=8, invalid_hold_action=true }),
 	LOOKAT = Action({ priority=-3, instant=true, distance=3--[[for close inspection]], ghost_valid=true, mount_valid=true, encumbered_valid=true }),
     TALKTO = Action({ priority=3, instant=true, mount_valid=true, encumbered_valid=true }),
     WALKTO = Action({ priority=-4, ghost_valid=true, mount_valid=true, encumbered_valid=true, invalid_hold_action=true }),
@@ -336,6 +363,7 @@ ACTIONS =
     USEITEMON = Action({ distance=2, priority=1 }),
     STOPUSINGITEM = Action({ priority=1 }),
     TAKEITEM = Action(),
+    TAKESINGLEITEM = Action(),
     MAKEBALLOON = Action({ mount_valid=true }),
     CASTSPELL = Action({ priority=-1, rmb=true, distance=20, mount_valid=true }),
 	CAST_POCKETWATCH = Action({ priority=-1, rmb=true, mount_valid=true }), -- to actually use the mounted action, the pocket watch will need the pocketwatch_mountedcast tag
@@ -550,6 +578,9 @@ ACTIONS =
     -- Rifts / Meta QoL
 
     INCINERATE = Action({ priority=1, mount_valid=true }),
+
+	-- Rifts 4
+	BOTTLE = Action({ mount_valid=true }),
 }
 
 ACTIONS_BY_ACTION_CODE = {}
@@ -571,6 +602,7 @@ ACTION_MOD_IDS = {} --This will be filled in when mods add actions via AddAction
 
 ACTIONS.APPRAISE.fn = function(act)
     local obj = act.invobject
+
     local target = act.target
     local canappraise, reason = obj.components.appraisable:CanAppraise(target)
     if canappraise then
@@ -609,9 +641,10 @@ end
 
 ACTIONS.MAKEBALLOON.fn = function(act)
     if act.doer ~= nil and
-        act.invobject ~= nil and
-        act.invobject.components.balloonmaker ~= nil and
-        act.doer:HasTag("balloonomancer") then
+            act.invobject ~= nil and
+            act.invobject.components.balloonmaker ~= nil and
+            act.doer:HasTag("balloonomancer") then
+
         if act.doer.components.sanity ~= nil then
             if act.doer.components.sanity.current < TUNING.SANITY_TINY then
                 return false
@@ -673,8 +706,11 @@ ACTIONS.PICKUP.fn = function(act)
     if act.doer.components.inventory ~= nil and
         act.target ~= nil and
         act.target.components.inventoryitem ~= nil and
-        (act.target.components.inventoryitem.canbepickedup or
-        (act.target.components.inventoryitem.canbepickedupalive and not act.doer:HasTag("player"))) and
+        (
+            act.target.components.inventoryitem.canbepickedup or
+            (act.target.components.inventoryitem.canbepickedupalive and not act.doer:HasTag("player")) or
+            act.target.components.inventoryitem.grabbableoverridetag ~= nil and act.doer:HasTag(act.target.components.inventoryitem.grabbableoverridetag)
+        ) and
         not (act.target:IsInLimbo() or
 			(act.target.components.burnable ~= nil and act.target.components.burnable:IsBurning() and act.target.components.lighter == nil) or
             (act.target.components.projectile ~= nil and act.target.components.projectile:IsThrown())) then
@@ -1342,7 +1378,12 @@ end
 local function DoToolWork(act, workaction)
     if act.target.components.workable ~= nil and
         act.target.components.workable:CanBeWorked() and
-        act.target.components.workable:GetWorkAction() == workaction then
+        act.target.components.workable:GetWorkAction() == workaction and
+        (act.invobject == nil or act.doer == nil or act.invobject.components.equippable == nil or not act.invobject.components.equippable:IsRestricted(act.doer))
+    then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 
 		local numworks =
 			(	(	act.invobject ~= nil and
@@ -1382,17 +1423,26 @@ local function DoToolWork(act, workaction)
 end
 
 local function ValidToolWork(act, workaction)
-    return act.target.components.workable ~= nil and act.target.components.workable:CanBeWorked() and act.target.components.workable:GetWorkAction() == workaction
+    return
+        act.target.components.workable ~= nil and
+        act.target.components.workable:CanBeWorked() and
+        act.target.components.workable:GetWorkAction() == workaction and
+        (act.invobject == nil or act.doer == nil or act.invobject.components.equippable == nil or not act.invobject.components.equippable:IsRestricted(act.doer))
 end
 
 ACTIONS.CHOP.fn = function(act)
-    if DoToolWork(act, ACTIONS.CHOP) and
-        act.doer ~= nil and
-        act.doer.components.spooked ~= nil and
-        act.target:IsValid() then
+    local work_success, work_fail_reason = DoToolWork(act, ACTIONS.CHOP)
+    if work_success and
+            act.doer ~= nil and
+            act.doer.components.spooked ~= nil and
+            act.target:IsValid() then
         act.doer.components.spooked:Spook(act.target)
     end
-    return true
+    if not work_success and work_fail_reason ~= nil then
+        return false, work_fail_reason
+    else
+        return true
+    end
 end
 
 ACTIONS.CHOP.validfn = function(act)
@@ -1400,8 +1450,12 @@ ACTIONS.CHOP.validfn = function(act)
 end
 
 ACTIONS.MINE.fn = function(act)
-    DoToolWork(act, ACTIONS.MINE)
-    return true
+    local work_success, work_fail_reason = DoToolWork(act, ACTIONS.MINE)
+    if not work_success and work_fail_reason ~= nil then
+        return false, work_fail_reason
+    else
+        return true
+    end
 end
 
 ACTIONS.MINE.validfn = function(act)
@@ -1409,8 +1463,12 @@ ACTIONS.MINE.validfn = function(act)
 end
 
 ACTIONS.HAMMER.fn = function(act)
-    DoToolWork(act, ACTIONS.HAMMER)
-    return true
+    local work_success, work_fail_reason = DoToolWork(act, ACTIONS.HAMMER)
+    if not work_success and work_fail_reason ~= nil then
+        return false, work_fail_reason
+    else
+        return true
+    end
 end
 
 ACTIONS.HAMMER.validfn = function(act)
@@ -1418,8 +1476,12 @@ ACTIONS.HAMMER.validfn = function(act)
 end
 
 ACTIONS.DIG.fn = function(act)
-    DoToolWork(act, ACTIONS.DIG)
-    return true
+    local work_success, work_fail_reason = DoToolWork(act, ACTIONS.DIG)
+    if not work_success and work_fail_reason ~= nil then
+        return false, work_fail_reason
+    else
+        return true
+    end
 end
 
 ACTIONS.DIG.validfn = function(act)
@@ -1461,7 +1523,7 @@ ACTIONS.FERTILIZE.fn = function(act)
     end
 
 		return applied
-end
+    end
 end
 
 ACTIONS.SMOTHER.fn = function(act)
@@ -2379,6 +2441,17 @@ ACTIONS.EXTINGUISH.fn = function(act)
     end
 end
 
+ACTIONS.STOKEFIRE.fn = function(act)
+    if act.target.components.burnable ~= nil and act.target.components.burnable:IsBurning() and act.doer:HasTag("controlled_burner") then
+        if act.target:HasTag("stokeablefire") then
+            act.target.components.burnable:StokeControlledBurn()
+            return true
+        else
+            return false
+        end
+    end
+end
+
 ACTIONS.LAYEGG.fn = function(act)
     if act.target.components.pickable ~= nil and not act.target.components.pickable.canbepicked then
         return act.target.components.pickable:Regen()
@@ -2479,27 +2552,45 @@ ACTIONS.JUMPIN_MAP.stroverridefn = function(act)
 end
 
 local WORMHOLE_MUST_TAGS = {"wormhole"}
+local TENTACLE_PILLAR_MUST_TAGS = { "tentacle_pillar" }
 local function DoCharlieResidueMapAction(act, target, charlieresidue, residue_context)
     if residue_context == CHARLIERESIDUE_MAP_ACTIONS.WORMHOLE then
         local residuetarget = charlieresidue:GetTarget()
         local pt = act:GetActionPoint()
-        local teleporterexit = nil
-        local wormholes = TheSim:FindEntities(pt.x, pt.y, pt.z, TUNING.SKILLS.WINONA.WORMHOLE_DETECTION_RADIUS, WORMHOLE_MUST_TAGS)
-        for _, wormhole in ipairs(wormholes) do
-            if wormhole.components.teleporter ~= nil and wormhole ~= residuetarget then
-                teleporterexit = wormhole
-                break
-            end
-        end
-        teleporterexit = teleporterexit or target -- Default back to itself because end node was not picked correctly.
-        act.doer.sg:GoToState("jumpin", {teleporter = target, teleporterexit = teleporterexit,})
-        if teleporterexit ~= target then
-            DecayCharlieResidueAndGoOnCooldownIfItExists(act.doer)
-        end
-        return true
-    else
-        DecayCharlieResidueAndGoOnCooldownIfItExists(act.doer)
-    end
+		if residuetarget:HasTag("wormhole") then
+			local teleporterexit = nil
+			local wormholes = TheSim:FindEntities(pt.x, pt.y, pt.z, TUNING.SKILLS.WINONA.WORMHOLE_DETECTION_RADIUS, WORMHOLE_MUST_TAGS)
+			for _, wormhole in ipairs(wormholes) do
+				if wormhole.components.teleporter and wormhole ~= residuetarget then
+					teleporterexit = wormhole
+					break
+				end
+			end
+			teleporterexit = teleporterexit or target -- Default back to itself because end node was not picked correctly.
+			act.doer.sg:GoToState("jumpin", { teleporter = target, teleporterexit = teleporterexit })
+			DecayCharlieResidueIfItExists(act.doer)
+			return true
+		elseif residuetarget.prefab == "tentacle_pillar_hole" then
+			local teleporterexit = nil
+			local wormholes = TheSim:FindEntities(pt.x, pt.y, pt.z, TUNING.SKILLS.WINONA.WORMHOLE_DETECTION_RADIUS, TENTACLE_PILLAR_MUST_TAGS)
+			for _, wormhole in ipairs(wormholes) do
+				if wormhole.components.teleporter and wormhole ~= residuetarget then
+					teleporterexit = wormhole
+					break
+				end
+			end
+			teleporterexit = teleporterexit or target -- Default back to itself because end node was not picked correctly.
+			if teleporterexit.prefab == "tentacle_pillar" then
+				--If asleep, the exit is instantly converted to hole and returned
+				teleporterexit = teleporterexit:Overtake() or teleporterexit
+			end
+			act.doer.sg:GoToState("jumpin", { teleporter = target, teleporterexit = teleporterexit })
+			DecayCharlieResidueIfItExists(act.doer)
+			return true
+		end
+	end
+	DecayCharlieResidueAndGoOnCooldownIfItExists(act.doer)
+	return false
 end
 ACTIONS.JUMPIN_MAP.fn = function(act)
     if act.doer ~= nil and act.doer.sg ~= nil and act.doer.sg.currentstate.name == "jumpin_pre" then
@@ -2829,12 +2920,28 @@ ACTIONS.TAKEITEM.strfn = function(act)
 end
 
 ACTIONS.TAKEITEM.stroverridefn = function(act)
-	if act.target.prefab == "table_winters_feast" or act.target:HasTag("inventoryitemholder_take") then
+	if act.target.prefab == "table_winters_feast" or (act.target:HasTag("inventoryitemholder_take") and act.target.takeitem == nil) then
 		return STRINGS.ACTIONS.TAKEITEM.GENERIC
     end
 
     local item = act.target.takeitem ~= nil and act.target.takeitem:value() or nil
-    return item ~= nil and subfmt(STRINGS.ACTIONS.TAKEITEM.ITEM, { item = item:GetBasicDisplayName() }) or nil
+    local str = item ~= nil and item:GetBasicDisplayName() or nil
+
+    if str ~= nil and item.replica.stackable ~= nil and item.replica.stackable:IsStack() then
+        str = str.." x"..tostring(item.replica.stackable:StackSize())
+    end
+
+    return str ~= nil and subfmt(STRINGS.ACTIONS.TAKEITEM.ITEM, { item = str }) or nil
+end
+
+ACTIONS.TAKESINGLEITEM.fn = function(act)
+    if act.target.components.inventoryitemholder ~= nil then
+        return act.target.components.inventoryitemholder:TakeItem(act.doer, false)
+    end
+end
+
+ACTIONS.TAKESINGLEITEM.stroverridefn = function(act)
+    return STRINGS.ACTIONS.TAKESINGLEITEM
 end
 
 ACTIONS.CASTSPELL.strfn = function(act)
@@ -2846,6 +2953,10 @@ ACTIONS.CASTSPELL.fn = function(act)
     local staff = act.invobject or act.doer.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
 	local act_pos = act:GetActionPoint()
     if staff and staff.components.spellcaster then
+        if staff.components.itemmimic and staff.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         local can_cast, cant_cast_reason = staff.components.spellcaster:CanCast(act.doer, act.target, act_pos)
         if can_cast then
             staff.components.spellcaster:CastSpell(act.target, act_pos, act.doer)
@@ -2872,6 +2983,10 @@ end
 ACTIONS.BLINK.fn = function(act)
 	local act_pos = act:GetActionPoint()
     if act.invobject ~= nil then
+        if act.invobject.components.itemmimic and
+                act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
         if act.invobject.components.blinkstaff ~= nil then
             return act.invobject.components.blinkstaff:Blink(act_pos, act.doer)
         end
@@ -3027,13 +3142,18 @@ ACTIONS.MAKEMOLEHILL.fn = function(act)
 end
 
 ACTIONS.MOLEPEEK.fn = function(act)
-    if act.doer and act.doer.prefab == "mole" then
+    if act.doer then
         act.doer:PushEvent("peek")
         return true
     end
 end
 
 ACTIONS.FEED.fn = function(act)
+    if act.invobject and
+            act.invobject.components.itemmimic and
+            act.invobject.components.itemmimic.fail_as_invobject then
+        return false, "ITEMMIMIC"
+    end
 
     if act.target.components.trader then
         local abletoaccept, reason = act.target.components.trader:AbleToAccept(act.invobject,act.doer)
@@ -3199,6 +3319,11 @@ end
 
 ACTIONS.FAN.fn = function(act)
     if act.invobject ~= nil and act.invobject.components.fan ~= nil then
+        if act.invobject.components.itemmimic and
+                act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         return act.invobject.components.fan:Fan(act.target or act.doer)
     end
 end
@@ -3229,6 +3354,11 @@ ACTIONS.TOSS.fn = function(act)
     if not projectile.components.complexprojectile or
             (equippable ~= nil and (equippable:IsRestricted(act.doer) or equippable:ShouldPreventUnequipping())) then
         return nil
+    end
+
+    if projectile.components.itemmimic and
+            projectile.components.itemmimic.fail_as_invobject then
+        return false, "ITEMMIMIC"
     end
 
     projectile = doer_inventory:DropItem(projectile, false)
@@ -3304,10 +3434,10 @@ end
 
 ACTIONS.UPGRADE.fn = function(act)
     if act.invobject and act.target and
+		act.target.components.upgradeable and
         act.invobject.components.upgrader and
-        act.invobject.components.upgrader:CanUpgrade(act.target, act.doer) and
-        act.target.components.upgradeable then
-
+		act.invobject.components.upgrader:CanUpgrade(act.target, act.doer)
+	then
         local can_upgrade, reason = act.target.components.upgradeable:CanUpgrade()
         if can_upgrade then
             return act.target.components.upgradeable:Upgrade(act.invobject, act.doer)
@@ -3419,6 +3549,11 @@ end
 ACTIONS.SADDLE.fn = function(act)
     if act.target.components.combat ~= nil and act.target.components.combat:HasTarget() then
         return false, "TARGETINCOMBAT"
+    elseif act.target.components.health ~= nil and act.target.components.health:IsDead() then
+        return false
+    elseif act.invobject and act.invobject.components.itemmimic
+            and act.invobject.components.itemmimic.fail_as_invobject then
+        return false, "ITEMMIMIC"
     elseif act.target.components.rideable ~= nil then
         --V2C: currently, rideable component implies saddleable always
         act.doer:PushEvent("saddle", { target = act.target })
@@ -3431,6 +3566,11 @@ end
 ACTIONS.UNSADDLE.fn = function(act)
     if act.target.components.combat ~= nil and act.target.components.combat:HasTarget() then
         return false, "TARGETINCOMBAT"
+    elseif act.target.components.health ~= nil and act.target.components.health:IsDead() then
+        return false
+    elseif act.invobject and act.invobject.components.itemmimic
+            and act.invobject.components.itemmimic.fail_as_invobject then
+        return false, "ITEMMIMIC"
     elseif act.target.components.rideable ~= nil then
         --V2C: currently, rideable component implies saddleable always
         act.doer:PushEvent("saddle", { target = act.target })
@@ -3442,6 +3582,11 @@ end
 ACTIONS.BRUSH.fn = function(act)
     if act.target.components.combat ~= nil and act.target.components.combat:HasTarget() then
         return false, "TARGETINCOMBAT"
+    elseif act.target.components.health ~= nil and act.target.components.health:IsDead() then
+        return false
+    elseif act.invobject and act.invobject.components.itemmimic
+            and act.invobject.components.itemmimic.fail_as_invobject then
+        return false, "ITEMMIMIC"
     elseif act.target.components.brushable ~= nil then
         act.target.components.brushable:Brush(act.doer, act.invobject)
         return true
@@ -3509,17 +3654,17 @@ end
 require("components/drawingtool")
 ACTIONS.DRAW.stroverridefn = function(act)
     local item = FindEntityToDraw(act.target, act.invobject)
-return item ~= nil
+    return item ~= nil
         and subfmt(STRINGS.ACTIONS.DRAWITEM, { item = item.drawnameoverride or item:GetBasicDisplayName() })
         or nil
 end
 
 ACTIONS.DRAW.fn = function(act)
     if act.invobject ~= nil and
-        act.target ~= nil and
-        act.invobject.components.drawingtool ~= nil and
-        act.target.components.drawable ~= nil and
-        act.target.components.drawable:CanDraw() then
+            act.target ~= nil and
+            act.invobject.components.drawingtool ~= nil and
+            act.target.components.drawable ~= nil and
+            act.target.components.drawable:CanDraw() then
         local image, src, atlas, bgimage, bgatlas = act.invobject.components.drawingtool:GetImageToDraw(act.target)
         if image == nil then
             return false, "NOIMAGE"
@@ -3554,6 +3699,9 @@ ACTIONS.START_CHANNELCAST.fn = function(act)
 			--off-hand channel casting
 			return act.doer.components.channelcaster:StartChanneling()
 		elseif act.invobject.components.channelcastable and not act.invobject.components.channelcastable:IsAnyUserChanneling() then
+            if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+                return false, "ITEMMIMIC"
+            end
 			--equipped item channel casting
 			return act.doer.components.channelcaster:StartChanneling(act.invobject)
 		end
@@ -3568,6 +3716,9 @@ ACTIONS.STOP_CHANNELCAST.fn = function(act)
 		act.invobject.components.channelcastable and
 		act.invobject.components.channelcastable:IsUserChanneling(act.doer)
 	then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 		act.invobject.components.channelcastable:StopChanneling()
 	end
 	return true
@@ -3753,12 +3904,18 @@ end
 ACTIONS.CASTAOE.fn = function(act)
 	local act_pos = act:GetActionPoint()
     if act.invobject ~= nil and act.invobject.components.aoespell ~= nil and act.invobject.components.aoespell:CanCast(act.doer, act_pos) then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 		return act.invobject.components.aoespell:CastSpell(act.doer, act_pos)
     end
 end
 
 ACTIONS.SCYTHE.fn = function(act)
     if act.invobject ~= nil and act.invobject.DoScythe then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
         act.invobject:DoScythe(act.target, act.doer)
         return true
     end
@@ -3911,6 +4068,10 @@ end
 
 ACTIONS.TILL.fn = function(act)
     if act.invobject ~= nil then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
 		if act.invobject.components.farmtiller ~= nil then
 			return act.invobject.components.farmtiller:Till(act:GetActionPoint(), act.doer)
 		elseif act.invobject.components.quagmire_tiller ~= nil then --Quagmire
@@ -4148,6 +4309,10 @@ end
 
 ACTIONS.CAST_NET.fn = function(act)
     if act.invobject and act.invobject.components.fishingnet then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
 		local act_pos = act:GetActionPoint()
         if act_pos == nil then
             local pos_x, pos_y, pos_z = act.target.Transform:GetWorldPosition()
@@ -4381,6 +4546,10 @@ end
 
 ACTIONS.OCEAN_TOSS.fn = function(act)
     if act.invobject and act.doer then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         if act.invobject.components.oceanthrowable and act.doer.components.inventory then
             local projectile = act.doer.components.inventory:DropItem(act.invobject, false)
             if projectile then
@@ -4594,6 +4763,10 @@ end
 
 ACTIONS.POUR_WATER.fn = function(act)
     if act.invobject ~= nil and act.invobject:IsValid() then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         if act.invobject.components.finiteuses ~= nil and act.invobject.components.finiteuses:GetUses() <= 0 then
 			return false, (act.invobject:HasTag("wateringcan") and "OUT_OF_WATER" or nil)
         end
@@ -4619,9 +4792,14 @@ end
 
 ACTIONS.PLANTREGISTRY_RESEARCH_FAIL.fn = function(act)
     local targ = act.target or act.invobject
+    if targ then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 
-    if targ and targ:HasTag("fertilizerresearchable") then
-        return false, "FERTILIZER"
+        if targ:HasTag("fertilizerresearchable") then
+            return false, "FERTILIZER"
+        end
     end
 
     return false
@@ -4631,6 +4809,10 @@ ACTIONS.PLANTREGISTRY_RESEARCH.fn = function(act)
     local targ = act.target or act.invobject
 
     if targ ~= nil then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         if targ.components.plantresearchable then
             if targ.components.plantresearchable:IsRandomSeed() then
                 if act.doer.components.talker then
@@ -4666,6 +4848,10 @@ ACTIONS.ASSESSPLANTHAPPINESS.fn = function(act)
     local targ = act.target or act.invobject
 
     if targ ~= nil then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         local desc
         if targ.components.farmplantstress then
             desc = targ.components.farmplantstress:GetStressDescription(act.doer)
@@ -4708,6 +4894,9 @@ end
 
 ACTIONS.WAX.fn = function(act)
     if act.target.components.waxable then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
         return act.target.components.waxable:Wax(act.doer, act.invobject)
     end
 end
@@ -4849,12 +5038,14 @@ ACTIONS.STOP_LIFT_DUMBBELL.fn = function(act)
 end
 
 ACTIONS.LIFT_DUMBBELL.fn = function(act)
-    if act.doer ~= nil and act.invobject ~= nil then
+    local dumbbell = act.invobject
+    if act.doer ~= nil and dumbbell ~= nil then
+        if dumbbell.components.itemmimic and dumbbell.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 
-        local dumbbell = act.invobject
         local lifter = act.doer.components.dumbbelllifter
-
-        if lifter~= nil and dumbbell ~= nil then
+        if lifter ~= nil then
             local can_lift, reason = lifter:CanLift(dumbbell)
             if not can_lift then
                 return false, reason
@@ -5000,6 +5191,10 @@ end
 
 ACTIONS.ROTATE_FENCE.fn = function(act)
     if act.invobject ~= nil then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
         local fencerotator = act.invobject.components.fencerotator
         if fencerotator then
             fencerotator:Rotate(act.target, TUNING.FENCE_DEFAULT_ROTATION)
@@ -5012,6 +5207,9 @@ end
 
 ACTIONS.USEMAGICTOOL.fn = function(act)
 	if act.doer.components.magician ~= nil then
+        if act.invobject and act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
 		return act.doer.components.magician:StartUsingTool(act.invobject)
 	end
 	return false
@@ -5115,6 +5313,10 @@ end
 
 ACTIONS.REMOTE_TELEPORT.fn = function(act)
 	if act.invobject and act.invobject.components.remoteteleporter then
+        if act.invobject.components.itemmimic and act.invobject.components.itemmimic.fail_as_invobject then
+            return false, "ITEMMIMIC"
+        end
+
 		local success, reason = act.invobject.components.remoteteleporter:CanActivate(act.doer)
 		if success then
 			success, reason = act.invobject.components.remoteteleporter:Teleport(act.doer)
@@ -5129,4 +5331,10 @@ ACTIONS.INCINERATE.fn = function(act)
     end
 
     return false
+end
+
+ACTIONS.BOTTLE.fn = function(act)
+	if act.invobject and act.invobject.components.bottler then
+		return act.invobject.components.bottler:Bottle(act.target, act.doer)
+	end
 end

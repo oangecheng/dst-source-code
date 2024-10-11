@@ -1081,7 +1081,8 @@ end
 FE_MUSIC =
     (FESTIVAL_EVENT_MUSIC[WORLD_FESTIVAL_EVENT] ~= nil and FESTIVAL_EVENT_MUSIC[WORLD_FESTIVAL_EVENT].sound) or
     (SPECIAL_EVENT_MUSIC[WORLD_SPECIAL_EVENT] ~= nil and SPECIAL_EVENT_MUSIC[WORLD_SPECIAL_EVENT].sound) or
-    "dontstarve/music/music_FE_winonawurt"
+    "dontstarve/music/music_FE_rifts4"
+    --"dontstarve/music/music_FE_winonawurt"
     --"dontstarve/music/music_FE_junkyardhog"
     --"dontstarve/music/music_FE_riftsthree"
     --"dontstarve/music/music_FE_survivorsguideone"
@@ -1180,6 +1181,8 @@ TECH =
 	HERMITCRABSHOP_FIVE = { HERMITCRABSHOP = 5 },
     HERMITCRABSHOP_SEVEN = { HERMITCRABSHOP = 7 },
 
+    RABBITKINGSHOP_TWO = { RABBITKINGSHOP = 2 },
+
     TURFCRAFTING_ONE = { TURFCRAFTING = 1 },
     TURFCRAFTING_TWO = { TURFCRAFTING = 2 },
 	MASHTURFCRAFTING_TWO = { MASHTURFCRAFTING = 2},
@@ -1211,6 +1214,7 @@ TECH =
 	SHADOWFORGING_TWO = { SHADOWFORGING = 2 },
 
     CARPENTRY_TWO = { CARPENTRY = 2 },
+    CARPENTRY_THREE = { CARPENTRY = 3 },
 }
 
 -- See cell_data.h
@@ -1426,7 +1430,9 @@ RECIPETABS =
 	FISHING =				{ str = "FISHING",				sort = 100, icon = "tab_fishing.tex",			crafting_station = true },
 	WINTERSFEASTCOOKING =	{ str = "WINTERSFEASTCOOKING",	sort = 100, icon = "tab_feast_oven.tex",		crafting_station = true },
     HERMITCRABSHOP =		{ str = "HERMITCRABSHOP",		sort = 100, icon = "tab_hermitcrab_shop.tex",	crafting_station = true, shop = true},
+    RABBITKINGSHOP =		{ str = "RABBITKINGSHOP",		sort = 100, icon = "tab_rabbitking.tex",		crafting_station = true, shop = true, icon_atlas = "images/hud2.xml"},
     TURFCRAFTING =		    { str = "TURFCRAFTING", 		sort = 100, icon = "tab_turfcrafting.tex",      crafting_station = true, icon_atlas = "images/hud2.xml" },
+    CARPENTRY =	    	    { str = "CARPENTRY",			sort = 100, icon = "station_carpentry.tex",     crafting_station = true, icon_atlas = "images/hud2.xml" },
 }
 
 CUSTOM_RECIPETABS =
@@ -1812,6 +1818,7 @@ MATERIALS =
     GEARS = "gears",
     MOONROCK = "moonrock",
     ICE = "ice",
+    CARROT = "carrot",
     SCULPTURE = "sculpture",
     FOSSIL = "fossil",
     MOON_ALTAR = "moon_altar",
@@ -1994,70 +2001,18 @@ TECH_INGREDIENT =
     SCULPTING = "sculpting_material",
 }
 
--- Identifies which builder tags are from which characters' skill trees,
--- so that the crafting menu properly identifies that they're locked behind a skill
--- for your current character.
-TECH_SKILLTREE_BUILDER_TAG_OWNERS =
+-- NOTES(DiogoW): Now DEPRECATED, keeping it around for mods.
+    -- Identifies which builder tags are from which characters' skill trees,
+    -- so that the crafting menu properly identifies that they're locked behind a skill
+    -- for your current character.
+TECH_SKILLTREE_BUILDER_TAG_OWNERS = {}
+
+SKILLTREE_EQUIPPABLE_RESTRICTED_TAGS = 
 {
-    alchemist = "wilson",
-    gem_alchemistI = "wilson",
-    gem_alchemistII = "wilson",
-    gem_alchemistIII = "wilson",
-    ick_alchemistI = "wilson",
-    ick_alchemistII = "wilson",
-    ick_alchemistIII = "wilson",
-    ore_alchemistI = "wilson",
-    ore_alchemistII = "wilson",
-    ore_alchemistIII = "wilson",
-    skill_wilson_allegiance_lunar = "wilson",
-    skill_wilson_allegiance_shadow = "wilson",
-
-    wolfgang_coach = "wolfgang",
-    wolfgang_dumbbell_crafting = "wolfgang",
-
-    leifidolcrafter = "woodie",
-    woodcarver1 = "woodie",
-    woodcarver2 = "woodie",
-    woodcarver3 = "woodie",
-
-    berrybushcrafter = "wormwood",
-    carratcrafter = "wormwood",
-    fruitdragoncrafter = "wormwood",
-    juicyberrybushcrafter = "wormwood",
-    lightfliercrafter = "wormwood",
-    lunarplant_husk_crafter = "wormwood",
-    lureplantcrafter = "wormwood",
-    reedscrafter = "wormwood",
-    saplingcrafter = "wormwood",
-    syrupcrafter = "wormwood",
-
-    battlesongcontainermaker = "wathgrithr",
-    battlesonginstantrevivemaker = "wathgrithr",
-    battlesonglunaralignedmaker = "wathgrithr",
-    battlesongshadowalignedmaker = "wathgrithr",
-    saddlewathgrithrmaker = "wathgrithr",
-    spearwathgrithrlightningmaker = "wathgrithr",
-    wathgrithrimprovedhatmaker = "wathgrithr",
-    wathgrithrshieldmaker = "wathgrithr",
+    -- Using quotes for searching purposes.
+    ["inspectacleshatuser"]  = "winona",
+    ["wathgrithrshielduser"] = "wathgrithr",
     [UPGRADETYPES.SPEAR_LIGHTNING.."_upgradeuser"] = "wathgrithr",
-
-    fire_mastery_1 = "willow",
-
-    charliet1maker = "winona",
-    portableengineer = "winona",
-    wagstafft1maker = "winona",
-    wagstafft2maker = "winona",
-
-    merm_swampmaster_offeringpot = "wurt",
-    merm_swampmaster_offeringpot_upgraded = "wurt",
-    merm_swampmaster_mermtoolshed = "wurt",
-    merm_swampmaster_mermtoolshed_upgraded = "wurt",
-    merm_swampmaster_mermarmory = "wurt",
-    merm_swampmaster_mermarmory_upgraded = "wurt",
-    mosquitocraft_1 = "wurt",
-    mosquitocraft_2 = "wurt",
-    [SPELLTYPES.LUNAR_SWAMP_BOMB.."_spelluser"] = "wurt",
-    [SPELLTYPES.SHADOW_SWAMP_BOMB.."_spelluser"] = "wurt",
 }
 
 -- IngredientMod must be one of the following values
@@ -2090,6 +2045,12 @@ TOOLACTIONS =
     UNSADDLE = true,
 	REACH_HIGH = true,
 	SCYTHE = true,
+}
+
+FALLINGREASON =
+{
+    OCEAN = "ocean",
+    VOID = "void",
 }
 
 EQUIPMENTSETNAMES =
@@ -2335,7 +2296,7 @@ WORMHOLETYPE =
     OCEANWHIRLPORTAL = 2,
 }
 
--- Houndwarning level
+-- Houndwarning level, max value of 63 (net_smallbyte)
 HOUNDWARNINGTYPE =
 {
     LVL1 = 0,
@@ -2346,6 +2307,7 @@ HOUNDWARNINGTYPE =
     LVL2_WORM = 5,
     LVL3_WORM = 6,
     LVL4_WORM = 7,
+    WORM_BOSS = 8,
 }
 
 -- Domestication tendencies
@@ -2672,6 +2634,16 @@ HUNT_ACTIONS = {
     SLEEP = 2,
 }
 
+THRALL_TYPES = {
+    SHADOW = {
+        TRIO = "trio",
+        MOUTH = "mouth",
+    },
+    LUNAR = {
+        PLANT = "plant",
+    },
+}
+
 LOADING_SCREEN_TIP_OPTIONS =
 {
     ALL = 1,
@@ -2796,4 +2768,9 @@ CHARLIERESIDUE_MAP_ACTIONS = {
 -- Constants to reduce network overhead.
 CLIENTAUTHORITATIVESETTINGS = {
     PLATFORMHOPDELAY = 0,
+}
+
+NIGHTSWORD_FX_OFFSETS = {
+    RIGHT = 0.75,-- -1,
+    DOWN = 2.9,-- 2.6,
 }

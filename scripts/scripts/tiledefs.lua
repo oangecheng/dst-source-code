@@ -1121,6 +1121,7 @@ TileManager.AddTile(
         walksound="dontstarve/movement/walk_grass",
         snowsound="dontstarve/movement/run_snow",
         mudsound="dontstarve/movement/run_mud",
+        nogroundoverlays = true,
         isinvisibletile = true,
         cannotbedug = true,
         hard = true,
@@ -1129,6 +1130,29 @@ TileManager.AddTile(
     {
         name="map_edge",
         noise_texture="mini_grass2_noise",
+    }
+)
+
+TileManager.AddTile(
+    "ROPE_BRIDGE",
+    TileRanges.LAND,
+    {ground_name = "Rope Bridge"},
+    {
+        name="blocky",
+        noise_texture="noise_woodfloor",
+        runsound="dontstarve/movement/run_cavesbridge",
+        walksound="dontstarve/movement/walk_cavesbridge",
+        snowsound="dontstarve/movement/run_ice",
+        mudsound="dontstarve/movement/run_mud",
+        nogroundoverlays = true,
+        isinvisibletile = true,
+        cannotbedug = true,
+        hard = true,
+        istemptile = true,
+    },
+    {
+        name="map_edge",
+        noise_texture="mini_woodfloor_noise",
     }
 )
 

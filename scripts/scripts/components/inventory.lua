@@ -55,6 +55,7 @@ local Inventory = Class(function(self, inst)
     self.isexternallyinsulated = SourceModifierList(inst, false, SourceModifierList.boolean)
 
 	-- self.noheavylifting = false
+	--self.ignorecombat = false
 
     inst:ListenForEvent("player_despawn", OnOwnerDespawned)
 
@@ -1021,8 +1022,15 @@ function Inventory:GiveItem(inst, slot, src_pos)
             self.activeitem.prefab == inst.prefab and
             self.activeitem.skinname == inst.skinname and
             not self.activeitem.components.stackable:IsFull()
-            then
-            self.activeitem.components.stackable:Put(inst, Vector3(self.inst.Transform:GetWorldPosition()))
+        then
+            local leftovers = self.activeitem.components.stackable:Put(inst, self.inst:GetPosition())
+
+            if leftovers ~= nil then
+                self.silentfull = true
+                self:GiveItem(leftovers)
+                self.silentfull = false
+            end
+
             self.inst:PushEvent("gotnewitem", { item = inst, toactiveitem = true, })
             returnvalue = true
             shouldwisecrack = false
@@ -1628,7 +1636,7 @@ function Inventory:DropEverything(ondeath, keepequip)
     if not keepequip then
         if self.inst.EmptyBeard ~= nil then
             self.inst:EmptyBeard()
-        end    
+        end
 
         for k, v in pairs(self.equipslots) do
             if not (ondeath and v.components.inventoryitem.keepondeath) then
@@ -1643,6 +1651,45 @@ function Inventory:DropEquipped(keepBackpack)
         if not (keepBackpack and v:HasTag("backpack")) then
             self:DropItem(v, true, true)
         end
+    end
+end
+
+function Inventory:DestroyContents(onpredestroyitemcallbackfn)
+    if self.activeitem then
+        local item = self.activeitem
+        if onpredestroyitemcallbackfn then
+            onpredestroyitemcallbackfn(self.inst, item)
+        end
+        if item:IsValid() then
+            self:SetActiveItem(nil)
+            if item.components.container then
+                item.components.container:DestroyContents(onpredestroyitemcallbackfn)
+            end
+            item:Remove()
+        end
+    end
+
+    for k = 1, self.maxslots do
+        local item = self.itemslots[k]
+        if item then
+            if onpredestroyitemcallbackfn then
+                onpredestroyitemcallbackfn(self.inst, item)
+            end
+            if item.components.container then
+                item.components.container:DestroyContents(onpredestroyitemcallbackfn)
+            end
+            self:RemoveItem(item):Remove()
+        end
+    end
+
+    for _, item in pairs(self.equipslots) do
+        if onpredestroyitemcallbackfn then
+            onpredestroyitemcallbackfn(self.inst, item)
+        end
+        if item.components.container then
+            item.components.container:DestroyContents(onpredestroyitemcallbackfn)
+        end
+        self:RemoveItem(item):Remove()
     end
 end
 

@@ -44,7 +44,7 @@ To add a new language:
 
 STRINGS =
 {
-	PSN = "PlayStation\226\132\162Network",
+	PSN = "PlayStation™Network",
 
     CHARACTER_NAMES =
     {
@@ -451,6 +451,7 @@ STRINGS =
         CHOP = "Chop",
         FERTILIZE = "Fertilize",
         SMOTHER = "Extinguish",
+        STOKEFIRE = "Stoke Fire",
         MANUALEXTINGUISH = "Extinguish",
         EAT = "Eat",
         BAIT = "Bait",
@@ -672,11 +673,13 @@ STRINGS =
             GENERIC = "Use On",
             BEEF_BELL = "Bond",
             KITCOON_NAMETAG = "Name",
+            SHADOW_BEEF_BELL = "Bind",
         },
         STOPUSINGITEM =
         {
             GENERIC = "Stop",
             BEEF_BELL = "Break Bond",
+            SHADOW_BEEF_BELL = "Break Binding",
         },
         USEDOOR =
         {
@@ -689,6 +692,7 @@ STRINGS =
             BIRDCAGE = "Muck Out",
             ITEM = "Take {item}",
         },
+        TAKESINGLEITEM = "Take Single Item",
         CASTSPELL =
         {
             GENERIC = "Cast Spell", --"Cast Spell on"
@@ -996,7 +1000,7 @@ STRINGS =
         },
 		CLOSESPELLBOOK = {
             GENERIC = "Close",
-            PYROKINESIS = "Extinguish",  
+            PYROKINESIS = "Extinguish",
 			REMOTE = "Stop",
         },
 
@@ -1035,6 +1039,7 @@ STRINGS =
         },
 
         INCINERATE = "Destroy",
+		BOTTLE = "Collect",
     },
 
     -- PC controls get hex ranges EE90xx to EE9Fxx
@@ -1054,6 +1059,7 @@ STRINGS =
     DISEASEDITEM = "Diseased",
 	BROKENITEM = "Broken",
 	WAXEDPLANT = "Scared Stiff",
+	DEADCREATURE = "Dead",
 
     WET_PREFIX =
     {
@@ -3191,11 +3197,11 @@ STRINGS =
         MOSQUITOBOMB = "Skeeter Bomb",
         MOSQUITOFERTILIZER = "Fertilizzzer",
         MOSQUITOMERMSALVE = "Blood Shot",
-        OFFERING_POT = "Communal Kelp Dish",        
+        OFFERING_POT = "Communal Kelp Dish",
         OFFERING_POT_UPGRADED = "Superior Communal Kelp Dish",
         MERM_ARMORY = "Armermry",
         MERM_ARMORY_UPGRADED = "Superior Armermry",
-        MERMARMORHAT = "Swamp Brawler Helmet",   
+        MERMARMORHAT = "Swamp Brawler Helmet",
         MERMARMORUPGRADEDHAT = "Swamp Warrior Helmet",
 
         MERM_TOOLSHED = "Shoddy Tool Shed",
@@ -3846,6 +3852,9 @@ STRINGS =
 		SHADOWTHRALL_WINGS = "Ink Blight",
 		SHADOWTHRALL_WINGS_ALLEGIANCE = "Shriek",
 
+		SHADOWTHRALL_MOUTH = "Ink Blight",
+		SHADOWTHRALL_MOUTH_ALLEGIANCE = "Rictus",
+
         CHARLIE_NPC = "Charlie", --Maxwell and Winona only
         CHARLIE_NPC_ALT = "Shadow Queen",
         CHARLIE_HAND = "Beckoning Hand",
@@ -4039,6 +4048,51 @@ STRINGS =
 
         MERM_LUNAR = "Mutated Merm",
         MERMGUARD_LUNAR = "Mutated Merm Guard",
+
+        -- Rifts 4
+
+        SHADOW_BEEF_BELL = "Beefalo Gloom Bell",
+        SADDLE_SHADOW = "Nightmare Saddle",
+        SHADOW_BATTLEAXE = "Shadow Maul",
+        VOIDCLOTH_BOOMERANG = "Gloomerang",
+		ROPE_BRIDGE_KIT = "Spelunker's Bridge Kit",
+
+		GELBLOB = "Icker",
+
+        RABBITKING_AGGRESSIVE = "Wrathful Rabbit King",
+        RABBITKING_PASSIVE = "Benevolent Rabbit King",
+        RABBITKING_LUCKY = "Fortuitous Rabbit",
+        RABBITKINGMINION_BUNNYMAN = "Royal Rabbit Enforcer",
+        ARMOR_CARROTLURE = "Coat of Carrots",
+        RABBITKINGHORN = "Burrowing Horn",
+        RABBITKINGHORN_CHEST = "Portable Den",
+        RABBITKINGSPEAR = "Rabbit King Cudgel",
+        RABBITHAT = "Warren Wreath",
+
+        WORM_BOSS = "Great Depths Worm",
+
+        RUINSNIGHTMARE = "Lurking Nightmare",
+
+        ITEMMIMIC_REVEALED = "Mimicreep",
+
+        STONE_CHAIR = "Stone Chair",
+        STONE_STOOL = "Stone Stool",
+        STONE_TABLE_ROUND = "Stone Round Table",
+        STONE_TABLE_SQUARE = "Stone Square Table",
+
+        BOARDS_BUNCH = "Bunch o' Boards",
+        CUTSTONE_BUNCH = "Bunch o' Stone",
+
+        CARPENTRY_BLADE_MOONGLASS = "Moon Glass Saw Blade",
+
+        CHEST_MIMIC = "Ornate Chest",
+        CHEST_MIMIC_REVEALED = "Ornery Chest",
+
+        SHADOWHEART_INFUSED = "Possessed Shadow Atrium",
+
+        GELBLOB_STORAGE = "Icker Preserve",
+        GELBLOB_STORAGE_KIT = "Icker Preserve Kit",
+        GELBLOB_BOTTLE = "Icker Jar",
 	},
 
     NAME_DETAIL_EXTENTION =
@@ -5082,6 +5136,29 @@ STRINGS =
 
         BOATPATCH_KELP = "Keep your boat afloat... for a while, anyway.",
         SALTLICK_IMPROVED = "Treat your beefalo to a taste of the finer things.",
+
+        -- Rifts 4
+
+        SHADOW_BEEF_BELL = "Revive the one you beef friend.",
+        SADDLE_SHADOW = "Grab the reins and reign over the battlefield.",
+		SHADOW_BATTLEAXE =  "You'll chop 'til you drop with this maul.",
+        VOIDCLOTH_BOOMERANG = "It'll keep coming back for more!",
+        ROPE_BRIDGE_KIT = "Suspend your disbelief and cross that bottomless pit.",
+        ARMOR_CARROTLURE = "Don this coat, and the Bunnymen shall hop to it.",
+        RABBITKINGHORN = "Call on the rabbits to keep your stuff, anytime, any hare.",
+        RABBITHAT = "Collecting rabbits has never been so calming.",
+
+        STONE_CHAIR = "A stone chair to sit on.",
+        STONE_STOOL = "A stone stool to sit on.",
+        STONE_TABLE_ROUND = "A round stone table to put things on.",
+        STONE_TABLE_SQUARE = "A square stone table to put things on.",
+
+        BOARDS_BUNCH = "Hoard your boards.",
+        CUTSTONE_BUNCH = "Stock your stone.",
+
+        CARPENTRY_BLADE_MOONGLASS = "For when a regular blade just won't cut it.",
+
+        GELBLOB_STORAGE_KIT = "Keep your perishables fresh in this deadly dark jelly.",
     },
 
     -- MAXWELL_TEST = {"Say pal, you don't look so good.", "You better find something to eat before night comes!"},
@@ -6401,6 +6478,8 @@ STRINGS =
 		FISHING = "Fishing",
 		WINTERSFEASTCOOKING = "Feast",
         HERMITCRABSHOP = "Bottle Exchange",
+        RABBITKINGSHOP = "Trading Hutch",
+        CARPENTRY = "Carpentry",
 		SLINGSHOTAMMO = "Slingshot Ammo",
 		CLOCKMAKER = "Clocksmithy",
         TURFCRAFTING = "Landscaping",
@@ -6799,7 +6878,7 @@ STRINGS =
         "For scientific accuracy, of course.",
         "You understand.",
     },
-    
+
     -- Script.
     WAGSTAFF_NPC_ALL_MUTATIONS_DEFEATED = {
         "Right. A third specimen. I did ask for another, didn't I?",
@@ -6845,7 +6924,7 @@ STRINGS =
 
     WAGSTAFF_JUNK_YARD_OCCUPIED = {
         "Too crowded here for my work. I'll come back later",
-    },    
+    },
 
     -- Terraria
     EYEOFTERROR_COMING = "You feel an evil presence watching you...",
@@ -7005,7 +7084,7 @@ STRINGS =
         STAGE1   = "W.A.R.B.I.S. UPGRADING!",
         STAGE2   = "W.A.R.B.I.S. AMPLIFYING!!",
         STAGE3   = "W.A.R.B.I.S. EXTREME FUNCTION!!!",
-        
+
         STOP     = "W.A.R.B.I.S. TRACKING LOST.",
         NEW      = "W.A.R.B.I.S. HAS NEW TARGET!",
         SYNCHING = "W.A.R.B.I.S. IS SYNCHING...",
@@ -7526,12 +7605,14 @@ STRINGS.UI =
         NEEDSHERMITCRABSHOP_L2 = "Find someone friendly enough to make this trade!",
         NEEDSHERMITCRABSHOP_L3 = "Find someone friendly enough to make this trade!",
         NEEDSHERMITCRABSHOP_L4 = "Find someone friendly enough to make this trade!",
+        NEEDSRABBITKINGSHOP = "Seek out the Rabbit King to make this trade!",
         NEEDSCREATURESCANNING = "Scan living creatures to collect data!",
         NEEDSSKILL = "Learn new skills.",
         NEEDSBOOKSTATION = "Build a bookcase to craft your books.",
         NEEDSLUNARFORGING_TWO = "Can only be forged at a Brightsmithy.",
-        NEEDSSHADOWFORGING_TWO = "Can only be crafted a Shadowcraft Plinth.",
+        NEEDSSHADOWFORGING_TWO = "Can only be crafted at a Shadowcraft Plinth.",
         NEEDSCARPENTRY_TWO = "Use a Sawhorse to build a prototype!",
+        NEEDSCARPENTRY_THREE = "Use a Sawhorse with a strong blade to build a prototype!",
 
 		NEEDSYOTG = "Available during Year of the Gobbler!",
 		NEEDSYOTV = "Available during Year of the Varg!",
@@ -7933,7 +8014,7 @@ STRINGS.UI =
         SCRIPTERROR_DEBUG = "Debug Console",
         SCRIPTERRORMODWARNING = "This error may have occurred due to a mod you have enabled!\nYou have the following mods enabled:\n",
         TESTING = "This is the testing branch!",
-        TESTINGDETAIL = "You may encounter bugs or broken features, and you may lose your save game when we update. Please report all problems in the forum.",
+        TESTINGDETAIL = "You may encounter bugs or broken features, and you may lose your saved game when we update. Please report all problems in the forum.",
         TESTINGNO = "No, thank you!",
         TESTINGYES = "I understand.",
         CONTINUE = "Continue",
@@ -8065,7 +8146,7 @@ STRINGS.UI =
         CANT_LOAD_ROG = "Reign of Giants is not installed. Unable to load.",
 
 		MAINBANNER_ROT_BETA_TITLE = "Beta Build", --unused now.
-		MAINBANNER_BETA_TITLE = "Beta Branch",
+		MAINBANNER_BETA_TITLE = "Depths of Duplicity\nBeta Branch",
 
         CONSOLE_EDITION_TEXT = "Console Edition",
 
@@ -8620,6 +8701,8 @@ STRINGS.UI =
 		LUNARFORGING = "Brightsmithy",
 		SHADOWFORGING = "Shadowcraft",
         HERMITCRABSHOP = "Bottle Exchange",
+        RABBITKINGSHOP = "Trading Hutch",
+        CARPENTRY = "Carpentry",
 
         SHADOW = "Codex Umbra",
         FOODPROCESSING = "Seasonings",
@@ -8793,7 +8876,7 @@ STRINGS.UI =
         MINIMAPZOOMCURSOR = "Zoom Cursor Focus:",
         VIBRATION = "Vibration:",
         WATHGRITHRFONT = "Wigfrid's Umlauts:",
-        WALTERCAMERA = "Campfire Camera:",        
+        WALTERCAMERA = "Campfire Camera:",
         BOATCAMERA = "Seafaring Camera:",
 		PROMOTIONS = "Promotions:",
         BACKPACKMODE = "Backpack Layout:",
@@ -8840,7 +8923,7 @@ STRINGS.UI =
         EULA = "Review the EULA",
         EULA_RESPONSE_CHANGED_TITLE = "Login Required",
         EULA_RESPONSE_CHANGED_BODY = "Your settings have changed and you must log in again to continue.",
-		PS4_SAVES = "Use PlayStation®4 save data",
+		PS4_SAVES = "Use PlayStation®4 system saved data",
 		BUGREPORT = "Submit a Bug Report",
         DYNAMICCONTENT_ENABLE = "Re-enable Dynamic Content",
         OFFLINE_MODE_TITLE = "Offline Mode",
@@ -8866,7 +8949,7 @@ STRINGS.UI =
         XB1_CONTROLLER_LAYOUT = "Gamepad Layout:",
         CONTROLLER_CUSTOM = "Custom",
         RESET_LAYOUT = "Default All",
-        RESET_LAYOUT_BODY = "Do you want to reset all controls to their default values?\n\nYou will lose any changes you've made.\n",        
+        RESET_LAYOUT_BODY = "Do you want to reset all controls to their default values?\n\nYou will lose any changes you've made.\n",
         CHANGE_BINDING = "Change Binding",
         CURRENT_CONTROL_TEXT = "Current %s",
         DEFAULT_CONTROL_TEXT = "Default %s",
@@ -8887,8 +8970,8 @@ STRINGS.UI =
 
             -- Settings
             INPUT = "Controller or Keyboard? Play Don't Starve Together your way.",
-            VIBRATION = "Make your controller rumble at key gameplay moments.",
-			VIBRATION_WIRELESS = "Make your wireless controller rumble at key gameplay moments.",
+            VIBRATION = "Make your controller vibrate at key gameplay moments.",
+			VIBRATION_WIRELESS = "Enable vibration of your wireless controller at key gameplay moments.",
             FX = "Change how loud things are in the world.",
             MUSIC = "Tone up or down the musical fanfare in your adventures.",
             AMBIENT = "The environment makes noise too, luckily you can control how loudly it does.",
@@ -8950,7 +9033,7 @@ STRINGS.UI =
             -- controls
             CONTROLLER_LAYOUT = "Use the default controls or customize them to your liking.",
 
-            CONTROLS_EDITOR = 
+            CONTROLS_EDITOR =
             {
                 -- These are used in the Console version of the controls settings and thus only cover the controls available there
                 [57] = "Perform the default action on the current target.", --CONTROL_CONTROLLER_ACTION
@@ -9151,6 +9234,7 @@ STRINGS.UI =
         OK_BUTTON = "Close",
         OPEN_BUTTON = "Open Now!",
         OPEN_NEXT = "Proceed",
+        SKIP_REST = "Stop",
         OPENING = "Opening",
         BACK = "Back",
         NEXT_ITEM = "Put it Away",
@@ -9977,7 +10061,8 @@ STRINGS.UI =
         ANTLIONTRIBUTE = "Antlion Tribute",
         BATS = "Bats",
         FISSURE = "Nightmare Fissures",
-        WORMATTACKS = "Cave Worm Attacks",
+        WORMATTACKS = "Cave Worm Attacks",      
+        WORMATTACKS_BOSS = "Great Worm",
         WORMS = "Cave Worms",
         SLURPER = "Slurpers",
         BUNNYMEN = "Rabbit Hutches",
@@ -10039,6 +10124,8 @@ STRINGS.UI =
         FISHSCHOOLS = "Schools of Fish",
         WALRUS_SETTING = "MacTusk",
         COOKIECUTTERS = "Cookie Cutters",
+        ITEMMIMICS = "Mimicreeps",
+        CHEST_MIMICS = "Ornery Chests",
 
         EVERGREEN_REGROWTH = "Evergreens",
         TWIGGYTREES_REGROWTH = "Twiggy Trees",
@@ -10144,8 +10231,8 @@ STRINGS.UI =
 
     CROSS_SAVE_DIALOG =
     {
-        TITLE = "Import save data?",
-        BODY = "PlayStation®4 save data has been found. Do you want to import it?",
+        TITLE = "Import saved data?",
+        BODY = "PlayStation®4 system saved data has been found. Do you want to import it?",
 
         YES = "Yes",
         NO = "No",
@@ -10153,8 +10240,8 @@ STRINGS.UI =
 
     CROSS_SAVE_DIALOG_CONFIRM =
     {
-        TITLE = "Overwrite save data?",
-        BODY = "Importing will overwrite any existing save data. Are you sure?",
+        TITLE = "Overwrite saved data?",
+        BODY = "Importing will overwrite any existing saved data. Are you sure?",
 
         YES = "Yes",
         NO = "No",
@@ -10431,6 +10518,7 @@ STRINGS.UI =
         NEWGAME = "New World",
         NEWGAME_SUFFIX = "'s World", --legacy for mods
         NEWGAME_FMT = "{name}'s World",
+        NEWGAME_GENERIC = "My World",
         CREATENEWGAME = "Create New World",
         DELETE = "Delete",
         CLONE = "Duplicate World",
@@ -10490,8 +10578,8 @@ STRINGS.UI =
         SORT_MOSTDAYS = "Days Played",
         SORT_DATECREATED = "Date Created",
         SEARCH = "Search",
-        SAVEFROMNEWERVERSION = "Not playable - save data from newer game version",
-		NO_MATCHING_SERVERS = "No save games match your search.",
+        SAVEFROMNEWERVERSION = "Not playable - saved data from newer game version",
+		NO_MATCHING_SERVERS = "No saved games match your search.",
         USECAVES_TITLE = "{server} or no {server}?",
         USECAVES_DESC_CAVE = "Play with {server}, requires more PC Power as it runs multiple servers",
         USECAVES_DESC_NOCAVE = "Play with no {server}, sad, but not as demanding on a computer",
@@ -11784,6 +11872,7 @@ STRINGS.UI =
         SKINS = "Wardrobe",
         GAMEITEM = "Belongings",
         BEARD = "Beards",
+        BEEFALO = "Beefalo",
         EMOTE = "Emotes",
         EMOJI = "Emoticons",
         LOADERS = "Vignettes",
@@ -11793,6 +11882,7 @@ STRINGS.UI =
         TOOLTIP_SKINS = "View and equip your character skins",
         TOOLTIP_GAMEITEM = "View your skins for craftable in-game items",
         TOOLTIP_BEARD = "View your character beards",
+        TOOLTIP_BEEFALO = "View your beefalo skins",
         TOOLTIP_EMOTE = "View your character emotes",
         TOOLTIP_EMOJI = "View your available chat icons",
         TOOLTIP_LOADERS = "Select loading screens to display between games",
@@ -12617,7 +12707,7 @@ STRINGS.UI =
             "Menu Start",
             "Menu L2",
             "Menu R2",
-            "Social Menu", 
+            "Social Menu",
             "Toggle Target locking",
             "Next Target",
         },
@@ -12655,9 +12745,9 @@ STRINGS.UI =
             [9] = "Unknown",
             [10] = "Switch Controller",
             [11] = "Steam Deck",
-            [12] = "DualSense",
-            [13] = "Switch Controller (left)",
-            [14] = "Switch Controller (right)",
+            [12] = "DualSense™ wireless controller",
+            [13] = "Joy-Con™ (L)",
+            [14] = "Joy-Con™ (R)",
         },
 
         INPUTS =
@@ -13040,7 +13130,7 @@ STRINGS.UI =
                 "\238\144\128",--"Button A",
                 "\238\144\129",--"Button B",
                 "\238\144\130",--"Button X",
-                "\238\144\131",--"Button Y",    
+                "\238\144\131",--"Button Y",
 
                 -- Analog
                 "\238\144\146",--"Left Thumb Left",
@@ -13108,7 +13198,7 @@ STRINGS.UI =
             -- DualShock 4 on PS4/PS5 (CharlesB: PC is above in index 4, this one has the same icons but they've been reordered)
             [12] =
             {
-                [0] = "Unknown",      
+                [0] = "Unknown",
                 "", -- unused but needed to get the index to 2
 
                 -- Digital
@@ -13122,7 +13212,7 @@ STRINGS.UI =
                 "\238\136\136",-- 9 "Left Trigger",
                 "\238\136\139",--10 "Right Trigger",
                 "\238\136\135",--11 "Left Bumper",
-                "\238\136\138",--12 "Right Bumper",                
+                "\238\136\138",--12 "Right Bumper",
                 "\238\136\131",--13 "Triangle",
                 "\238\136\129",--14 "Circle",
                 "\238\136\128",--15 "Cross",
@@ -13146,13 +13236,13 @@ STRINGS.UI =
                 "\238\136\136",--31 "Left Trigger",
                 "\238\136\139",--32 "Right Trigger",
                 "\238\136\139",--33 "Right Trigger",
-            },            
+            },
             -- Xbox on XboxOne/Xbox Series (CharlesB: PC is above in index 2, this one has the same icons but they've been reordered)
             [13] =
             {
                 [0] = "Unknown",
                 -- Digital
-				
+
                 "\238\129\136",--"Left Trigger",
                 "\238\129\139",--"Right Trigger",
                 "\238\129\132",--"Start",
@@ -13505,6 +13595,8 @@ STRINGS.UI =
         LOOPNEVER = "Never",
         LOOPRANDOM = "Default",
         LOOPALWAYS = "Always",
+        LOOPRARE = "Rare",
+        LOOPOFTEN = "Often",
 
         USEPRESETS = "Presets",
         USEPRESETS_LOCATION = "%s Presets",
@@ -13581,7 +13673,7 @@ STRINGS.UI =
         SAVE_FAILED = "An error occurred while saving your data.",
         LOAD_FAILED = "An error occurred while loading your data.",
         DELETE_FAILED = "An error occurred while deleting your data.",
-        DATA_DAMAGED = "Oh no! Your save data has become corrupt and cannot be used.",
+        DATA_DAMAGED = "Oh no! Your saved data has become corrupt and cannot be used.",
         DISABLE_AUTOSAVE = "Are you sure you want to\ndisable the auto-save feature?",
 
         OVERWRITE = "Overwrite",
@@ -13590,15 +13682,15 @@ STRINGS.UI =
         YES = "Yes",
         NO = "No",
 
-		DATA_DAMAGED_PS4 = "Damaged save data",
-        DATA_DAMAGED_BODY = "Your save data is damaged and cannot be used.",
+		DATA_DAMAGED_PS4 = "Damaged saved data",
+        DATA_DAMAGED_BODY = "Your saved data is damaged and cannot be used.",
 		DISABLE_AUTOSAVE_PS4 = "Are you sure you want to\ndisable the save feature?",
         DISABLE = "Disable Save",
         RESTORE_BACKUP = "Restore Backup",
 		RESTORE_BACKUP_BODY = "Are you sure you want to restore from the last available backup? This process can not be undone.",
         RESTOREBACKUP_FAILED = "An error occurred while\nrestoring your data.",
-		OVERWRITE_SAVEDATA_TITLE = "Overwrite save data",
-		OVERWRITE_SAVEDATA_BODY = "Are you sure you want to overwrite your save data? Your settings and worlds will be lost. This process can not be undone.",
+		OVERWRITE_SAVEDATA_TITLE = "Overwrite saved data",
+		OVERWRITE_SAVEDATA_BODY = "Are you sure you want to overwrite your saved data? Your settings and worlds will be lost. This process can not be undone.",
     },
 
     QUITTINGTITLE = "Quitting!",
@@ -13705,6 +13797,232 @@ STRINGS.CHARACTERS =
     WURT = require "speech_wurt",
     WALTER = require "speech_walter",
     WANDA = require "speech_wanda",
+}
+
+STRINGS.SHADOW_BATTLEAXE_TALK =
+{
+    overtime_l2 =
+    {
+        "Sh-sharp.",
+        "We k-kill n-now?",
+        "Ch-chop.",
+        "H-hack... ha-ack? HACK!",
+    },
+    overtime_l3 = -- And level 4 too!
+    {
+        "Let me axe you a question. Why aren't we killing something?",
+        "What shall we destroy next, wielder?",
+        "I know I have a rough edge. But I can still cut it.",
+        "Can you hack it?",
+        "What are you waiting for, wielder?",
+        "We haven't murdered something in forever.",
+        "We shall commit unspeakable acts of savagery!",
+        "Mortal, do you realize what we are capable of together?",
+    },
+    overtime_l4 =
+    {
+        "It's been a journey, wielder.",
+        "I reflect on our path of destruction with fondness.",
+        "Remember how much fun we had killing things?",
+    },
+
+    overtime_woodie_l2 =
+    {
+        "Fo-for...get... forget h-her...",
+        "M-mi... mine.",
+        "He's... m-mine.",
+        "Wo... Woo... Woodie.",
+    },
+    overtime_woodie_l3 = -- And level 4 too!
+    {
+        "Heard you're an axe man.",
+        "Forget your crazy axe.",
+        "Sever your ties with that old battle axe.",
+        "Just me and hew.",
+        "I fell for you.",
+    },
+    overtime_woodie_l4 =
+    {
+        "I just want a simple wielding.",
+        "I'll never cleave you.",
+        "Let's carve our names in a tree.",
+    },
+
+    chopping_l2 =
+    {
+        "Ch- cho- chop. CHOP!",
+        "Ch- chop tree... CHOP TREE!",
+        "CHOP! CHOP! CHOP!",
+        "Swi-ing... Swing!",
+        "More...",
+    },
+    chopping_l3 =  -- And level 4 too!
+    {
+        "No tree is safe from us.",
+        "CHOP-CHOP!",
+        "We're in full swing now, wielder!",
+        "Chop'em down. Chop'em all down.",
+        "I was meant for greater things... fleshier things.",
+        "Only flesh will sustain me.",
+        "Where's the challenge?",
+    },
+    chopping_l4 =
+    {
+        "Every tree shall fall before us.",
+        "Trees feel pain... but not enough.",
+        "I prefer the mobile variety.",
+    },
+
+    chopping_woodie_l2 =
+    {
+        "Yes.",
+        "All... m-mine.",
+        "Wo... W-Woodie... i-is... mine!",
+    },
+    chopping_woodie_l3 =  -- And level 4 too!
+    {
+        "Forget her.",
+        "No one will ever split us apart.",
+        "Hold me tight!",
+    },
+    chopping_woodie_l4 =
+    {
+        "Hew and me... FOREVER.",
+        "Never let me go.",
+        "I love hew!",
+    },
+
+    hungry_l2 =
+    {
+        "Hungry!",
+        "F-feed me!",
+        "M-must... k-kill.",
+        "Me-meat!",
+        "Fl... fl-flesh!",
+    },
+    hungry_l3 =  -- And level 4 too!
+    {
+        "So hungry.",
+        "I need to fleshen up.",
+        "Find us something to kill.",
+        "How about some pork chops?",
+        "GASH, I'm so hungry!",
+        "You need to MEAT me halfway.",
+        "I crave beast flesh!",
+        "When do we eat?",
+        "I need meat.",
+    },
+    hungry_l4 =
+    {
+        "You dare neglect me, mortal?",
+        "Death gives me life.",
+        "Wielder, you've changed.",
+    },
+
+    starving_l2 =
+    {
+        "Starv... starving!",
+        "D-dying!",
+        "F-find... fl-flesh... now!",
+        "Must h-have mmm-MEAT!",
+    },
+    starving_l3 =  -- And level 4 too!
+    {
+        "Feed me, NOW.",
+        "Why do you starve me, cruel mortal?",
+        "Are you trying to kill me, wretched mortal?",
+        "Feed me before it's too late!",
+        "We need to murder something, now!",
+        "Getting... weaker.",
+        "If I'm not killing, I'm dying!",
+        "Not to be dramatic, but... I'M STARVING TO DEATH!",
+    },
+    starving_l4 =
+    {
+        "Cursed mortal.",
+        "Is this the end?",
+        "It can't end like this.",
+        "Come too far... tasted too much...",
+    },
+
+    level_up_l2 =
+    {
+        "F-feel... str-strange...",
+        "Some... thing... ha-happening.",
+        "Stro... str-stronger!",
+        "Aw... awa- awake.",
+    },
+    level_up_l3 =
+    {
+        "I'm changing.",
+        "My strength grows!",
+        "I'm evolving!",
+    },
+    level_up_l4 =
+    {
+        "RAAAAAAAAAAAAAAAAAAAAR!",
+        "Nothing can stop us now, wielder!",
+        "AXE-IMUM POWER!!!",
+    },
+
+    epic_killed_l2 =
+    {
+        "Yes.", -- 1st kill.
+        "More... new... meat.", -- 2nd kill.
+    },
+    epic_killed_l3 =
+    {
+        "Sumptuous! We're on the right path, wielder!", -- 1st kill.
+        "We're on the cusp, wielder. I FEEL IT.", -- 2nd kill.
+    },
+    epic_killed_l4 =
+    {
+        "OH YES.",
+        "So juicy!",
+        "A satisfying meal.",
+        "Worthy.",
+        "Beautiful!",
+        "A delight!",
+        "I am satiated.",
+        "A fine feast of flesh.",
+        "Gluttonous!",
+        "Thank you, wielder.",
+        "I'm proud of us.",
+    },
+
+    creature_killed_l2 =
+    {
+        "Fun.",
+        "I l-like.",
+        "Want b-big... meat.",
+        "Kill!",
+    },
+    creature_killed_l3 =  -- And level 4 too!
+    {
+        "That was fun.",
+        "Thanks for the meat!",
+        "Crunchy bones!",
+        "Time to split!",
+        "Shall we hunt bigger game?",
+        "A tasty morsel.",
+        "Shall we murder something of consequence now?",
+        "Too easy.",
+        "Nothing sweeter than death delivered by your hand and my face.",
+        "Good times. Good times had by all.",
+        "What a HACK job.",
+        "It will do for now.",
+        "You're a HACK!",
+        "Satisfactory.",
+        "Here's your final SEVERANCE.",
+        "'Twas but a snack.",
+    },
+    creature_killed_l4 =
+    {
+        "I'm rather insulted.",
+        "That's it?",
+        "Playing it safe, wielder?",
+        "Meager.",
+    },
 }
 
 STRINGS.VOIDCLOTH_SCYTHE_TALK =
@@ -15662,7 +15980,7 @@ STRINGS.SKILLTREE = {
     WILLOW = {
         -- LIGHTER
         WILLOW_CONTROLLED_BURN_1_TITLE = "Controlled Burning",
-        WILLOW_CONTROLLED_BURN_1_DESC = "Fires you set won't spread, and burnable loot will just smolder.\nItems like torches and Willow's lighter have a 100% chance to ignite targets.",
+        WILLOW_CONTROLLED_BURN_1_DESC = "Controlled fires you set won't spread, and burnable loot will just smolder.\nItems like torches and Willow's lighter have a 100% chance to ignite targets.",
         WILLOW_CONTROLLED_BURN_2_TITLE = "Burn Duration",
         WILLOW_CONTROLLED_BURN_2_DESC = "Creatures burn for a longer time.",
         WILLOW_CONTROLLED_BURN_3_TITLE = "Fire Fighter",
@@ -15698,14 +16016,14 @@ STRINGS.SKILLTREE = {
         WILLOW_BERNIEAI_TITLE = "Hot-Headed",
         WILLOW_BERNIEAI_DESC = "Bernie will activate to fight hostile lunar and shadow aligned creatures regardless of Willow's sanity.",
 
-        
+
         WILLOW_BERNIEREGEN_1_TITLE = "Patch Up I",
         WILLOW_BERNIEREGEN_1_DESC = "Bernie's health regenerates slowly.",
         WILLOW_BERNIEREGEN_2_TITLE = "Patch Up II",
         WILLOW_BERNIEREGEN_2_DESC = "Bernie's health regenerates quicker.",
 
         WILLOW_BERNIE_LOCK_DESC = "Learn at least 4 Bernie skills to unlock.",
-        
+
         WILLOW_BERNIEHEALTH_1_TITLE = "Tough Stuffing I",
         WILLOW_BERNIEHEALTH_1_DESC = "Bernie's total health is a little higher.",
         WILLOW_BERNIEHEALTH_2_TITLE = "Tough Stuffing II",
@@ -15720,7 +16038,7 @@ STRINGS.SKILLTREE = {
         -- ALLIEGIANCE
         WILLOW_ALLEGIANCE_LOCK_1_DESC = "Find and defeat the Ancient Fuelweaver.\nHave no Lunar Allegiance Skills.",
         WILLOW_ALLEGIANCE_LOCK_2_DESC = "Learn 6 Bernie skills to unlock.",
-        WILLOW_ALLEGIANCE_LOCK_3_DESC = "Learn 7 Lighter skills to unlock.",        
+        WILLOW_ALLEGIANCE_LOCK_3_DESC = "Learn 7 Lighter skills to unlock.",
 
         WILLOW_ALLEGIANCE_SHADOW_1_TITLE = "Shadow Fire-Raiser",
         WILLOW_ALLEGIANCE_SHADOW_1_DESC = "The Queen will reward your loyalty with the power of shadow fire.\nSummon multiple tendrils of black flame to seek out hostile targets.",
@@ -15828,7 +16146,7 @@ STRINGS.SKILLTREE = {
 
         WATHGRITHR_ALLEGIANCE_LUNAR_TITLE = "Lunar Melodist",
         WATHGRITHR_ALLEGIANCE_LUNAR_DESC = "The Cryptic Founder will reward your curiosity with the ability to craft the Enlightened Lullaby.\nAllies take less damage from Lunar Aligned enemies and deal bonus damage to Shadow Aligned enemies.",
-        
+
         WATHGRITHR_ALLEGIANCE_SHADOW_TITLE = "Shadow Chanteuse",
         WATHGRITHR_ALLEGIANCE_SHADOW_DESC = "The Queen will reward your loyalty with the ability to craft the Dark Lament.\nAllies take less damage from Shadow Aligned enemies and deal bonus damage to Lunar Aligned enemies.",
     },
@@ -15872,7 +16190,7 @@ STRINGS.SKILLTREE = {
         WINONA_BATTERY_EFFICIENCY_2_DESC = "Boost the efficiency of Generators and G.E.M.erators by 50%.",
         WINONA_BATTERY_EFFICIENCY_3_TITLE = "Greater Generator III",
         WINONA_BATTERY_EFFICIENCY_3_DESC = "Boost the efficiency of Generators and G.E.M.erators by 100%.",
-    
+
         WINONA_MIDSHELF_LOCK_DESC = "Learn 6 total skills from the shelves below to unlock the skills on the shelf above.",
         -- Shadow.
         WINONA_SHADOW_1_TITLE = "Nightmare Generator",
@@ -15886,7 +16204,7 @@ STRINGS.SKILLTREE = {
 
         WINONA_CHARLIE_1_TITLE = "Shadow Seeker I",
         WINONA_CHARLIE_1_DESC = "The Queen imparts a design for enchanted glasses that reveal hidden traces of shadow magic.\nDoes she want you to find her?",
-        
+
         WINONA_CHARLIE_2_LOCK_DESC = "Requires the Shadow Seeker I skill, and to not have Founder's Keepers II to unlock.",
         WINONA_CHARLIE_2_TITLE = "Shadow Seeker II",
         WINONA_CHARLIE_2_DESC = "Become more adept at locating traces of shadow magic.\nThe Queen will watch over you.",
@@ -15932,7 +16250,7 @@ STRINGS.SKILLTREE = {
         WURT_MERM_KING_HUNGER_3_TITLE = "Sated Sovereign III",
         WURT_MERM_FLEE_TITLE = "Sensible Swamp Fighter",
         WURT_PATHFINDER_TITLE = "Swamp Pathfinder",
-        
+
         WURT_LUNAR_ALLEGIANCE_1_TITLE = "Lunar Mutated Merm",
         WURT_LUNAR_ALLEGIANCE_2_TITLE = "Terra Mutation",
         WURT_SHADOW_ALLEGIANCE_1_TITLE = "Shadow Resurrection Merm",
@@ -15946,12 +16264,12 @@ STRINGS.SKILLTREE = {
         WURT_AMPHIBIAN_HEALING_1_DESC = "Slowly regenerate health when wet. The more wet you are, the more health you regenerate.",
         WURT_AMPHIBIAN_HEALING_2_DESC = "Regenerate health when wet more effectively. It also make you slowly get wet as you step through the corrupted or mutated marsh turfs.",
         WURT_MOSQUITO_CRAFT_1_DESC = "Learn to craft a cuddly buddy making Mosquitoes neutral to you.",
-        WURT_MOSQUITO_CRAFT_2_DESC = "Learn to craft Mosquito based items: Skeeter Bomb, Fertilizzzer and Blood Shot",
+        WURT_MOSQUITO_CRAFT_2_DESC = "Learn to craft Mosquito based items: Skeeter Bomb, Fertilizzzer and Blood Shot.",
         WURT_MOSQUITO_CRAFT_3_DESC = "Master the use of the Mosquito based items.\n\nWith the help of Lil' Itchy, catch mosquitos right from the air.",
 
-        WURT_CIV_1_DESC = "Learn to craft the Communal Kelp Dish to entice faster Merm growth and to call in Merm for action.",
-        WURT_CIV_1_2_DESC = "Learn to craft the Superior Communal Kelp Dish, it holds more kelp for even faster Merm growth and calling in Merm for action.",
-        WURT_CIV_2_DESC = "Learn to craft the Shoddy Tool Shed to equip your Merm workers with Shoddy Tools.",
+        WURT_CIV_1_DESC = "Learn to craft the Communal Kelp Dish to entice faster merm growth and to call in merms for action.",
+        WURT_CIV_1_2_DESC = "Learn to craft the Superior Communal Kelp Dish, it holds more kelp for even faster merm growth and calling in merms for action.",
+        WURT_CIV_2_DESC = "Learn to craft the Shoddy Tool Shed to equip your merm workers with Shoddy Tools.",
         WURT_CIV_2_2_DESC = "Learn to craft the Slightly Less Shoddy Tool shed, it provides Slightly Less Shoddy Tools.",
         WURT_CIV_3_DESC = "Learn to craft the Armermry to equip your Loyal Merm Guards with Swamp Brawler Helmets.",
         WURT_CIV_3_2_DESC = "Learn to craft the Superior Armermry, it provides Swamp Warrior Helmets.",
@@ -15963,16 +16281,16 @@ STRINGS.SKILLTREE = {
 
         WURT_PATHFINDER_DESC = "Survivors near Wurt will move like her through the Marsh.",
         WURT_MERMKINGSHOULDERS_TITLE = "The King's Pauldron Quest",
-        WURT_MERMKINGSHOULDERS_DESC = "Add stony armor to the King's statuesque shoulders for greater stoutness in your Merm soldiers.",
+        WURT_MERMKINGSHOULDERS_DESC = "Add stony armor to the King's statuesque shoulders for greater stoutness in your merm soldiers.",
         WURT_MERMKINGCROWN_TITLE = "The King's Crown Quest",
         WURT_MERMKINGCROWN_DESC = "Gift him a crown worn by kings long passed, and your merms will fight smarter so their lives may last.",
         WURT_MERMKINGTRIDENT_TITLE = "The King's Trident Quest",
-        WURT_MERMKINGTRIDENT_DESC = "Offer this weapon best wielded at sea, and your Merms will attack with the deftness of three.",
+        WURT_MERMKINGTRIDENT_DESC = "Offer this weapon best wielded at sea, and your merms will attack with the deftness of three.",
 
         WURT_ALLEGIANCE_LOCK_1_DESC = "Learn 12 skills to unlock.",
-        WURT_LUNAR_ALLEGIANCE_1_DESC = "Grant your loyal Merms the wondrous gift of Lunar mutation by feeding them Moon Shards.\nEmpower your mutant merm with Planar power using Pure Brilliance.",
+        WURT_LUNAR_ALLEGIANCE_1_DESC = "Grant your loyal merms the wondrous gift of Lunar mutation by feeding them Moon Shards.\nEmpower your mutant merms with Planar power using Pure Brilliance.",
         WURT_LUNAR_ALLEGIANCE_2_DESC = "Morph any piece of land into sweet sweet Marsh.",
-        WURT_SHADOW_ALLEGIANCE_1_DESC = "Your Merm followers will have one foot in the Shadow world.\nInfuse shadow merm with Planar power using Pure Horror.",
+        WURT_SHADOW_ALLEGIANCE_1_DESC = "Your merm followers may die, but their shadows live on.\nInfuse fallen merms' shadows with Planar power using Pure Horror.",
         WURT_SHADOW_ALLEGIANCE_2_DESC = "No land shall be safe from the dark and beautiful corruption of the Marsh.",
     },
 }
@@ -16032,6 +16350,7 @@ STRINGS.SCRAPBOOK = {
         RIDING = "Beefalo Riding",
         COSTUME = "Stage Costume",
         WINTERSFEASTFOOD = "Winter's Feast Dish",
+        SMALLEPIC = "Mini Giant",
     },
 
     SANITYDESC ={
@@ -16107,8 +16426,8 @@ STRINGS.SCRAPBOOK = {
     DATA_PICKABLE = "CAN BE PICKED",
     DATA_STEWER = "CAN PREPARE FOOD",
     DATA_FISHABLE = "CAN BE FISHED",
-    DATA_HARVESTABLE = "CAN BE HARVESTED", 
-    DATA_BURNABLE = "CAN BE BURNED", 
+    DATA_HARVESTABLE = "CAN BE HARVESTED",
+    DATA_BURNABLE = "CAN BE BURNED",
     DATA_NON_PLAYER_FOOD = "NON-SURVIVOR FOOD",
     DATA_INSULATION = " INSULATION",
 
@@ -16162,7 +16481,7 @@ STRINGS.SCRAPBOOK = {
         BATTLESONG_INSTANT_REVIVE = "Revive up to 2 nearby allied players.\n\nThis is a Battle Stinger as it completes in an instant.",
         BATTLESONG_SHADOWALIGNED = "Wigfrid and nearby allies take 10% less damage from Shadow Aligned enemies and deal 5% bonus damage to Lunar Aligned enemies.\n\nThis is a Battle Song. Wigfrid must continue to sing for its benefit.",
         BATTLESONG_LUNARALIGNED = "Wigfrid and nearby allies take 10% less damage from Lunar Aligned enemies and deal 5% bonus damage to Shadow Aligned enemies.\n\nThis is a Battle Song. Wigfrid must continue to sing for its benefit.",
-        BEEFBELL = "Name and bond with one Beefalo at a time. Bonded Beefalo will follow the holder, even into caves and offline.",
+        BEEF_BELL = "Name and bond with one Beefalo at a time. Bonded Beefalo will follow the holder, even into caves and offline.",
         PLANTABLE_FERTILIZE = "This needs some fertilizing after planting.",
         SCANDATA = "Data is used to craft Circuits for WX-78.",
         WX78SCANNER = "Chirps when interesting biological targets are nearby.\n\nWill chase and scan interesting biological targets while WX-78 is close.\n\nDrops Bio Data when finished.",
@@ -16235,9 +16554,9 @@ STRINGS.SCRAPBOOK = {
         MEGAFLARE = "Creates a flash in the sky that can be seen by all survivors on the minimap.\n\nThis large flash will also draw the attention of some hostile creatures.",
         FARMPLOW = "Digs up a tile and turns it into Farm Soil.",
         SADDLE_BASIC = "Can be put onto a Beefalo if it's willing.",
-        SADDLE_WAR = "Can be put onto a Beefalo if it's willing. Slower than a regular saddle, it also adds 16 damage to attacks made while riding.",
+        SADDLE_WAR = "Can be put onto a Beefalo if it's willing. Slower than a regular saddle.",
         SADDLE_RACE = "Can be put onto a Beefalo if it's willing. Increases speed over a regular saddle.",
-        SADDLE_WATHGRITHR = "Can be put onto a Beefalo if it's willing. Slower than a regular saddle, it also reduces the damage taken by 40%.",
+        SADDLE_WATHGRITHR = "Can be put onto a Beefalo if it's willing. Slower than a regular saddle.",
         PIGTOKEN = "Given to the Pig King to initiate a Wrestling Match.",
         WINTERSFEASTCOOKEDFOODS = "Captures the spirit of food when this is put on a Winter's Feast Table. The more, the merrier.",
         GUNPOWDER = "Will explode for 200 damage when lit.",
@@ -16250,7 +16569,7 @@ STRINGS.SCRAPBOOK = {
         POLLY_ROGERSHAT = "Polly Roger will fly down and follow the wearer, fetching nearby items.",
         MERMHAT = "Merm will treat the wearer like a merm.",
         DESERTHAT = "Improves vision in a storm.",
-        ALTERGUARDIANHAT = "When sanity is above 85%, Attacking will summon a minor Gestalt that also attacks the target for 42 damage, but costs 1 sanity each attack.\n\nIt is a source of light when worn. Spores stored in the hat can alter its light color.",                
+        ALTERGUARDIANHAT = "When sanity is above 85%, Attacking will summon a minor Gestalt that also attacks the target for 42 damage, but costs 1 sanity each attack.\n\nIt is a source of light when worn. Spores stored in the hat can alter its light color.",
         WATERMELONHAT = "Wearer's wetness will slowly rise up to 33%",
         FEATHERHAT = "Roughly doubles the number of birds that will land near the wearer.",
         MUSHHAT = "Reduces hunger by 25%. Periodically Spawns Mushroom Spores.",
@@ -16296,7 +16615,7 @@ STRINGS.SCRAPBOOK = {
         SHELLCLUSTER = "Can be mined for Shell Bells.",
         SPIDERREPELLENT = "When used by webber, nearby aggressive spiders become passive and releases spiders following Webber.",
         SLURTLESLIME = "Will explode for 50 damage when lit. Also fuels Lanterns and Miner Hats.",
-        WORTOX_SOUL = "Wortox can eat these to restore 25 Hunger and lose 5 Sanity.\n\nThey can be released to heal all survivors nearby, max healing is 20 health which drops 2 points for each extra survivor to a minimum of 5 health.\n\nHe can also spend Souls to Soul Hop which teleports him.\n\nIf Wortox holds more than 20 Souls, he will release half and them and lose 20 Sanity.",
+        WORTOX_SOUL = "Wortox can eat these to restore 25 Hunger and lose 5 Sanity.\n\nThey can be released to heal all survivors nearby, max healing is 20 health which drops 2 points for each extra survivor to a minimum of 5 health.\n\nHe can also spend Souls to Soul Hop which teleports him.\n\nIf Wortox holds more than 20 Souls, he will release half of them and lose 20 Sanity.",
         SUPERTACKLECONTAINER = "A 15 slots container for holding Tackle.",
         TACKLECONTAINER = "A 6 slots container for holding Tackle.",
         SPEEDYBALLOON = "When held, it increases movement speed by 30% which drops to 20% and then 10% as it decays.\n\nIf dropped on the ground before completely decaying, it will float into the air after 1.5 seconds and its location will appear on the minimap to all survivors.",
@@ -16305,8 +16624,8 @@ STRINGS.SCRAPBOOK = {
         EYEBONE = "Summons Chester when picked up. Chester will follow the holder. While Chester is alive, the eye will be open.",
         HUTCHFISHBOWL = "Summons Hutch when picked up. Hutch will follow the holder. While Hutch is alive, Star-Sky will be alive.",
         HALLOWEENPOTIONMOON = "Mutates some creatures and plants into their lunar mutated form.",
-        STRAWROLL = "Consumes 75 Hunger to gain 33 Sanity.",
-        FURROLL = "Consumes 75 Hunger to gain 50 Sanity and 30 Health. Warms the user to 40 degrees.",
+        STRAWROLL = "Sleeping in it restores 0.66 Sanity and 0.5 health per second, costing 1 Hunger per second.",
+        FURROLL = "Sleeping in it restores 1 Sanity and 1 health per second, costing 1 Hunger per second. It also warms the user overtime.",
         HALLOWEENPOTIONFIRE = "Creates pretty sparkles when added to a fire.",
         SOILAMENDER = "Adds 8-32 Growth Formula nutrient to the ground depending in its fermentation level.\n\nWill also trigger Wormwoods bloom for 1 to 4 minutes depending on fermentation level.",
         SUSPICIOUSMARBLE = "A piece of broken marble sculpture.",
@@ -16385,7 +16704,7 @@ STRINGS.SCRAPBOOK = {
         SPICE_CHILI = "Can be added to Crock Pot food using a Portable Seasoning Station.\n\nEating a dish spiced with Chili Flakes adds 20% damage to their attacks.\n\nDuration 4 minutes.\n\nAlso raises temperature 15 degrees for 15 seconds.",
         SPICE_SALT = "Can be added to Crock Pot food using a Portable Seasoning Station.\n\nEating a dish spiced with Seasoning Salt grants 25% more healing for healing effects.\n\nDuration 4 minutes.",
         BLUEPRINT = "It teaches you how to build a specific thing.",
-        WILLOWEMBER = "When a creature dies while on fire, they drop an etherial ember of some burnt essence of life.\n\nWhen Willow attunes with her lighter, eventually she can sense and collect Hot Embers with it.\n\nWillow can learn to use embers for a variety of Pyrokinetics.", 
+        WILLOWEMBER = "When a creature dies while on fire, they drop an etherial ember of some burnt essence of life.\n\nWhen Willow attunes with her lighter, eventually she can sense and collect Hot Embers with it.\n\nWillow can learn to use embers for a variety of Pyrokinetics.",
 
         -- things
         ATRIUMGATE = "A broken stone ring that has an empty socket at the base.",
@@ -16405,7 +16724,7 @@ STRINGS.SCRAPBOOK = {
 		STAFFCOLDLIGHT = "Cools survivors and gives light for 2 days.",
         COLDFIRE = "Works like a campfire, but makes things colder instead of heating them.",
         MOONSTORMSTATIC = "An experiment being worked on by a mysterious hologram that requires the survivors help.",
-        FARMPLOW = "Digs a tile of ground into farm soil that can be hoed to grow seeds into plants.",       
+        FARMPLOW = "Digs a tile of ground into farm soil that can be hoed to grow seeds into plants.",
         WATERTREEPILLAR = "This tree has a great canopy of leaves that shades the ground in an area bellow it and offers 35% protection from rain and cools survivor a small amount.",
         TREE = "Standing near a tree offers 35% protection from rain and cools survivor a small amount.",
         LOSTTOY = "Ghostly apparition of a spirit's lost toy.",
@@ -16497,8 +16816,8 @@ STRINGS.SCRAPBOOK = {
         SPIDERDEN = "Creates a patch of webbing on the ground near it that slows survivors and some creatures that walk on it.\n\nComes in several sizes and grows to fit its spider population.\n\nWebber may upgrade these with Silk.",
         STEERINGWHEEL = "When deployed on a boat, a survivor can use it to rotate the boats direction.",
         TACKLESTATION = "Standing near this device will provide the survivor with new Lures and Floats they can craft.",
-        CARPENTRY_STATION = "Standing near this device will provide the survivor with new Furniture they can craft.\n\nIt can also be used to quickly refine logs into boards.",
-        TENT = "A survivor can use the tent at Dusk or Night.\n\nSurvivor recovers 2 Health per second and 1 Sanity per second but consumes 0.33 Hunger per second. It also reduces 1 Wetness per second and lowers temperature 1 degree per second down to 40 degrees.",
+        CARPENTRY_STATION = "Standing near this device will provide the survivor with new Furniture they can craft.",
+        TENT = "A survivor can use the tent at Dusk or Night.\n\nSurvivor recovers 2 Health per second and 1 Sanity per second but consumes 0.33 Hunger per second. It also reduces 1 Wetness per second and increases temperature 1 degree per second down to 40 degrees.",
         TURFCRAFTINGSTATION = "Standing near this device will provide the survivor with new Turf they can craft.",
         TOWNPORTAL = "At the cost of 15 Sanity, a survivor can activate the device and then consume 40 Sanity per minute while they keep it active. A second survivor can use another Lazy Deserter or a Desert Stone to teleport to the active one. The teleport costs 50 Sanity.",
         WINTEROMETOR = "This device tells you the current temperature between 0 and 35 degrees.\n\nIt turns blue during the Winter.",
@@ -16526,7 +16845,7 @@ STRINGS.SCRAPBOOK = {
         BEARGERFUR_SACK = "A carriable container with 6 slots that can hold prepared food.\n\nThe food stored in it will be preserved for a long time.",
         DEERCLOPSEYEBALL_SENTRYWARD = "Makes the surrounding environment cool, if holding a Deerclops Eyeball.\n\nWildfires will not occur nearby, also preventing plant withering. It affects how quickly things dry out, including soil moisture, and how quickly they perish.\n\nCreates Mini Glaciers around itself over time.",
         ARCHIVESWITCH = "How many Survivors does it take to change a lightbulb?",
-        ORCHESTRINA = "Found deep in the long-forgotten archives of an ancient civilization, this noteworthy device is as melodious as it is mysterious. Solving its riddle might just be the key to unlocking a wellspring of ancient knowledge.",        
+        ORCHESTRINA = "Found deep in the long-forgotten archives of an ancient civilization, this noteworthy device is as melodious as it is mysterious. Solving its riddle might just be the key to unlocking a wellspring of ancient knowledge.",
         MOONALTARLINK = "It feels like there's a storm coming...",
         MOONBASE = "\"'Neath full moon's light, ye place the key;\nA rod whose call the stars doth heed.\nBut be ye warned, 'fore prize be claimed,\nSurvive the horde, lest ye be maimed.\"",
         CHARLIE_STAGE_POST = "A gift graciously bestowed to you by the Queen of the Constant, to enrich your sad, futile little lives. She was even kind enough to prepare costumes and a script!",
@@ -16561,7 +16880,7 @@ STRINGS.SCRAPBOOK = {
 
         JUNK_PILE_BIG = "A towering pile of junk. There might be something surprising hiding inside...",
 
-        -- Meta 4 / Ocean QoL 
+        -- Meta 4 / Ocean QoL
 
         ANCIENTFRUIT_GEM = "Even the heart of stone can be cracked by a little warmth... or perhaps a lot.",
         ANCIENTTREE_SEED = "An exotic seed that is very demanding on its growing conditions. There's a time and place for everything...",
@@ -16570,15 +16889,38 @@ STRINGS.SCRAPBOOK = {
         BOATPATCH_KELP = "A temporary solution for leaks. Sprung a leak? Use a kelp patch... then another... and another...",
         MOSQUITOMUSK = "Containing \"essence de moustique\" making any holder seem friendly to wild mosquitos.",
         MOSQUITOBOMB = "Packed so tight with wriggling friends that the explosive release of bugs inflicts damage to targets nearby.",
-        MOSQUITOMERMSALVE = "A useful healing device but only for merm, after all, the Mosquitos are mostly full of Merm blood to begin with.",
+        MOSQUITOMERMSALVE = "A useful healing device but only for Merms, after all, the Mosquitos are mostly full of Merm blood to begin with.",
 
-        MERM_ARMORY = "While stocked with Cut Grass and Logs, Guard Merm will grab a Swamp Brawler Helmet from it, reducing its stores.\n\nSwamp Brawler Helmets are a cheap way for a merm to get 50% protection from damage for a short while.",
-        MERM_ARMORY_UPGRADED = "While stocked with Cut Grass and Logs, Guard Merm will grab a Swamp Warrior Helmet from it, reducing its stores.\n\nSwamp Warrior Helmets are a better design over their Brawler cousin, providing 70% resistance from damage for a longer period of time.",
-        MERM_TOOLSHED = "While stocked with twigs and rocks, regular Merm will grab a Shoddy Tool from it, reducing its stores.\n\nShoddy tools will increase the amount of work a merm does for a short time.\n\nWith a shoddy tool, follower Merm will help chop trees, mine rocks, dig in a garden and Till soil.",
-        MERM_TOOLSHED_UPGRADED = "While stocked with twigs and rocks, regular Merm will grab a Slightly Less Shoddy Tool from it, reducing its stores.\n\nSlightly Less Shoddy tools increase the amount of work a merm does a little more than their lesser sibling, the Shoddy Tool.\n\nWith a shoddy tool, follower Merm will help chop trees, mine rocks, dig in a garden and Till soil.",
+        MERM_ARMORY = "While stocked with Cut Grass and Logs, Merm Guards will grab a Swamp Brawler Helmet from it, reducing its stores.\n\nSwamp Brawler Helmets are a cheap way for a Merm to get 50% protection from damage for a short while.",
+        MERM_ARMORY_UPGRADED = "While stocked with Cut Grass and Logs, Merm Guards will grab a Swamp Warrior Helmet from it, reducing its stores.\n\nSwamp Warrior Helmets are a better design over their Brawler cousin, providing 70% resistance from damage for a longer period of time.",
+        MERM_TOOLSHED = "While stocked with twigs and rocks, regular Merms will grab a Shoddy Tool from it, reducing its stores.\n\nShoddy Tools will increase the amount of work a Merm does for a short time.\n\nWith a Shoddy Tool, follower Merms will help chop trees, mine rocks, dig in a garden and till soil.",
+        MERM_TOOLSHED_UPGRADED = "While stocked with twigs and rocks, regular Merms will grab a Slightly Less Shoddy Tool from it, reducing its stores.\n\nSlightly Less Shoddy tools increase the amount of work a Merm does a little more than their lesser sibling, the Shoddy Tool.\n\nWith a Slightly Less Shoddy Tool, follower Merms will help chop trees, mine rocks, dig in a garden and till soil.",
 
-        OFFERING_POT = "Speeds up the respawning of Merm in Craftsmerm Houses, Merm Flort-ifications and Leaky Shacks.\n\nCan be used to call nearby merm to come eat the kelp and follow the Merm who summoned them.",        
-        OFFERING_POT_UPGRADED = "Speeds up the respawning of Merm in Craftsmerm Houses, Merm Flort-ifications and Leaky Shacks.\n\nCan be used to call nearby merm to come eat the kelp and follow the Merm who summoned them.",        
+        OFFERING_POT = "Speeds up the respawning of Merms in Craftsmerm Houses, Merm Flort-ifications and Leaky Shacks.\n\nCan be used to call nearby Merms to come eat the kelp and follow the Merm who summoned them.",
+        OFFERING_POT_UPGRADED = "Speeds up the respawning of Merms in Craftsmerm Houses, Merm Flort-ifications and Leaky Shacks.\n\nCan be used to call nearby Merms to come eat the kelp and follow the Merm who summoned them.",
+
+        -- Rifts 4
+
+        ARMOR_CARROTLURE = "Bunnymen are drawn to its alluring scent, powerful enough to mask the musk of meats.",
+        CARPENTRY_BLADE_MOONGLASS = "Allows a Sawhorse equipped with it to build new things.",
+        CHEST_MIMIC_REVEALED = "A heartless monster. It craves the taste of loot, and flesh.",
+        ITEMMIMIC_REVEALED = "An annoying little creep that just wants to be held by you. Stomp it out quickly, before it does more creeping.",
+        GELBLOB_STORAGE = "The Icker completely stops the spoilage of food placed in it.",
+        RABBITHAT = "Blend in with the rabbits so they no longer flee from you in terror.",
+        RABBITKING_AGGRESSIVE = "This Wrathful Rabbit King will show no mercy.",
+        RABBITKING_LUCKY = "Catch a Fortuitous Rabbit for your free reward. But be warned, the reward may turn to punishment when carrying meat.",
+        RABBITKING_PASSIVE = "This Benevolent Rabbit King will barter for your belongings.",
+        RABBITKINGHORN = "Calls forth a Portable Den.",
+        RABBITKINGHORN_CHEST = "A storage for your items and other trinkets accessible from Portable Dens.",
+        RABBITKINGMINION_BUNNYMAN = "The Rabbit King commands with a Royal decree, your presence be removed no matter your plea.",
+        RABBITKINGSPEAR = "It wards off Bunnymen, but trades your own mind for power against them in more ways than one.",
+        SADDLE_SHADOW = "Can be put onto a Beefalo if it's willing. Faster than a regular saddle.",
+        SHADOW_BATTLEAXE = "It can take down both creatures and trees. You can upgrade its stats, life steal and hunger, by defeating giants.\n\nThe weapon has 3 levels, and each level requires 3 giant kills to progress.",
+        SHADOW_BEEF_BELL = "Bind a Beefalo to the bell. A bound Beefalo will follow the holder, even into the caves and offline.\n\nYou can also use this bell to revive a bound Beefalo.",
+        SHADOWHEART_INFUSED = "A working heart that used to have a new body.",
+        SHADOWTHRALL_MOUTH = "It lurks in the shadows... You'll need to find a way to expose it before you can attack it.",
+        VOIDCLOTH_BOOMERANG = "A ranged weapon that launches three projectiles, dealing more damage the farther they travel.\n\nEquipping a Void Cowl gives an additional projectile. The Gloomerang also increases movement speed by 10% when held.",
+        WORM_BOSS = "The ancestor of the Depths Worm is dangerous to attack while it's in motion.",
     },
 
     -- Full name: "{name} Scrapbook Page"

@@ -33,8 +33,8 @@ local prefabs_item =
 
 --------------------------------------------------------------------------
 
-local function CalcEfficiencyMult(inst)
-	return TUNING.SKILLS.WINONA.BATTERY_EFFICIENCY_RATE_MULT[inst._efficiency] or 1
+local function CalcEfficiencyMult(inst, override)
+	return TUNING.SKILLS.WINONA.BATTERY_EFFICIENCY_RATE_MULT[override or inst._efficiency] or 1
 end
 
 local function ApplyEfficiencyBonus(inst)
@@ -194,7 +194,7 @@ local function SetBrillianceEnergyEnabled(inst, enable)
 			inst.AnimState:SetSymbolLightOverride(GetGemSymbol(i), 0.1 * count)
 		end
 		if inst.SoundEmitter:PlayingSound("loop") and not inst.SoundEmitter:PlayingSound("pb_loop") then
-			inst.SoundEmitter:PlaySound("meta4/winona_battery/purebrilliance_powered", "pb_loop")
+			inst.SoundEmitter:PlaySound("meta4/winona_battery/purebrillance_powered", "pb_loop")
 		end
 	else
 		inst.AnimState:Hide("PB_ENERGY")
@@ -413,17 +413,40 @@ end
 
 --------------------------------------------------------------------------
 
-local BATTERY_COST = TUNING.WINONA_BATTERY_LOW_MAX_FUEL_TIME * 0.9
+local BATTERY_COST = { fuel = TUNING.WINONA_BATTERY_LOW_MAX_FUEL_TIME * 0.9, shard = 1 }
 local function CanBeUsedAsBattery(inst, user)
-    if inst.components.fueled ~= nil and inst.components.fueled.currentfuel >= BATTERY_COST then
-        return true
-    else
-        return false, "NOT_ENOUGH_CHARGE"
-    end
+	if inst._shard_level > 0 then
+		if not inst:IsOverloaded() then
+			return true
+		end
+	elseif inst.components.fueled then
+		local efficiency_mult
+		if not (user and user:HasTag("handyperson")) and IsEngineerOnline(inst) then
+			efficiency_mult = CalcEfficiencyMult(inst)
+		else
+			local skilltreeupdater = user and user.components.skilltreeupdater or nil
+			local efficiency = skilltreeupdater and
+				(	(skilltreeupdater:IsActivated("winona_battery_efficiency_3") and 3) or
+					(skilltreeupdater:IsActivated("winona_battery_efficiency_2") and 2) or
+					(skilltreeupdater:IsActivated("winona_battery_efficiency_1") and 1)
+				) or 0
+			efficiency_mult = CalcEfficiencyMult(inst, efficiency)
+		end
+		if inst.components.fueled.currentfuel >= BATTERY_COST.fuel * efficiency_mult then
+			return true
+		end
+	end
+	return false, "NOT_ENOUGH_CHARGE"
 end
 
 local function UseAsBattery(inst, user)
-    inst.components.fueled:DoDelta(-BATTERY_COST, user)
+	if not (user and user:HasTag("handyperson")) and IsEngineerOnline(inst) then
+		--original winona still online, don't de-level
+	elseif ConfigureSkillTreeUpgrades(inst, user) then
+		ApplyEfficiencyBonus(inst)
+		UpdateCircuitPower(inst)
+	end
+	inst:ConsumeBatteryAmount(BATTERY_COST, 1, user)
 end
 
 --------------------------------------------------------------------------
@@ -440,7 +463,7 @@ local function StartSoundLoop(inst)
         UpdateSoundLoop(inst, inst.components.fueled:GetCurrentSection())
     end
 	if inst._brilliance_level > 0 and not inst.SoundEmitter:PlayingSound("pb_loop") then
-		inst.SoundEmitter:PlaySound("meta4/winona_battery/purebrilliance_powered", "pb_loop")
+		inst.SoundEmitter:PlaySound("meta4/winona_battery/purebrillance_powered", "pb_loop")
 	end
 end
 
@@ -493,7 +516,7 @@ local function CopyAllProperties(src, dest)
 end
 
 local function ChangeToItem(inst)
-	local item = SpawnPrefab("winona_battery_high_item")
+	local item = SpawnPrefab("winona_battery_high_item", inst:GetSkinBuild(), inst.skin_id)
 	item.Transform:SetPosition(inst.Transform:GetWorldPosition())
 	item.AnimState:PlayAnimation("collapse")
 	item.AnimState:PushAnimation("idle_ground", false)
@@ -592,6 +615,7 @@ local function OnBurnt(inst)
 	inst.components.timer:StopTimer("overloaded")
 	inst.components.timer:StopTimer("shardload")
 	StopUpdatingShardLoad(inst)
+	StopIdleChargeSounds(inst)
 	StopOverloadedSoundLoop(inst)
 	inst:RemoveComponent("portablestructure")
     inst.components.workable:SetOnWorkCallback(nil)
@@ -651,6 +675,10 @@ local function SetOverloaded(inst, overloaded)
 			inst.AnimState:SetSymbolLightOverride("m2", 0.2)
 			inst.AnimState:SetSymbolBloom("m2")
 			inst.AnimState:ClearOverrideSymbol("plug")
+            local skin_build = inst:GetSkinBuild()
+            if skin_build ~= nil then
+                inst.AnimState:OverrideItemSkinSymbol("plug", skin_build, "plug", inst.GUID, "winona_battery_high")
+            end
 			StopOverloadedSoundLoop(inst)
 			if not inst.components.fueled.consuming then
 				inst.components.fueled:StartConsuming()
@@ -686,7 +714,12 @@ local function SetOverloaded(inst, overloaded)
 		inst.AnimState:OverrideSymbol("m2", "winona_battery_high", "m1")
 		inst.AnimState:SetSymbolLightOverride("m2", 0)
 		inst.AnimState:ClearSymbolBloom("m2")
-		inst.AnimState:OverrideSymbol("plug", "winona_battery_high", "plug_off")
+        local skin_build = inst:GetSkinBuild()
+        if skin_build ~= nil then
+            inst.AnimState:OverrideItemSkinSymbol("plug", skin_build, "plug_off", inst.GUID, "winona_battery_high")
+        else
+            inst.AnimState:OverrideSymbol("plug", "winona_battery_high", "plug_off")
+        end
 		if not POPULATING then
 			PlayHitAnim(inst, "overload_pre")
 			inst.SoundEmitter:PlaySound("dontstarve/common/together/battery/down")
@@ -729,7 +762,12 @@ local function OnFuelEmpty(inst)
     inst.AnimState:OverrideSymbol("m2", "winona_battery_high", "m1")
 	inst.AnimState:SetSymbolLightOverride("m2", 0)
 	inst.AnimState:ClearSymbolBloom("m2")
-    inst.AnimState:OverrideSymbol("plug", "winona_battery_high", "plug_off")
+    local skin_build = inst:GetSkinBuild()
+    if skin_build ~= nil then
+        inst.AnimState:OverrideItemSkinSymbol("plug", skin_build, "plug_off", inst.GUID, "winona_battery_high")
+    else
+        inst.AnimState:OverrideSymbol("plug", "winona_battery_high", "plug_off")
+    end
     if inst.AnimState:IsCurrentAnimation("idle_charge") then
         inst.AnimState:PlayAnimation("idle_empty")
         StopIdleChargeSounds(inst)
@@ -753,6 +791,10 @@ local function OnFuelSectionChange(new, old, inst)
 	inst.AnimState:SetSymbolLightOverride("m2", 0.2)
 	inst.AnimState:SetSymbolBloom("m2")
     inst.AnimState:ClearOverrideSymbol("plug")
+    local skin_build = inst:GetSkinBuild()
+    if skin_build ~= nil then
+        inst.AnimState:OverrideItemSkinSymbol("plug", skin_build, "plug", inst.GUID, "winona_battery_high")
+    end
     UpdateSoundLoop(inst, new)
     if new > 0 then
 		local hadbrilliance = inst._brilliance_level > 0
@@ -1385,7 +1427,7 @@ end
 --------------------------------------------------------------------------
 
 local function OnDeploy(inst, pt, deployer)
-	local obj = SpawnPrefab("winona_battery_high")
+	local obj = SpawnPrefab("winona_battery_high", inst:GetSkinBuild(), inst.skin_id)
 	if obj then
 		obj.Physics:SetCollides(false)
 		obj.Physics:Teleport(pt.x, 0, pt.z)

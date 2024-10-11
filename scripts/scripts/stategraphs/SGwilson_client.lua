@@ -338,9 +338,16 @@ local actionhandlers =
         end),
     ActionHandler(ACTIONS.TAKEITEM,
         function(inst, action)
-            return action.target ~= nil
-                and action.target.takeitem ~= nil --added for quagmire
-                and "give"
+            return
+                   (action.target ~= nil and action.target:HasTag("inventoryitemholder_take") and "domediumaction")
+                or (action.target ~= nil and action.target.takeitem ~= nil and "give")
+                or "dolongaction"
+        end),
+    ActionHandler(ACTIONS.TAKESINGLEITEM,
+        function(inst, action)
+            return
+                   (action.target ~= nil and action.target:HasTag("inventoryitemholder_take") and "domediumaction")
+                or (action.target ~= nil and action.target.takeitem ~= nil and "give")
                 or "dolongaction"
         end),
     ActionHandler(ACTIONS.BUILD,
@@ -398,11 +405,8 @@ local actionhandlers =
             elseif obj:HasTag("soul") then
                 return "eat"
             end
-            for k, v in pairs(FOODTYPE) do
-                if obj:HasTag("edible_"..v) then
-                    return v == FOODTYPE.MEAT and "eat" or "quickeat"
-                end
-            end
+
+            return obj:HasTag("edible_"..FOODTYPE.MEAT) and "eat" or "quickeat"
         end),
     ActionHandler(ACTIONS.GIVE,
         function(inst, action)
@@ -468,6 +472,10 @@ local actionhandlers =
 						(action.invobject:HasTag("throw_line") and "throw_line")
                     )
                 or "castspell"
+        end),
+    ActionHandler(ACTIONS.STOKEFIRE,
+        function(inst, action)
+            return "castspellmind"
         end),
     ActionHandler(ACTIONS.CAST_POCKETWATCH,
         function(inst, action)
@@ -747,6 +755,7 @@ local actionhandlers =
 	ActionHandler(ACTIONS.LOOKAT, "closeinspect"),
 
     ActionHandler(ACTIONS.INCINERATE, "doshortaction"),
+	ActionHandler(ACTIONS.BOTTLE, "dolongaction"),
 }
 
 local events =

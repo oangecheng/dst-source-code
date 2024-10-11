@@ -364,9 +364,9 @@ local function SetTarget(inst, target)
     if inst._target ~= target then
         if inst._target ~= nil then
             local t = GLOBAL_TARGETS[inst._target]
-            t.lights[inst] = nil
             if t.count > 1 then
                 t.count = t.count - 1
+				t.lights[inst] = nil
             else
                 GLOBAL_TARGETS[inst._target] = nil
             end
@@ -711,6 +711,10 @@ local function OnEntityWake(inst)
 	inst.components.updatelooper:AddOnUpdateFn(OnUpdateLightServer)
 end
 
+local function OnRemoveEntity(inst)
+	SetTarget(inst, nil)
+end
+
 --------------------------------------------------------------------------
 
 local function OnBuilt2(inst, doer)
@@ -765,7 +769,7 @@ end
 --------------------------------------------------------------------------
 
 local function ChangeToItem(inst)
-	local item = SpawnPrefab("winona_spotlight_item")
+	local item = SpawnPrefab("winona_spotlight_item", inst:GetSkinBuild(), inst.skin_id)
 	item.Transform:SetPosition(inst.Transform:GetWorldPosition())
 	item.AnimState:PlayAnimation("collapse")
 	item.AnimState:PushAnimation("idle_ground", false)
@@ -917,6 +921,10 @@ local function OnConnectCircuit(inst)--, node)
     if not inst._wired then
         inst._wired = true
         inst.AnimState:ClearOverrideSymbol("wire")
+        local skin_build = inst:GetSkinBuild()
+        if skin_build ~= nil then
+            inst.AnimState:OverrideItemSkinSymbol("wire", skin_build, "wire", inst.GUID, "winona_spotlight")
+        end
         if not POPULATING then
             DoWireSparks(inst)
         end
@@ -1155,6 +1163,7 @@ local function fn()
     inst.OnSave = OnSave
     inst.OnEntitySleep = OnEntitySleep
     inst.OnEntityWake = OnEntityWake
+	inst.OnRemoveEntity = OnRemoveEntity
     inst.AddBatteryPower = AddBatteryPower
 
 	--skilltree
@@ -1305,7 +1314,7 @@ end
 --------------------------------------------------------------------------
 
 local function OnDeploy(inst, pt, deployer)
-	local obj = SpawnPrefab("winona_spotlight")
+	local obj = SpawnPrefab("winona_spotlight", inst:GetSkinBuild(), inst.skin_id)
 	if obj then
 		obj.Physics:SetCollides(false)
 		obj.Physics:Teleport(pt.x, 0, pt.z)

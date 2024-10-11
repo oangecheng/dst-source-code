@@ -48,6 +48,9 @@ local function StopBuzz(inst)
     inst.SoundEmitter:KillSound("buzz")
 end
 
+local function StoreHomePos(inst, allow_overwrite)
+    inst.components.knownlocations:RememberLocation("home", inst:GetPosition(), not allow_overwrite)
+end
 local function OnDropped(inst)
     inst.sg:GoToState("idle")
 
@@ -59,14 +62,6 @@ local function OnDropped(inst)
         inst.components.workable:SetWorkLeft(1)
     end
 
-    if inst.brain ~= nil then
-        inst.brain:Start()
-    end
-
-    if inst.sg ~= nil then
-        inst.sg:Start()
-    end
-
     if inst.components.stackable ~= nil and inst.components.stackable:IsStack() then
         local x, y, z = inst.Transform:GetWorldPosition()
         while inst.components.stackable:IsStack() do
@@ -76,9 +71,11 @@ local function OnDropped(inst)
                     item.components.inventoryitem:OnDropped()
                 end
                 item.Physics:Teleport(x, y, z)
+                StoreHomePos(item, true)
             end
         end
     end
+    StoreHomePos(inst)
 end
 
 local function OnPickedUp(inst)
@@ -141,15 +138,6 @@ local function OnAttacked(inst, data)
     inst.components.combat:ShareTarget(data.attacker, SpringCombatMod(SHARE_TARGET_DIST), ShareTargetFn, MAX_TARGET_SHARES)
 end
 
-local function CanGrabFn(inst, doer)
-    if doer.components.skilltreeupdater == nil or not doer.components.skilltreeupdater:IsActivated("wurt_mosquito_craft_3") then
-        return false
-    end
-
-    return doer.components.inventory:HasItemWithTag("mosquitomusk", 1)
-end
-
-
 local function OnChangedLeader(inst, new_leader, prev_leader)
     if new_leader ~= nil then
         inst.lastleader = new_leader
@@ -176,9 +164,6 @@ local function mosquito()
     inst:AddTag("ignorewalkableplatformdrowning")
     inst:AddTag("smallcreature")
     inst:AddTag("cattoyairborne")
-
-    -- grabbable (from grabbable component) added to pristine state for optimization.
-    inst:AddTag("grabbable")
 
     inst.AnimState:SetBank("mosquito")
     inst.AnimState:SetBuild("mosquito")
@@ -217,6 +202,7 @@ local function mosquito()
     inst.components.inventoryitem.canbepickedup = false
     inst.components.inventoryitem.canbepickedupalive = true
     inst.components.inventoryitem.pushlandedevents = false
+    inst.components.inventoryitem.grabbableoverridetag = "mosquitograbber"
 
     ---------------------
 
@@ -230,9 +216,6 @@ local function mosquito()
     inst.components.workable:SetWorkAction(ACTIONS.NET)
     inst.components.workable:SetWorkLeft(1)
     inst.components.workable:SetOnFinishCallback(OnWorked)
-
-    inst:AddComponent("grabbable")
-    inst.components.grabbable:SetCanGrabFn(CanGrabFn)
 
     MakeSmallBurnableCharacter(inst, "body", Vector3(0, -1, 1))
     MakeTinyFreezableCharacter(inst, "body", Vector3(0, -1, 1))

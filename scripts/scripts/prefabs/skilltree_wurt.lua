@@ -42,6 +42,14 @@ local function RefreshPathFinderSkill(inst)
     inst:RefreshPathFinderSkill()
 end
 
+local function CheckMosquitoCounts(inst)
+    if inst.components.inventory:HasItemWithTag("mosquitomusk", 1) then
+        inst:AddTag("mosquitograbber")
+    else
+        inst:RemoveTag("mosquitograbber")
+    end
+end
+
 --------------------------------------------------------------------------------------------------
 
 local ORDERS =
@@ -173,8 +181,6 @@ local function BuildSkillsData(SkillTreeFns)
             group = "swampmaster",
             tags = {"swampmaser", "mosquito"},
             root = true,
-            onactivate   = CreateAddTagFn("mosquitocraft_1"),
-            ondeactivate = CreateRemoveTagFn("mosquitocraft_1"),
             connects = {
                 "wurt_mosquito_craft_2",
             },
@@ -186,11 +192,19 @@ local function BuildSkillsData(SkillTreeFns)
             pos = {MOSQUITO_1_X, POS_Y_2},
             group = "swampmaster",
             tags = {"swampmaser", "mosquito"},
-            onactivate   = CreateAddTagFn("mosquitocraft_2"),
-            ondeactivate = CreateRemoveTagFn("mosquitocraft_2"),
             connects = {
                 "wurt_mosquito_craft_3",
             },
+            onactivate = function(inst, fromload)
+                inst:ListenForEvent("itemget", CheckMosquitoCounts)
+                inst:ListenForEvent("itemlose", CheckMosquitoCounts)
+                CheckMosquitoCounts(inst)
+            end,
+            ondeactivate = function(inst, fromload)
+                inst:RemoveEventCallback("itemget", CheckMosquitoCounts)
+                inst:RemoveEventCallback("itemlose", CheckMosquitoCounts)
+                inst:RemoveTag("mosquitograbber")
+            end,
         },
 
         -- Description.
@@ -198,8 +212,6 @@ local function BuildSkillsData(SkillTreeFns)
             pos = {MOSQUITO_1_X, POS_Y_3},
             group = "swampmaster",
             tags = {"swampmaser", "mosquito"},
-            onactivate   = CreateAddTagFn("merm_swampmaster_fertilizer"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_fertilizer"),
         },
 
         -- Description.
@@ -208,8 +220,6 @@ local function BuildSkillsData(SkillTreeFns)
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
             root = true,
-            onactivate   = CreateAddTagFn("merm_swampmaster_offeringpot"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_offeringpot"),
             connects = {
                 "wurt_civ_1_2",
             },
@@ -219,8 +229,6 @@ local function BuildSkillsData(SkillTreeFns)
             pos = {CIV_1_X, POS_Y_5},
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
-            onactivate   = CreateAddTagFn("merm_swampmaster_offeringpot_upgraded"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_offeringpot_upgraded"),
         },
 
         wurt_civ_2 = {
@@ -228,8 +236,6 @@ local function BuildSkillsData(SkillTreeFns)
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
             root = true,
-            onactivate   = CreateAddTagFn("merm_swampmaster_mermtoolshed"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_mermtoolshed"),
             connects = {
                 "wurt_civ_2_2",
             },
@@ -239,8 +245,6 @@ local function BuildSkillsData(SkillTreeFns)
             pos = {CIV_1_X+TILEGAP, POS_Y_5},
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
-            onactivate   = CreateAddTagFn("merm_swampmaster_mermtoolshed_upgraded"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_mermtoolshed_upgraded"),
         },
 
         wurt_civ_3 = {
@@ -248,8 +252,6 @@ local function BuildSkillsData(SkillTreeFns)
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
             root = true,
-            onactivate   = CreateAddTagFn("merm_swampmaster_mermarmory"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_mermarmory"),
             connects = {
                 "wurt_civ_3_2",
             },
@@ -259,8 +261,6 @@ local function BuildSkillsData(SkillTreeFns)
             pos = {CIV_1_X+TILEGAP+TILEGAP, POS_Y_5},
             group = "swampmaster",
             tags = {"swampmaser", "civ"},
-            onactivate   = CreateAddTagFn("merm_swampmaster_mermarmory_upgraded"),
-            ondeactivate = CreateRemoveTagFn("merm_swampmaster_mermarmory_upgraded"),
         },
 
         -- Description.

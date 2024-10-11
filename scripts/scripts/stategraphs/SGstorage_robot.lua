@@ -4,6 +4,7 @@ local events =
 {
     CommonHandlers.OnLocomote(false, true),
     CommonHandlers.OnSink(),
+    CommonHandlers.OnFallInVoid(),
 }
 
 local actionhandlers =
@@ -36,7 +37,7 @@ local idle_on_animover = { EventHandler("animover", _ReturnToIdle) }
 ------------------------------------------------------------------------------------------------------------------------------
 
 local function MakeImmovable(inst)
-    inst.Physics:SetMass(0)
+    inst.Physics:SetMass(99999)
 end
 
 local function RestoreMobility(inst)

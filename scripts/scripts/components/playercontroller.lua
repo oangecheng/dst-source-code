@@ -81,6 +81,7 @@ local function PullUpMap(inst, maptarget)
                 inst.HUD.controls:FocusMapOnWorldPosition(mapscreen, wx, wz)
             end
             -- Do not have to take into account max_dist because the map automatically centers on the player when opened.
+            mapscreen:ProcessStaticDecorations()
         end
     end
 end
@@ -1418,7 +1419,7 @@ local function TargetIsHostile(inst, target)
 end
 
 local function ValidateAttackTarget(combat, target, force_attack, x, z, has_weapon, reach)
-    if not combat:CanTarget(target) then
+	if not combat:CanTarget(target) or target:HasTag("stealth") then
         return false
     end
 
@@ -1650,15 +1651,6 @@ local function GetPickupAction(self, target, tool)
 
     if target:HasTag("quagmireharvestabletree") and not target:HasTag("fire") then
         return ACTIONS.HARVEST_TREE
-    elseif target:HasTag("grabbable") and
-        target:HasTag("mosquito") and
-        self.inst.components.skilltreeupdater ~= nil and
-        self.inst.components.skilltreeupdater:IsActivated("wurt_mosquito_craft_3") and
-        self.inst.replica.inventory ~= nil and
-        self.inst.replica.inventory:HasItemWithTag("mosquitomusk", 1)
-    then
-        -- NOTES(DiogoW): Please refactor this if more cases are added...
-        return ACTIONS.NET
     elseif target:HasTag("trapsprung") then
         return ACTIONS.CHECKTRAP
     elseif target:HasTag("minesprung") and not target:HasTag("mine_not_reusable") then
@@ -1668,7 +1660,7 @@ local function GetPickupAction(self, target, tool)
 			and ACTIONS.ACTIVATE
 			or nil
     elseif target.replica.inventoryitem ~= nil and
-        target.replica.inventoryitem:CanBePickedUp() and
+        target.replica.inventoryitem:CanBePickedUp(self.inst) and
 		not (target:HasTag("heavy") or (target:HasTag("fire") and not target:HasTag("lighter")) or target:HasTag("catchable")) and
         not target:HasTag("spider") then
         return (self:HasItemSlots() or target.replica.equippable ~= nil) and ACTIONS.PICKUP or nil
@@ -1713,7 +1705,7 @@ function PlayerController:IsDoingOrWorking()
         or self.inst:HasTag("working")
 end
 
-local TARGET_EXCLUDE_TAGS = { "FX", "NOCLICK", "DECOR", "INLIMBO" }
+local TARGET_EXCLUDE_TAGS = { "FX", "NOCLICK", "DECOR", "INLIMBO", "stealth" }
 local REGISTERED_CONTROLLER_ATTACK_TARGET_TAGS = TheSim:RegisterFindTags({ "_combat" }, TARGET_EXCLUDE_TAGS)
 
 local PICKUP_TARGET_EXCLUDE_TAGS = { "catchable", "mineactive", "intense", "paired" }
@@ -4158,14 +4150,15 @@ function PlayerController:GetMapActions(position, maptarget)
     local pos = self.inst:GetPosition()
 
     self.inst.checkingmapactions = true -- NOTES(JBK): Workaround flag to not add function argument changes for this task and lets things opt-in to special handling.
+    local action_maptarget = maptarget and maptarget:IsValid() and not maptarget:HasTag("INLIMBO") and maptarget or nil -- NOTES(JBK): Workaround passing the maptarget entity if it is out of scope for world actions.
 
-    local lmbact = self.inst.components.playeractionpicker:GetLeftClickActions(pos, maptarget)[1]
+    local lmbact = self.inst.components.playeractionpicker:GetLeftClickActions(pos, action_maptarget)[1]
     if lmbact then
         lmbact.maptarget = maptarget
         LMBaction = self:RemapMapAction(lmbact, position)
     end
 
-    local rmbact = self.inst.components.playeractionpicker:GetRightClickActions(pos, maptarget)[1]
+    local rmbact = self.inst.components.playeractionpicker:GetRightClickActions(pos, action_maptarget)[1]
     if rmbact then
         rmbact.maptarget = maptarget
         RMBaction = self:RemapMapAction(rmbact, position)
@@ -4190,8 +4183,13 @@ function PlayerController:UpdateActionsToMapActions(position, maptarget)
     return LMBaction, RMBaction
 end
 
-function PlayerController:OnMapAction(actioncode, position, maptarget)
-    local act = ACTIONS_BY_ACTION_CODE[actioncode]
+function PlayerController:OnMapAction(actioncode, position, maptarget, mod_name)
+    local act
+    if mod_name then -- Do not shorten to a short circuit logic we do not want base game actions as a fallback this would break everything.
+        act = MOD_ACTIONS_BY_ACTION_CODE[mod_name] and MOD_ACTIONS_BY_ACTION_CODE[mod_name][actioncode] or nil
+    else
+        act = ACTIONS_BY_ACTION_CODE[actioncode]
+    end
     if act == nil or not act.map_action then
         return
     end
@@ -4210,17 +4208,17 @@ function PlayerController:OnMapAction(actioncode, position, maptarget)
         end
     elseif self.locomotor == nil then
         -- TODO(JBK): Hook up pre_action_cb here.
-        SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget)
+        SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget, mod_name)
     elseif self:CanLocomote() then
         local LMBaction, RMBaction = self:GetMapActions(position, maptarget)
         if act.rmb then
             RMBaction.preview_cb = function()
-                SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget)
+                SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget, mod_name)
             end
             self.locomotor:PreviewAction(RMBaction, true)
         else
             LMBaction.preview_cb = function()
-                SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget)
+                SendRPCToServer(RPC.DoActionOnMap, actioncode, position.x, position.z, maptarget, mod_name)
             end
             self.locomotor:PreviewAction(LMBaction, true)
         end

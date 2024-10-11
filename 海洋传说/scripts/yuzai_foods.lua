@@ -18,7 +18,7 @@ local function OnTick(inst, target)
     end
 end
 
-local foods = {
+local  foods = {
     ice_litchi  = {
         test = function(cooker, names, tags)
             return tags.frozen and tags.frozen >= 2 and names.lg_litichi and names.lg_litichi >= 2

@@ -38,6 +38,12 @@ local function SkipPre(inst)
 end
 
 local function KillFX(inst)
+	if inst:IsAsleep() then
+		inst:Remove()
+		return
+	end
+	inst.OnEntitySleep = inst.Remove
+
 	inst.AnimState:PlayAnimation("bridge"..tostring(inst.variation).."_pst")
 	inst:ListenForEvent("animover", inst.Remove)
 	for i, v in ipairs(inst.decor) do
@@ -55,6 +61,15 @@ end
 local function StartSound(inst)
 	inst.soundtask = nil
 	inst.SoundEmitter:PlaySound("meta4/charlie_residue/vine_bridge_pre")
+end
+
+local function ShakeIt(inst)
+	inst.AnimState:PlayAnimation("bridge"..tostring(inst.variation).."_shake", true)
+	for i, v in ipairs(inst.decor) do
+		if v:is_a(EntityScript) then
+			v.AnimState:PlayAnimation("extra_"..tostring(v.variation).."_shake", true)
+		end
+	end
 end
 
 local function fn()
@@ -100,6 +115,7 @@ local function fn()
 
 	inst.SkipPre = SkipPre
 	inst.KillFX = KillFX
+    inst.ShakeIt = ShakeIt
 
 	return inst
 end

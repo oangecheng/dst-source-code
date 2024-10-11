@@ -163,7 +163,6 @@ local prefabs =
     "wormhole_limited_1",
     "diviningrod",
     "diviningrodbase",
-    "splash_ocean",
     "maxwell_smoke",
     "chessjunk1",
     "chessjunk2",
@@ -275,6 +274,13 @@ for _, v in pairs(require("prefabs/pocketdimensioncontainer_defs").POCKETDIMENSI
     table.insert(prefabs, v.prefab)
 end
 
+require("ocean_util") -- Only here just in case but it should not be needed.
+for _, v in pairs(SINKENTITY_PREFABS) do
+    for _, prefab in pairs(v) do
+        table.insert(prefabs, prefab)
+    end
+end
+
 --------------------------------------------------------------------------
 
 local function OnPlayerSpawn(world, inst)
@@ -356,7 +362,7 @@ local function CreateTilePhysics(inst)
             0.25, 64
         )
         inst.Map:AddTileCollisionSet(
-            inst.has_ocean and COLLISION.GROUND or COLLISION.LAND_OCEAN_LIMITS,
+            inst:CanFlyingCrossBarriers() and COLLISION.GROUND or COLLISION.LAND_OCEAN_LIMITS,
             TileGroups.ImpassableTiles, true,
             TileGroups.ImpassableTiles, false,
             0.25, 128
@@ -370,6 +376,10 @@ end
 
 local function GetPocketDimensionContainer(world, name)
     return world.PocketDimensionContainers[name]
+end
+
+local function CanFlyingCrossBarriers(world) -- NOTES(JBK): Ghosts are flying in this case and has_ocean is backwards compatability.
+    return world.has_ocean or world.cancrossbarriers_flying
 end
 
 --------------------------------------------------------------------------
@@ -424,6 +434,9 @@ function MakeWorld(name, customprefabs, customassets, common_postinit, master_po
         inst.entity:AddSoundEmitter()
 
         inst.tile_physics_init = custom_data.tile_physics_init
+
+        inst.cancrossbarriers_flying = custom_data.cancrossbarriers_flying -- Intentionally not a table for searchability.
+        inst.CanFlyingCrossBarriers = CanFlyingCrossBarriers
 
         if custom_data.common_preinit ~= nil then
             custom_data.common_preinit(inst)

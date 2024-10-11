@@ -12,6 +12,7 @@ local assets =
     Asset("ANIM", "anim/werebeaver_boat_jump.zip"),
     Asset("ANIM", "anim/werebeaver_boat_plank.zip"),
     Asset("ANIM", "anim/werebeaver_boat_sink.zip"),
+	Asset("ANIM", "anim/werebeaver_abyss_fall.zip"),
     --Asset("ANIM", "anim/weremoose_basic.zip"), --Moved to global.lua for use in Item Collection
     Asset("ANIM", "anim/weremoose_attacks.zip"),
     Asset("ANIM", "anim/weremoose_transform.zip"),
@@ -20,6 +21,7 @@ local assets =
     Asset("ANIM", "anim/weremoose_boat_jump.zip"),
     Asset("ANIM", "anim/weremoose_boat_plank.zip"),
     Asset("ANIM", "anim/weremoose_boat_sink.zip"),
+	Asset("ANIM", "anim/weremoose_abyss_fall.zip"),
     --Asset("ANIM", "anim/weregoose_basic.zip"), --Moved to global.lua for use in Item Collection
     Asset("ANIM", "anim/weregoose_groggy.zip"),
     Asset("ANIM", "anim/weregoose_dance.zip"),
@@ -708,7 +710,7 @@ local function SetWereDrowning(inst, mode)
     --V2C: drownable HACKS, using "false" to override "nil" load behaviour
     --     Please refactor drownable to use POST LOAD timing.
     if inst.components.drownable ~= nil then
-        if mode == WEREMODES.GOOSE then
+        if mode == WEREMODES.GOOSE and not TheWorld:HasTag("cave") then
             if inst.components.drownable.enabled ~= false then
                 inst.components.drownable.enabled = false
                 inst.Physics:ClearCollisionMask()
@@ -1537,7 +1539,7 @@ local function OnTakeDrowningDamage(inst, tuning)
     end
 end
 
-local function GetDowningDamgeTunings(inst)
+local function GetDrowningDamageTunings(inst)
     return TUNING.DROWNING_DAMAGE[IsWereMode(inst.weremode:value()) and "WEREWOODIE" or "WOODIE"]
 end
 
@@ -1776,7 +1778,7 @@ local function master_postinit(inst)
 
         if inst.components.drownable ~= nil then
             inst.components.drownable:SetOnTakeDrowningDamageFn(OnTakeDrowningDamage)
-            inst.components.drownable:SetCustomTuningsFn(GetDowningDamgeTunings)
+            inst.components.drownable:SetCustomTuningsFn(GetDrowningDamageTunings)
         end
 
         inst.IsWerebeaver = IsWerebeaver

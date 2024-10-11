@@ -162,7 +162,7 @@ GLOBAL_KEY_BINDINGS =
         end
     },
     {
-        binding = { key = KEY_H, SHIFT=true },
+        --binding = { key = KEY_H, SHIFT=true },
 		name = function()
 			local on_off = TheFrontEnd.debugMenu.history:IsEnabled() and "OFF" or "ON"
 			return "Turn "..on_off.." History Recording"
@@ -332,7 +332,7 @@ WINDOW_KEY_BINDINGS =
         end
     },
     {
-		binding = { key = KEY_H },
+		--binding = { key = KEY_H },
 		name = "History",
 		fn = function()
             if not CAN_USE_DBUI or Profile:GetThreadedRenderEnabled() then
@@ -1099,7 +1099,7 @@ AddGameDebugKey(KEY_T, function()
             else
                 if TheWorld ~= nil and not TheWorld.ismastersim then
                     local x, y, z = ConsoleWorldPosition():Get()
-                    player.Transform:SetPosition(x, y, z)
+
                     if boat then
                         ConsoleRemote("d_teleportboat(%d, %d, %d)", {x, y, z})
                     else
