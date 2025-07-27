@@ -25,6 +25,7 @@
 	id,--动作ID
 	actiondata,--需要修改的动作数据，诸如strfn、fn等，可不写
 	state,--关联SGstate,可以是字符串或者函数
+	nobind,--为true时不绑定至特定目标
 }
 --]]
 
@@ -32,7 +33,10 @@ local MEDAL_FRUIT_TREE_SCION_LOOT = require("medal_defs/medal_fruit_tree_defs").
 
 --使用工具工作
 local function DoToolWork(act, workaction)
-    if act.target.components.workable ~= nil and
+    if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(workaction) then
+		return false
+	end
+	if act.target.components.workable ~= nil and
         act.target.components.workable:CanBeWorked() and
         act.target.components.workable:GetWorkAction() == workaction then
         act.target.components.workable:WorkedBy(
@@ -57,45 +61,6 @@ local function DoToolWork(act, workaction)
     return false
 end
 
---补充耐久(材料,目标,单个材料可增加的耐久)
-local function addUseFn(inst,target,adduse)
-	local uses = target.components.finiteuses and target.components.finiteuses:GetUses()--当前耐久
-	local total = target.components.finiteuses and target.components.finiteuses.total--耐久上限
-	if uses==nil then return end
-	adduse=adduse or 1
-	--填充物有耐久的话，按耐久损耗比例换算补充
-	if inst.components.finiteuses then
-		adduse = math.ceil(adduse * inst.components.finiteuses:GetPercent())
-	end
-	if adduse>0 then
-		if uses>=total then
-			return--耐久达上限了
-		end
-	elseif adduse<0 then
-		total=0--减耐久的话就用0作为上限来计算了
-	else
-		return
-	end
-	
-	local neednum=math.max(math.floor((total-uses)/adduse),1)--需要消耗的材料数量
-	local fuelnum = inst.components.stackable and inst.components.stackable.stacksize or 1--材料数量
-	--消耗材料变更耐久
-	if fuelnum>neednum then
-		inst.components.stackable:SetStackSize(fuelnum-neednum)
-		target.components.finiteuses:SetUses(math.min(uses+neednum*adduse,target.components.finiteuses.total))
-		if target.addusefn then--扩展回调
-			target:addusefn(inst,neednum)
-		end
-	else
-		target.components.finiteuses:SetUses(math.min(uses+fuelnum*adduse,target.components.finiteuses.total))
-		if target.addusefn then--扩展回调
-			target:addusefn(inst,fuelnum)
-		end
-		inst:Remove()
-	end
-	return true
-end
-
 --获取堆叠数量
 local function GetStackSize(item)
     return item.components.stackable ~= nil and item.components.stackable:StackSize() or 1
@@ -108,29 +73,106 @@ local function removeItem(item,num)
 		item:Remove()
 	end
 end
+
+--补充耐久(材料,目标,单个材料可增加的耐久)
+local function addUseFn(material,target,adduse)
+	adduse = adduse or 0
+	local current, total--当前耐久,耐久上限
+	if target.components.armor ~= nil then
+		current = target.components.armor.condition
+		total = target.components.armor.maxcondition
+	elseif target.components.finiteuses ~= nil then
+		current = target.components.finiteuses:GetUses()
+		total = target.components.finiteuses.total
+	elseif target.components.fueled ~= nil then
+		current = target.components.fueled.currentfuel
+		total = target.components.fueled.maxfuel
+	end
+
+	if current==nil or total==nil then return end
+
+	--填充物有耐久的话，按耐久损耗比例换算补充
+	if material.components.armor ~= nil then
+		adduse = math.ceil(adduse * material.components.armor:GetPercent())
+	elseif material.components.finiteuses ~= nil then
+		adduse = math.ceil(adduse * material.components.finiteuses:GetPercent())
+	elseif material.components.fueled ~= nil then
+		adduse = math.ceil(adduse * material.components.fueled:GetPercent())
+	end
+	
+	if adduse == 0 then
+		return
+	elseif adduse<0 then
+		total=0--减耐久的话就用0作为上限来计算了
+	elseif current>=total then
+		return--耐久达上限了
+	end
+	
+	local neednum = math.max(math.floor((total-current)/adduse),1)--需要消耗的材料数量
+	local fuelnum = GetStackSize(material)--材料数量
+	local consume = fuelnum > neednum and neednum or fuelnum
+	--修补前执行
+	if target.medal_before_repairfn then
+		target:medal_before_repairfn(material,consume)
+	end
+	--修补
+	if target.components.armor ~= nil then
+		target.components.armor:Repair(consume*adduse)
+	elseif target.components.finiteuses ~= nil then
+		target.components.finiteuses:Repair(consume*adduse)
+	elseif target.components.fueled ~= nil then
+		target.components.fueled:DoDelta(consume*adduse)
+	end
+	--修补后执行
+	if target.medal_onrepairfn then
+		target:medal_onrepairfn(material,consume)
+	end
+	removeItem(material,consume)
+	--消耗材料变更耐久
+	-- if fuelnum>neednum then
+	-- 	material.components.stackable:SetStackSize(fuelnum-neednum)
+	-- 	onRepair(target,material,neednum,adduse)
+	-- else
+	-- 	onRepair(target,material,fuelnum,adduse)
+	-- 	material:Remove()
+	-- end
+	
+	return true
+end
+
+--融合升级新勋章列表
+local NEWMEDAL_LOOT={
+	blank_certificate={
+		target="multivariate_certificate",
+		tag="traditionalbearer1",
+	},
+	multivariate_certificate={
+		target="medium_multivariate_certificate",
+		tag="traditionalbearer2",
+	},
+	medium_multivariate_certificate={
+		target="large_multivariate_certificate",
+		tag="traditionalbearer3",
+	},
+}
 --获取可融合勋章升级对象(勋章1,勋章2,玩家)
 local function getMultivariateTarget(inst,target,doer)
-	local newmedal_loot={
-		blank_certificate={
-			target="multivariate_certificate",
-			tag="traditionalbearer1",
-		},
-		multivariate_certificate={
-			target="medium_multivariate_certificate",
-			tag="traditionalbearer2",
-		},
-		medium_multivariate_certificate={
-			target="large_multivariate_certificate",
-			tag="traditionalbearer3",
-		},
-	}
-	if inst.prefab ~= target.prefab then
+	local a_prefab = inst.prefab=="copy_blank_certificate" and "blank_certificate" or inst.prefab
+	local b_prefab = target.prefab=="copy_blank_certificate" and "blank_certificate" or target.prefab
+	if a_prefab ~= b_prefab then
 		return
 	end
-	if newmedal_loot[inst.prefab] and doer:HasTag(newmedal_loot[inst.prefab].tag) then
-		return newmedal_loot[inst.prefab].target
+	if NEWMEDAL_LOOT[a_prefab] and doer:HasTag(NEWMEDAL_LOOT[a_prefab].tag) then
+		return NEWMEDAL_LOOT[a_prefab].target
 	end
 end
+--赋予空间之力列表
+local GIVE_SPACEGEM_LOOT={
+	krampus_sack="medal_krampus_chest_item",--坎普斯背包-坎普斯宝匣
+	space_certificate="space_time_certificate",--空间勋章-时空勋章
+	devour_staff="medal_space_staff",--吞噬法杖-时空法杖
+	medium_devour_soul_certificate="large_devour_soul_certificate",--噬魂勋章-噬空勋章
+}
 
 --自定义动作
 local actions = {
@@ -157,7 +199,6 @@ local actions = {
 				--把勋章放入融合勋章内
 				local item = act.invobject.components.inventoryitem:RemoveFromOwner(equipped.components.container.acceptsstacks)
 				equipped.components.container:GiveItem(item, targetslot, nil, false)
-				-- act.doer:PushEvent("equip", { item = item, eslot = EQUIPSLOTS.MEDAL or EQUIPSLOTS.NECK or EQUIPSLOTS.BODY })
 			--融合勋章栏里勋章满了并且最后一格和想放进去的勋章不一样
 			-- elseif act.invobject.prefab ~= cur_item.prefab then
 			else
@@ -176,7 +217,6 @@ local actions = {
 						act.doer.components.inventory:GiveItem(old_item, item.prevslot)
 					end
 				end
-				-- act.doer:PushEvent("equip", { item = item, eslot = EQUIPSLOTS.MEDAL or EQUIPSLOTS.NECK or EQUIPSLOTS.BODY })
 				return true
 			end
 			return false
@@ -206,20 +246,7 @@ local actions = {
 					item.prevcontainer = nil
 					item.prevslot = nil
 					--勋章还给玩家
-					local medal_box=act.doer.components.inventory:FindItem(function(inst)
-						if inst:HasTag("medal_box") then
-							if inst.components.container and not inst.components.container:IsFull() and inst.replica.container:IsOpenedBy(act.doer) then
-								return true
-							end
-						end
-						return false
-					end)
-					if medal_box then
-						medal_box.components.container:GiveItem(item)
-					else
-						act.doer.components.inventory:GiveItem(item)--, nil, equipped:GetPosition())
-					end
-					-- act.doer:PushEvent("unequip", { item = item, eslot = EQUIPSLOTS.MEDAL or EQUIPSLOTS.NECK or EQUIPSLOTS.BODY})
+					act.doer.components.inventory:GiveItem(item)
 					return true
 				end
 			end
@@ -237,7 +264,7 @@ local actions = {
 		id = "RELEASEMEDALSOUL", --释放勋章灵魂
 		str = STRINGS.MEDAL_NEWACTION.RELEASEMEDALSOUL,
 		fn = function(act)
-			if act.doer ~= nil and act.doer:HasTag("medal_blinker") and act.invobject ~= nil and act.invobject.prefab == "devour_soul_certificate" and not act.invobject:HasTag("usesdepleted") then
+			if act.doer ~= nil and act.doer:HasTag("medal_blinker") and act.invobject ~= nil and act.invobject:HasTag("canreleasesoul") and not act.invobject:HasTag("usesdepleted") then
 				local fuses = act.invobject.components.finiteuses
 				if fuses and fuses:GetUses() > 0 then
 					local soul=SpawnPrefab("wortox_soul")
@@ -310,7 +337,7 @@ local actions = {
 				if fuses and fuses:GetUses() > 0 then
 					--切换勋章攻击模式
 					if act.invobject.changeState then
-						act.invobject:changeState(not act.invobject.isaoe)
+						act.invobject:changeState(not act.invobject:HasTag("medal_aoe"))
 						SpawnPrefab("bee_poof_big").Transform:SetPosition(act.doer.Transform:GetWorldPosition())
 						return true
 					end
@@ -466,6 +493,7 @@ local actions = {
 				if item and item.prefab=="xinhua_dictionary" then
 					if item.components.finiteuses then
 						item.components.finiteuses:Use(1)
+						act.doer.hasdictionary = true--持有新华字典
 						hasdictionary = true
 					end
 				end
@@ -490,9 +518,6 @@ local actions = {
 						local box = SpawnPrefab("medal_pay_tribute_box")
 						if box then
 							box.Transform:SetPosition(x, y, z)
-							if box.SetTributeId then
-								box:SetTributeId(nil,act.doer)
-							end
 							SpawnPrefab("round_puff_fx_lg").Transform:SetPosition(x, y, z)
 							removeItem(inst)
 						end
@@ -512,19 +537,21 @@ local actions = {
 			if act.doer ~= nil and target ~= nil and target.prefab=="medal_gift_fruit" then
 				local container = target.components.inventoryitem ~= nil and target.components.inventoryitem:GetContainer() or nil--目标所在容器
 				local spawn_at = (container ~= nil and container.inst) or target or act.doer--生成点目标
-				local gift = SpawnPrefab(target.GetGift and target:GetGift(act.doer) or "goldnugget")
-				if gift then
-					gift.Transform:SetPosition(spawn_at.Transform:GetWorldPosition())
-					if gift.components.inventoryitem ~= nil then
-						gift.components.inventoryitem:OnDropped(true, .5)
+				local size = target.components.stackable and target.components.stackable.stacksize or 1
+				local times = HasOriginMedal(act.doer,"has_handy_medal") and math.min(TUNING_MEDAL.HANDY_MEDAL.GIFT_FRUIT_NUM, size) or 1--本源+巧手一次性开多个
+				local destiny_num = GetMedalDestiny(nil,"medal_gift_fruit")--宿命
+				for i = 1, times do
+					local gift = SpawnPrefab(target.GetGift and target:GetGift(act.doer,destiny_num) or "goldnugget")
+					if gift then
+						gift.Transform:SetPosition(spawn_at.Transform:GetWorldPosition())
+						if gift.components.inventoryitem ~= nil then
+							gift.components.inventoryitem:OnDropped(true, .5)
+						end
 					end
-					--目标在容器里，则返还给容器
-					-- if container ~= nil then
-					-- 	container:GiveItem(gift, nil, gift:GetPosition())
-					-- end
-					removeItem(target)
-					return true
+					destiny_num = destiny_num*10%1
 				end
+				removeItem(target,times)
+				return true
 			end
 		end,
 		state = function(inst, action)
@@ -536,13 +563,80 @@ local actions = {
 		},
 		canqueuer = "rightclick",--兼容排队论
 	},
+	{
+		id = "MEDALCALLMONSTER", --消耗怪物召唤符召唤怪物
+		str = STRINGS.MEDAL_NEWACTION.CALLTRIBUTEBOX,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_monster_symbol" then
+				if act.invobject.SpawnMonster then
+					if act.invobject:SpawnMonster(act.doer) then
+						removeItem(act.invobject)
+						return true
+					end
+				end
+			end
+		end,
+		state = "commune_with_abigail",
+	},
+	{
+		id = "READCLOSEDBOOK", --阅读无字天书
+		str = STRINGS.MEDAL_NEWACTION.READCLOSEDBOOK,
+		fn = function(act)
+			if act.doer ~= nil and act.doer:HasTag("medal_canstudy") and act.invobject ~= nil and act.invobject.prefab=="closed_book" then
+				local c_book = act.invobject.components.book
+				if c_book ~= nil then
+					local read_sanity = c_book.read_sanity or 0
+					local sanity_current = act.doer.components.sanity and act.doer.components.sanity.current or 0
+					--没有san值？那你别学了
+					if sanity_current < read_sanity then
+						return false,"NOSANITY"
+					end
+					-- local success, reason = c_book:OnRead(act.doer)
+					
+					local success, reason = c_book:Interact(c_book.onread, act.doer)
+					if success and act.doer.components.sanity then
+						local ismount = act.doer.components.rider ~= nil and act.doer.components.rider:IsRiding()
+						local fx = ismount and c_book.fxmount or c_book.fx
+						if fx ~= nil then
+							fx = SpawnPrefab(fx)
+							if ismount then
+								--In case we did not specify fxmount, convert fx to SixFaced
+								fx.Transform:SetSixFaced()
+							end
+							fx.Transform:SetPosition(act.doer.Transform:GetWorldPosition())
+							fx.Transform:SetRotation(act.doer.Transform:GetRotation())
+						end
+
+						act.doer.components.sanity:DoDelta(read_sanity)
+					end
+					if success then
+						local medal = act.doer.components.inventory:EquipMedalWithName("wisdom_test_certificate")--获取玩家的蒙昧勋章
+						if medal and medal.components.finiteuses then
+							local istemporary = act.doer:HasTag("aspiring_bookworm") or act.doer.components.reader==nil or IsMedalTempCom(act.doer,"reader") or act.doer.temporary_nomalreader--是否是临时读者(小鱼妹也是临时读者)
+							local consume = (istemporary and 1 or 2)*TUNING_MEDAL.WISDOM_TEST.READ_CONSUME
+							medal.components.finiteuses:Use(consume)
+							if not RewardToiler(act.doer,0.1) then--天道酬勤
+								SpawnMedalTips(act.doer,consume,5)--弹幕提示
+							end
+						end
+					end
+					return success, reason
+				end
+			end
+		end,
+		state = "book",
+		actiondata = {
+			priority=7,
+			mount_valid=true,
+		},
+	},
 	
 	----------------------------USEITEM拿起某物品放到另一个物品上点击后执行----------------------------
 	{
 		id = "GIVEIMMORTAL", --赋予不朽之力
 		str = STRINGS.MEDAL_NEWACTION.GIVEIMMORTAL,
 		fn = function(act)
-			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab == "immortal_gem" and act.target:HasTag("canbeimmortal") and not act.target:HasTag("keepfresh") then
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab == "immortal_gem" and act.target:HasTag("immortalable") then
 				--吞噬法杖升级成不朽法杖
 				if act.target.prefab=="devour_staff" then
 					local container = act.target.components.inventoryitem ~= nil and act.target.components.inventoryitem:GetContainer() or nil--目标所在容器
@@ -554,38 +648,15 @@ local actions = {
 						if container ~= nil then
 							container:GiveItem(newitem, nil, newitem:GetPosition())
 						end
-						act.invobject:Remove()
+						removeItem(act.invobject)
 						act.target:Remove()
 						return true
 					end
 				end
 
-				--获取玩家身上的不朽精华
-				local essences = act.doer.components.inventory:FindItems(function(item)
-						return item.prefab == "immortal_essence" 
-					end)
-				local essences_count = 0--不朽精华数量
-				for i, v in ipairs(essences) do
-					essences_count = essences_count + GetStackSize(v)
-				end
-				local numslots=act.target.components.container and act.target.components.container.numslots--容器格子数量
-				local need_consume=numslots and math.ceil((math.floor(numslots/10)*0.5+1)*numslots)
-				if need_consume then
-					--玩家身上的不朽精华数量不能少于格子数量(部分容器可跳过该判断)
-					if act.target.no_consume_essences or need_consume<=essences_count then
-						if act.target.setImmortal then
-							act.target.setImmortal(act.target)
-							removeItem(act.invobject)
-							--部分容器可不消耗
-							if not act.target.no_consume_essences then
-								--消耗不朽精华
-								act.doer.components.inventory:ConsumeByName("immortal_essence",need_consume)
-							end
-							MedalSay(act.doer,STRINGS.IMMORTALSPEECH.SUCCESS)
-						end
-					else
-						MedalSay(act.doer,STRINGS.IMMORTALSPEECH.NOTENOUGH..need_consume..STRINGS.IMMORTALSPEECH.NOTENOUGH2)
-					end
+				if act.target.components.medal_immortal then
+					local result, str = act.target.components.medal_immortal:AddImmortal(act.invobject,act.doer)
+					if str ~=nil then MedalSay(act.doer, str) end
 					return true
 				end
 			end
@@ -601,51 +672,28 @@ local actions = {
 		str = STRINGS.MEDAL_NEWACTION.GIVESPACEGEM,
 		fn = function(act)
 			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab == "medal_space_gem" and (act.target.prefab=="krampus_sack" or act.target:HasTag("cangivespacegem")) then
-				local container = act.target.components.inventoryitem ~= nil and act.target.components.inventoryitem:GetContainer() or nil--目标所在容器
-				--不能在融合勋章内赋予空间之力
-				if container and container.inst:HasTag("multivariate_certificate") then
-					MedalSay(act.doer,STRINGS.IMMORTALSPEECH.ISEQUIPPED)
-					return true
-				end
-				if act.target.components.equippable and not act.target.components.equippable:IsEquipped() then
-					local spawn_loot={
-						krampus_sack="medal_krampus_chest_item",--坎普斯背包-坎普斯宝匣
-						space_certificate="space_time_certificate",--空间勋章-时空勋章
-						devour_staff="medal_space_staff",--吞噬法杖-时空法杖
-					}
-					local spawn_at = (container ~= nil and container.inst) or act.target or act.doer--生成点目标
-					local newitem = SpawnPrefab(spawn_loot[act.target.prefab])
-					if newitem then
+				local newitem = SpawnPrefab(GIVE_SPACEGEM_LOOT[act.target.prefab])
+				if newitem then
+					local isequipped = act.target.components.equippable and act.target.components.equippable:IsEquipped()--是否处于装备状态
+					local olditem = act.target.components.inventoryitem and act.target.components.inventoryitem:RemoveFromOwner()--从原位置移除，升级后返还
+					if olditem ~= nil then
+						if olditem.prevcontainer ~= nil then
+							olditem.prevcontainer.inst.components.container:GiveItem(newitem, olditem.prevslot)
+						elseif isequipped and newitem.components.equippable then
+							act.doer.components.inventory:Equip(newitem)
+						else
+							act.doer.components.inventory:GiveItem(newitem, olditem.prevslot)
+						end
+					else
+						local spawn_at = act.target or act.doer--生成点目标
 						newitem.Transform:SetPosition(spawn_at.Transform:GetWorldPosition())
-						--转移资源
-						if act.target.prefab=="krampus_sack" then
-							-- transferEverything(target,newitem)
-							--继承不朽之力
-							if act.target:HasTag("keepfresh") and newitem.setImmortal then
-								newitem:setImmortal()
-							end
-							--转移资源
-							if act.target.components.container and not act.target.components.container:IsEmpty() then
-								if newitem.components.container then
-									local allitems=act.target.components.container:RemoveAllItemsWithSlot()
-									if allitems then
-										for k,v in pairs(allitems) do
-											newitem.components.container:GiveItem(v,k)
-										end
-									end
-								end
-							end
-						end
-						--目标在容器里，则返还给容器
-						if container ~= nil then
-							container:GiveItem(newitem, nil, newitem:GetPosition())
-						end
-						act.invobject:Remove()
-						act.target:Remove()
-						return true
 					end
-				else--不能在装备时赋予空间之力
-					MedalSay(act.doer,STRINGS.IMMORTALSPEECH.ISEQUIPPED)
+					--转移资源、同步不朽之力(坎普斯宝匣)
+					if newitem.transferEverything ~= nil then
+						newitem.transferEverything(act.target,newitem)
+					end
+					removeItem(act.invobject)
+					removeItem(act.target)
 					return true
 				end
 			end
@@ -666,21 +714,28 @@ local actions = {
 				if owner then
 					container = owner.components.inventory or owner.components.container
 				end
-				
 				local newfood=SpawnPrefab(act.target.prefab.."_"..act.invobject.prefab)
-				local perishablePercent=nil
-				if act.target.components.perishable then
-					perishablePercent=act.target.components.perishable:GetPercent()
-				end
 				if newfood then
-					if newfood.components.perishable and perishablePercent ~= nil then
-						newfood.components.perishable:SetPercent(perishablePercent)
+					local num = 1
+					--本源勋章增强，一次性调味多个
+					if HasOriginMedal(act.doer) and newfood.components.stackable ~= nil then
+						local f_num = act.target.components.stackable ~= nil and act.target.components.stackable.stacksize or 1
+						local s_num = act.invobject.components.stackable ~= nil and act.invobject.components.stackable.stacksize or 1
+						num = math.min(f_num,s_num)
 					end
-					if not (container and container:GiveItem(newfood)) then
-						act.doer.components.inventory:GiveItem(newfood)
+					--同步新鲜度
+					if act.target.components.perishable and newfood.components.perishable then
+						newfood.components.perishable:SetPercent(act.target.components.perishable:GetPercent())
 					end
-					removeItem(act.invobject)
-					removeItem(act.target)
+					--同步堆叠数量
+					if num > 1 then
+						newfood.components.stackable:SetStackSize(num)
+					end
+					if not (container and container:GiveItem(newfood,act.target.prevslot)) then
+						act.doer.components.inventory:GiveItem(newfood,act.target.prevslot)
+					end
+					removeItem(act.invobject,num)
+					removeItem(act.target,num)
 				else
 					MedalSay(act.doer,STRINGS.CHEFFLAVOURSPEECH.FAILFLAVOUR)
 				end
@@ -697,31 +752,39 @@ local actions = {
 		id = "POWERPRINT",--能力印刻
 		str = STRINGS.MEDAL_NEWACTION.POWERPRINT,
 		fn = function(act)
-			if act.doer ~= nil and act.doer:HasTag("player") and ((act.invobject:HasTag("copyfunctional") and act.target.prefab=="blank_certificate") or (act.invobject.prefab=="blank_certificate" and act.target:HasTag("copyfunctional"))) then
-				local blankmedal = act.target.prefab=="blank_certificate" and act.target or act.invobject--空白勋章
-				local targetmedal = act.target.prefab=="blank_certificate" and act.invobject or act.target--目标勋章
-				local medalname = targetmedal.prefab
-				local owner = blankmedal.components.inventoryitem and blankmedal.components.inventoryitem.owner or nil
-				if blankmedal.components.equippable and not blankmedal.components.equippable:IsEquipped() then
-					--不能在融合勋章内印刻
-					if owner and owner:HasTag("multivariate_certificate") then
-						MedalSay(act.doer,STRINGS.POWERPRINTSPEECH.ISEQUIPPED)
-						return true
+			if act.doer ~= nil and act.doer:HasTag("player") and ((act.invobject:HasTag("copyfunctional") and act.target:HasTag("blank_certificate")) or (act.invobject:HasTag("blank_certificate") and act.target:HasTag("copyfunctional"))) then
+				local blankmedal = act.target:HasTag("blank_certificate") and act.target or act.invobject--空白勋章
+				local targetmedal = act.target:HasTag("blank_certificate") and act.invobject or act.target--目标勋章
+				local isequipped = blankmedal.components.equippable and blankmedal.components.equippable:IsEquipped()--是否处于装备状态
+				local oldmedal = blankmedal == act.target and blankmedal.components.inventoryitem and blankmedal.components.inventoryitem:RemoveFromOwner() or nil
+				local newmedal = oldmedal or blankmedal
+				--是材料勋章的话，得变成仿制勋章后才能进行印刻
+				if blankmedal.prefab == "blank_certificate" then
+					newmedal = SpawnPrefab("copy_blank_certificate")--生成仿制勋章
+					if newmedal and newmedal.PowerPrint then
+						newmedal:PowerPrint(targetmedal)
 					end
-					--等级继承
-					if targetmedal.medal_level then
-						medalname=medalname.."&"..targetmedal.medal_level
-					end
-					--如果需要印刻的勋章和空白勋章已有的能力不同，则进行印刻
-					local oldname = blankmedal.blankmedalchangename:value() or "blank_certificate"
-					if oldname ~= medalname then
-						blankmedal.blankmedalchangename:set(medalname)--换名
-						MedalSay(act.doer,STRINGS.POWERPRINTSPEECH.SUCCESS)
+					if blankmedal.prevcontainer ~= nil then
+						blankmedal.prevcontainer.inst.components.container:GiveItem(newmedal, blankmedal.prevslot)
+					elseif isequipped and newmedal.components.equippable then
+						act.doer.components.inventory:Equip(newmedal)
 					else
-						MedalSay(act.doer,STRINGS.POWERPRINTSPEECH.ALREADY)
+						act.doer.components.inventory:GiveItem(newmedal, blankmedal.prevslot)
 					end
-				else
-					MedalSay(act.doer,STRINGS.POWERPRINTSPEECH.ISEQUIPPED)
+					blankmedal:Remove()
+					MedalSay(act.doer,STRINGS.POWERPRINTSPEECH.SUCCESS)
+				elseif newmedal and newmedal.PowerPrint  then
+					local result = newmedal:PowerPrint(targetmedal)
+					if oldmedal ~= nil then
+						if newmedal.prevcontainer ~= nil then
+							newmedal.prevcontainer.inst.components.container:GiveItem(newmedal, newmedal.prevslot)
+						elseif isequipped and newmedal.components.equippable then
+							act.doer.components.inventory:Equip(newmedal)
+						else
+							act.doer.components.inventory:GiveItem(newmedal, newmedal.prevslot)
+						end
+					end
+					MedalSay(act.doer,result and STRINGS.POWERPRINTSPEECH.SUCCESS or STRINGS.POWERPRINTSPEECH.ALREADY)
 				end
 				return true
 			end
@@ -740,6 +803,8 @@ local actions = {
 					rage_krampus_soul="devour_soul_certificate",--暴怒之灵→噬灵勋章
 					amulet="bathingfire_certificate",--重生护符→浴火勋章
 					medal_withered_heart="bee_king_certificate",--凋零之心→蜂王勋章
+					medal_shadow_magic_stone="shadowmagic_certificate",--暗影魔法石→暗影魔法勋章
+					medal_inherit_page="inherit_certificate",--传承书页→传承勋章
 				}
 				
 				if act.target:HasTag("powerabsorbable") then
@@ -765,15 +830,28 @@ local actions = {
 						end
 					end
 				else--格罗姆雕像
-					if act.invobject.blankmedalchangename:value() ~= "naughty_certificate" then
-						act.invobject.blankmedalchangename:set("naughty_certificate")
-						MedalSay(act.doer,STRINGS.BLANKMEDALSPEECH.GETNAUGHTY)
-						return true
-					else--重复吸收则直接变成正品
-						local newmedal=SpawnPrefab("naughty_certificate")
-						if newmedal then
-							act.doer.components.inventory:GiveItem(newmedal)
-							removeItem(act.invobject)
+					--生成仿制勋章
+					if act.invobject.prefab=="blank_certificate" then
+						local newmedal = SpawnPrefab("copy_blank_certificate")
+						if newmedal and newmedal.PowerPrint then
+							newmedal:PowerPrint({prefab="naughty_certificate"})
+							act.doer.components.inventory:GiveItem(newmedal, act.invobject.prevslot)
+							act.invobject:Remove()
+							MedalSay(act.doer,STRINGS.BLANKMEDALSPEECH.GETNAUGHTY)
+							return true
+						end
+					elseif act.invobject.blankmedalchangename then
+						--重复吸收则直接变成正品
+						if act.invobject.blankmedalchangename:value() == "naughty_certificate" then
+							local newmedal=SpawnPrefab("naughty_certificate")
+							if newmedal then
+								act.doer.components.inventory:GiveItem(newmedal)
+								removeItem(act.invobject)
+								return true
+							end
+						else
+							act.invobject.blankmedalchangename:set("naughty_certificate")
+							MedalSay(act.doer,STRINGS.BLANKMEDALSPEECH.GETNAUGHTY)
 							return true
 						end
 					end
@@ -789,39 +867,34 @@ local actions = {
 		id = "MEDALUPGRADE",--勋章升级
 		str = STRINGS.MEDAL_NEWACTION.MEDALUPGRADE,
 		fn = function(act)
-			if act.doer ~= nil and act.invobject ~= nil and act.invobject:HasTag("upgradablemedal") and act.target:HasTag("upgradablemedal") then
-				--同种勋章才能融合升级
-				if act.invobject.prefab == act.target.prefab then 
-					local owner = act.target.components.inventoryitem and act.target.components.inventoryitem.owner or nil
-					--不能在融合勋章内融合
-					if owner and owner:HasTag("multivariate_certificate") then
-						MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.ISEQUIPPED)
-						return true
-					end
-					if act.target.components.equippable and not act.target.components.equippable:IsEquipped() then
-						local maxLevel=math.max(act.invobject.medal_level,act.target.medal_level)--取两个勋章的最大等级
-						--勋章等级不能超过最大等级
-						if maxLevel<act.invobject.medal_level_max then
-							local newLevel=math.min(act.invobject.medal_level_max,act.invobject.medal_level+act.target.medal_level)
-							act.target.medal_level=newLevel--等级继承
-							act.target.changemedallevelname:set(newLevel)--名字变更
-							--如果有耐久则融合耐久
-							local medal_use1=act.invobject.components.finiteuses and act.invobject.components.finiteuses:GetUses()
-							local medal_use2=act.target.components.finiteuses and act.target.components.finiteuses:GetUses()
-							if medal_use1 and medal_use2 then
-								act.target.components.finiteuses:SetMaxUses(TUNING_MEDAL.SPEED_MEDAL.MAXUSES*newLevel)
-								act.target.components.finiteuses:SetUses(medal_use1+medal_use2)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject:HasTag("upgradablemedal") and act.target:HasTag("upgradablemedal") and act.target.prefab == act.invobject.prefab then
+				--勋章等级不能超过最大等级
+				if act.target.medal_level < act.target.medal_level_max and act.invobject.medal_level < act.target.medal_level_max then
+					local isequipped = act.target.components.equippable and act.target.components.equippable:IsEquipped()--是否处于装备状态
+					local oldmedal = act.target.components.inventoryitem and act.target.components.inventoryitem:RemoveFromOwner()--从原位置移除，升级后返还
+					local newmedal = oldmedal or act.target
+					if newmedal ~= nil and newmedal.MedalLevelUp then
+						newmedal:MedalLevelUp(act.invobject.medal_level)
+						if oldmedal ~= nil then
+							if newmedal.prevcontainer ~= nil then
+								newmedal.prevcontainer.inst.components.container:GiveItem(newmedal, newmedal.prevslot)
+							elseif isequipped and newmedal.components.equippable then
+								act.doer.components.inventory:Equip(newmedal)
+							else
+								act.doer.components.inventory:GiveItem(newmedal, newmedal.prevslot)
 							end
-							removeItem(act.invobject)
-							MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.SUCCESS)
-						else
-							MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.ISMAX)
 						end
-					else
-						MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.ISEQUIPPED)
+						--如果有耐久则融合耐久
+						if act.target.components.finiteuses and act.invobject.components.finiteuses then
+							local medal_use1 = act.invobject.components.finiteuses:GetUses()
+							local medal_use2 = act.target.components.finiteuses:GetUses()
+							act.target.components.finiteuses:SetUses(math.min(medal_use1+medal_use2,act.target.components.finiteuses.total))
+						end
+						removeItem(act.invobject)
+						MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.SUCCESS)
 					end
 				else
-					MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.UNLIKE)
+					MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.ISMAX)
 				end
 				return true
 			end
@@ -832,12 +905,57 @@ local actions = {
 		},
 	},
 	{
-		id = "REPAIRCOMMON",--通用补充耐久(finiteuses组件)
+		id = "INHERITMEDALUPGRADE",--传承勋章特殊升级
+		str = STRINGS.MEDAL_NEWACTION.INHERITMEDALUPGRADE,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.target.prefab =="inherit_certificate" and act.target:HasTag("upgradablemedal") and (act.invobject.prefab=="blank_certificate" or act.invobject.prefab=="medal_inherit_page") then
+				--勋章等级不能超过最大等级
+				if act.target.medal_level < act.target.medal_level_max then
+					local isequipped = act.target.components.equippable and act.target.components.equippable:IsEquipped()--是否处于装备状态
+					local oldmedal = act.target.components.inventoryitem and act.target.components.inventoryitem:RemoveFromOwner()--从原位置移除，升级后返还
+					local newmedal = oldmedal or act.target
+					if newmedal ~= nil and newmedal.MedalLevelUp then
+						newmedal:MedalLevelUp()
+						if oldmedal ~= nil then
+							if newmedal.prevcontainer ~= nil then
+								newmedal.prevcontainer.inst.components.container:GiveItem(newmedal, newmedal.prevslot)
+							elseif isequipped and newmedal.components.equippable then
+								act.doer.components.inventory:Equip(newmedal)
+							else
+								act.doer.components.inventory:GiveItem(newmedal, newmedal.prevslot)
+							end
+						end
+						removeItem(act.invobject)
+						MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.SUCCESS)
+					end
+				else
+					MedalSay(act.doer,STRINGS.MEDALUPGRADESPEECH.ISMAX)
+				end
+				return true
+			end
+		end,
+		state = "domediumaction",
+		actiondata = {
+			mount_valid=true,
+			priority=10,
+		},
+	},
+	{
+		id = "REPAIRCOMMON",--通用补充耐久
 		str = STRINGS.MEDAL_NEWACTION.REPAIRCOMMON,
 		fn = function(act)
-			if act.doer ~= nil and act.invobject ~= nil and act.target~=nil and act.target.medal_repair_common and act.target.medal_repair_common[act.invobject.prefab]~=nil then
-				if act.invobject.prefab~="glommerflower" or act.invobject:HasTag("show_spoilage") then
-					return addUseFn(act.invobject,act.target,act.target.medal_repair_common[act.invobject.prefab])
+			if act.doer ~= nil and act.invobject ~= nil and act.target~=nil then
+				local adduse
+				--不朽道具修补
+				if act.target:HasTag("isimmortal") and act.target.medal_repair_immortal ~= nil and act.target.medal_repair_immortal[act.invobject.prefab] ~= nil then
+					adduse = act.target.medal_repair_immortal[act.invobject.prefab]
+				--普通道具修补
+				elseif act.target.medal_repair_common ~= nil and act.target.medal_repair_common[act.invobject.prefab] ~= nil then
+					adduse = act.target.medal_repair_common[act.invobject.prefab]
+				end
+				if adduse ~= nil then
+					adduse = FunctionOrValue(adduse, act.target, act.invobject)
+					return addUseFn(act.invobject, act.target, adduse)
 				end
 			end
 		end,
@@ -913,9 +1031,9 @@ local actions = {
 				local fishable = act.target.components.fishable
 				if fishable then
 					--饵力值没满
-					if fishable.bait_force and fishable.bait_force<10 then
+					if fishable.bait_force and fishable.bait_force < TUNING_MEDAL.SEAPOND_MAX_BAIT_FORCE then
 						--增加饵力值
-						fishable.bait_force=math.min(fishable.bait_force+math.random(2,3),TUNING_MEDAL.SEAPOND_MAX_NUM)
+						fishable.bait_force = fishable.bait_force + math.random(2,3)--允许超出上限
 						fishable:SetRespawnTime(TUNING_MEDAL.SEAPOND_FISH_RESPAWN_TIME)--设定重生时间
 						--鱼不满时开始刷新
 						if fishable:GetFishPercent()<1 and not fishable.respawntask then
@@ -951,8 +1069,7 @@ local actions = {
 		id = "MEDALTRANSPLANT",--月光移植
 		str = STRINGS.MEDAL_NEWACTION.MEDALTRANSPLANT,
 		fn = function(act)
-			DoToolWork(act, ACTIONS.MEDALTRANSPLANT)
-			return true
+			return DoToolWork(act, ACTIONS.MEDALTRANSPLANT)
 		end,
 		state=function(inst)
 			return not inst.sg:HasStateTag("predig")
@@ -970,8 +1087,7 @@ local actions = {
 		id = "MEDALNORMALTRANSPLANT",--普通移植
 		str = STRINGS.MEDAL_NEWACTION.MEDALTRANSPLANT,
 		fn = function(act)
-			DoToolWork(act, ACTIONS.MEDALNORMALTRANSPLANT)
-			return true
+			return DoToolWork(act, ACTIONS.MEDALNORMALTRANSPLANT)
 		end,
 		state=function(inst)
 			return not inst.sg:HasStateTag("predig")
@@ -989,8 +1105,7 @@ local actions = {
 		id = "MEDALHAMMER",--月光锤锤东西
 		str = STRINGS.MEDAL_NEWACTION.MEDALHAMMER,
 		fn = function(act)
-			DoToolWork(act, ACTIONS.MEDALHAMMER)
-			return true
+			return DoToolWork(act, ACTIONS.MEDALHAMMER)
 		end,
 		state=function(inst)
 			return not inst.sg:HasStateTag("prehammer")
@@ -1060,9 +1175,13 @@ local actions = {
 		str = STRINGS.MEDAL_NEWACTION.FISHMOONINWATER,
 		fn = function(act)
 			if act.doer ~= nil and act.doer:HasTag("groggy") and TheWorld.state.isfullmoon and act.doer.replica.sanity:IsLunacyMode() and act.invobject ~= nil and act.invobject.prefab=="messagebottleempty" and act.target:HasTag("cansalvage") then
+				if act.doer.medal_confused_mark and act.doer.medal_confused_mark>=TUNING_MEDAL.MEDAL_BUFF_CONFUSED_MAX then
+					return false,"TOOCONFUSED"
+				end
 				local newitem=SpawnPrefab("bottled_moonlight")
 				if newitem~=nil then
 					act.doer.components.inventory:GiveItem(newitem)
+					act.doer:AddDebuff("buff_medal_confused","buff_medal_confused")--添加迷糊标记
 					removeItem(act.invobject)
 					
 					act.target.AnimState:OverrideSymbol("reflection_quarter", "moondial_waning_build", "reflection_quarter")
@@ -1089,7 +1208,7 @@ local actions = {
 			if act.doer ~= nil and act.doer:HasTag("player") and act.invobject ~= nil and act.invobject.prefab=="bottled_moonlight" and act.target:HasTag("washfunctionalable") then
 				local container = act.target.components.inventoryitem ~= nil and act.target.components.inventoryitem:GetContainer() or nil--目标所在容器
 				local spawn_at = (container ~= nil and container.inst) or act.target or act.doer--生成点目标
-				local blankmedal = SpawnPrefab("blank_certificate")
+				local blankmedal = SpawnPrefab(act.target:HasTag("medal") and "blank_certificate" or "medal_inherit_page")--空白勋章或者传承书页
 				if blankmedal then
 					blankmedal.Transform:SetPosition(spawn_at.Transform:GetWorldPosition())
 					local oldmedal = act.target.components.inventoryitem:RemoveFromOwner(false)--需要被洗的勋章
@@ -1122,7 +1241,9 @@ local actions = {
 		id = "MAKEMUSHTREE",--变成蘑菇树
 		str = STRINGS.MEDAL_NEWACTION.MAKEMUSHTREE,
 		fn = function(act)
-			if act.doer ~= nil and act.doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or act.doer:HasTag("inmoonlight")) and act.invobject ~= nil and (act.invobject:HasTag("spore") or act.invobject:HasTag("medal_spore")) and act.target:HasTag("stump") and (act.target.prefab=="livingtree" or act.target.prefab=="livingtree_halloween") then
+			if act.doer ~= nil and act.doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or act.doer:HasTag("inmoonlight") or HasOriginMedal(act.doer)) 
+				and act.invobject ~= nil and (act.invobject:HasTag("spore") or act.invobject:HasTag("medal_spore")) 
+				and act.target:HasTag("stump") and (act.target.prefab=="livingtree" or act.target.prefab=="livingtree_halloween") then
 				local mushtree_spore_list={
 					spore_tall="mushtree_tall",
 					spore_medium="mushtree_medium",
@@ -1193,7 +1314,9 @@ local actions = {
 		id = "MAKEMANDARKPLANT",--曼德拉草种植
 		str = STRINGS.MEDAL_NEWACTION.MAKEMANDARKPLANT,
 		fn = function(act)
-			if act.doer ~= nil and act.doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or act.doer:HasTag("inmoonlight")) and act.invobject ~= nil and (act.invobject.prefab=="mandrake" or act.invobject.prefab=="mandrake_seeds") and act.target.prefab=="mound" and not act.target:HasTag("DIG_workable") then
+			if act.doer ~= nil and act.doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or act.doer:HasTag("inmoonlight") or HasOriginMedal(act.doer)) 
+				and act.invobject ~= nil and (act.invobject.prefab=="mandrake" or act.invobject.prefab=="mandrake_seeds") 
+				and act.target.prefab=="mound" and not act.target:HasTag("DIG_workable") then
 				local mandrake_planted=SpawnPrefab("mandrake_planted")
 				if mandrake_planted then
 					mandrake_planted.Transform:SetPosition(act.target.Transform:GetWorldPosition())
@@ -1244,8 +1367,8 @@ local actions = {
 					local chance = def.seasonlist and def.seasonlist[season] and def.season_chance_put or def.chance--接穗掉落概率
 					local randomnum = math.random()
 					--一切都是宿命啊
-					if def.hasdestiny and act.doer.components.medal_destiny then
-						randomnum = act.doer.components.medal_destiny:GetDestiny() or randomnum
+					if def.hasdestiny then
+						randomnum = GetMedalDestiny(nil,"immortal_fruit_oversized")
 					end
 					--获得接穗代码
 					if chance and randomnum < chance then
@@ -1410,15 +1533,16 @@ local actions = {
 		str = STRINGS.MEDAL_NEWACTION.MEDALPYTREDE,
 		fn = function(act)
 			if act.doer ~= nil and act.invobject ~= nil and act.invobject:HasTag("medal_tradeable") and act.target:HasTag("medal_trade") then
-				--新月才能Py
-				if TheWorld and  not TheWorld.state.isnewmoon then
-					return false,"NOTNEWMOON"
-				end
+				--回收破烂
 				if act.invobject.prefab ~= "toil_money" and act.target.recyclingJunk then
 					if act.target:recyclingJunk(act.invobject) then
 						removeItem(act.invobject)
 						return true
 					end
+				end
+				--新月才能Py
+				if TheWorld and  not TheWorld.state.isnewmoon then
+					return false,"NOTNEWMOON"
 				end
 				if TheWorld and TheWorld.components.medal_infosave then
 					--py成功
@@ -1433,6 +1557,7 @@ local actions = {
 			end
 		end,
 		state = "give",
+		canqueuer = "allclick",--兼容排队论
 	},
 	{
 		id = "MEDALREMOULD",--改造
@@ -1461,26 +1586,9 @@ local actions = {
 		str = STRINGS.MEDAL_NEWACTION.MEDALEADDPOWER,
 		fn = function(act)
 			if act.doer ~= nil and act.doer:HasTag("player") and act.invobject ~= nil and act.invobject:HasTag("sketch") and act.target.prefab=="valkyrie_certificate" then
-				local sketchLoot={
-					"chesspiece_deerclops_sketch",--巨鹿
-					"chesspiece_bearger_sketch",--熊大
-					"chesspiece_moosegoose_sketch",--鸭子
-					"chesspiece_dragonfly_sketch",--龙蝇
-					"chesspiece_malbatross_sketch",--邪天翁
-					"chesspiece_crabking_sketch",--帝王蟹
-					"chesspiece_toadstool_sketch",--蛤蟆
-					"chesspiece_stalker_sketch",--暗影编织者
-					"chesspiece_klaus_sketch",--克劳斯
-					"chesspiece_beequeen_sketch",--蜂后
-					"chesspiece_antlion_sketch",--蚁狮
-					"chesspiece_minotaur_sketch",--犀牛
-					"chesspiece_guardianphase3_sketch",--天体英雄
-					"chesspiece_eyeofterror_sketch",--恐怖之眼
-					"chesspiece_twinsofterror_sketch",--双子魔眼
-				}
 				if act.target.valkyrie_power and act.target.valkyrie_power<TUNING_MEDAL.VALKYRIE_MEDAL.MAX_POWER then
 					local sketchname=act.invobject.GetSpecificSketchPrefab and act.invobject:GetSpecificSketchPrefab() or nil
-					if sketchname and table.contains(sketchLoot, sketchname) then
+					if sketchname and act.target.valkyrie_sketchLoot and act.target.valkyrie_sketchLoot[sketchname] then
 						act.target.valkyrie_power=act.target.valkyrie_power+1
 						act.target:PushEvent("collectsketch")
 						act.invobject:Remove()
@@ -1553,36 +1661,6 @@ local actions = {
 		actiondata = {
 			mount_valid=true,
 			priority=10,
-		},
-	},
-	{
-		id = "MEDALREPAIR",--填充修复耐久(fuel组件)
-		str = STRINGS.MEDAL_NEWACTION.MEDALREPAIR,
-		fn = function(act)
-			if act.doer ~= nil and act.doer:HasTag("player") and act.target.medal_repair_loot and act.invobject ~= nil and act.target.medal_repair_loot[act.invobject.prefab]~=nil then
-				if act.target.components.fueled and act.target.components.fueled:GetPercent()<1 then
-					local currentfuel=act.target.components.fueled.currentfuel--当前耐久
-					local maxfuel=act.target.components.fueled.maxfuel--耐久上限
-					local addfuel=act.target.medal_repair_loot[act.invobject.prefab]--单个材料可增加的耐久
-					local neednum=math.max(math.floor((maxfuel-currentfuel)/addfuel),1)--需要消耗的材料数量
-					local fuelnum = act.invobject.components.stackable and act.invobject.components.stackable.stacksize or 1--材料数量
-					-- print(currentfuel,maxfuel,addfuel,neednum,fuelnum)
-					--消耗材料变更耐久
-					if fuelnum>neednum then
-						act.invobject.components.stackable:SetStackSize(fuelnum-neednum)
-						act.target.components.fueled:DoDelta(neednum*addfuel)
-					else
-						act.target.components.fueled:DoDelta(fuelnum*addfuel)
-						act.invobject:Remove()
-					end
-					act.target:PushEvent("medal_repair")
-					return true
-				end
-			end
-		end,
-		state = "give",
-		actiondata = {
-			mount_valid=true,
 		},
 	},
 	{
@@ -1674,12 +1752,11 @@ local actions = {
 		fn = function(act)
 			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_spacetime_potion" and act.target:HasTag("fate_rewriteable") then
 				SpawnPrefab("medal_spacetime_puff_small").Transform:SetPosition(act.target.Transform:GetWorldPosition())
-				local randomnum = math.random()
-				--一切都是宿命啊
-				if act.doer.components.medal_destiny then
-					randomnum = act.doer.components.medal_destiny:GetDestiny() or randomnum
+				if act.target.components.medal_itemdestiny ~= nil then
+					act.target.components.medal_itemdestiny:InheritDestiny()--继承宿命
+				else
+					act.target.medal_destiny_num = GetMedalDestiny(act.invobject)--暂时没用到,写着备用
 				end
-				act.target.medal_destiny_num = randomnum
 				removeItem(act.invobject)
 				MedalSay(act.doer,STRINGS.CHANGEDESTINYSPEECH.SUCCESS)
 				return true
@@ -1707,7 +1784,7 @@ local actions = {
 		id = "GIVEROOTCHESTSPACEPOS",--给树根宝箱添加时空锚点
 		str = STRINGS.MEDAL_NEWACTION.MEDALMARKPOS,
 		fn = function(act)
-			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_time_slider" and act.target:HasTag("addspaceposable") then
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_time_slider" and act.target.prefab=="medal_livingroot_chest" and not act.target:HasTag("isspacechest") then
 				if act.target.AddSpacePos and act.target:AddSpacePos() then
 					removeItem(act.invobject)
 					if act.target.components.writeable then
@@ -1804,6 +1881,7 @@ local actions = {
 		state = "domediumaction",
 		actiondata = {
 			mount_valid=true,
+			priority=10,
 		},
 	},
 	{
@@ -1837,7 +1915,7 @@ local actions = {
 		id = "REMOVEROOTCHESTSPACEPOS",--移除树根宝箱时空锚点
 		str = STRINGS.MEDAL_NEWACTION.WASHFUNCTIONAL,
 		fn = function(act)
-			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="bottled_moonlight" and act.target.prefab=="medal_livingroot_chest" and not act.target:HasTag("addspaceposable") then
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="bottled_moonlight" and act.target.prefab=="medal_livingroot_chest" and act.target:HasTag("isspacechest") then
 				if act.target.RemoveSpacePos and act.target:RemoveSpacePos() then
 					removeItem(act.invobject)
 					return true
@@ -1880,18 +1958,43 @@ local actions = {
 			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_spacetime_runes" and act.invobject.quickdelivery and act.invobject.quickdelivery[act.target.prefab] then
 				--根据藏宝图找藏宝点
 				if act.target.getTreasurePoint then
-					local treasure_data = act.target:getTreasurePoint()--获取藏宝点信息
-					if treasure_data and act.doer.sg then
-						removeItem(act.invobject)
-						act.doer.sg:GoToState("pocketwatch_warpback",{warpback={dest_worldid = treasure_data.worldid, dest_x = treasure_data.x, dest_y = 0, dest_z = treasure_data.z}})
-						if treasure_data.worldid == TheShard:GetShardId() then--在一个世界的话就感叹一下，跨世界就免了
-							MedalSay(act.doer,STRINGS.DELIVERYSPEECH.FOUND)
+					--本源时空直接原地挖宝
+					if HasOriginMedal(act.doer,"spacetime_medal") and act.target.runesSpawnTreasure ~= nil then
+						local x,y,z = act.doer.Transform:GetWorldPosition()
+						if TheWorld.Map:IsLandTileAtPoint(x, y, z) then
+							act.target:runesSpawnTreasure(act.doer)
+							removeItem(act.invobject)
+							removeItem(act.target)
+							return true
+						else
+							return false,"CANTSPAWN"
+						end
+					else
+						local treasure_data = act.target:getTreasurePoint()--获取藏宝点信息
+						if treasure_data and act.doer.sg then
+							removeItem(act.invobject)
+							act.doer.sg:GoToState("pocketwatch_warpback",{warpback={dest_worldid = treasure_data.worldid, dest_x = treasure_data.x, dest_y = 0, dest_z = treasure_data.z}})
+							if treasure_data.worldid == TheShard:GetShardId() then--在一个世界的话就感叹一下，跨世界就免了
+								MedalSay(act.doer,STRINGS.DELIVERYSPEECH.FOUND)
+							end
 						end
 					end
 				else--其他
-					local next = c_findnext(act.invobject.quickdelivery[act.target.prefab])
-					if next ~= nil and next.Transform ~= nil and act.doer.sg then
-						local x,y,z = next.Transform:GetWorldPosition()
+					local bestone = nil
+					for k,v in pairs(Ents) do
+						if v.prefab == act.invobject.quickdelivery[act.target.prefab] then
+							--优先去找五格地皮外的
+							if not act.doer:IsNear(v,TILE_SCALE*5) then
+								bestone = v
+								break
+							elseif bestone == nil then
+								bestone = v
+							end
+						end
+					end
+
+					if bestone ~= nil and bestone.Transform ~= nil and act.doer.sg then
+						local x,y,z = bestone.Transform:GetWorldPosition()
 						removeItem(act.invobject)
 						act.doer.sg:GoToState("pocketwatch_warpback",{warpback={dest_x = x, dest_y = 0, dest_z = z}})
 						MedalSay(act.doer,STRINGS.DELIVERYSPEECH.FOUND)
@@ -1903,6 +2006,116 @@ local actions = {
 			end
 		end,
 		state = "give",
+	},
+	{
+		id = "ADDMEDALIVY",--给雕像缠绕旋花藤
+		str = STRINGS.MEDAL_NEWACTION.WORMWOODFLOWERPLANT,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_ivy" and act.target:HasTag("canaddmedalivy") then
+				if act.target.addMedalIvy and not act.target.has_medal_ivy then
+					act.target:addMedalIvy()
+					removeItem(act.invobject)
+					return true
+				end
+			end
+		end,
+		state = "dolongaction",
+	},
+	{
+		id = "SOULMEDALLEVELUP",--噬灵勋章升级
+		str = STRINGS.MEDAL_NEWACTION.POWERABSORB,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="devour_soul_certificate" and act.target.prefab=="rage_krampus_soul" then
+				local newmedal=SpawnPrefab("medium_devour_soul_certificate")
+				if newmedal then
+					act.doer.components.inventory:GiveItem(newmedal)
+					removeItem(act.target)
+					removeItem(act.invobject)
+					return true
+				end
+			end
+		end,
+		state = "domediumaction",
+		actiondata = {
+			mount_valid=true,
+		},
+	},
+	{
+		id = "MEDALCOPYINGBLUEPRINT",--临摹蓝图
+		str = STRINGS.MEDAL_NEWACTION.MEDALCOPYINGBLUEPRINT,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_inherit_page" and act.invobject.copy_list ~= nil and act.invobject.copy_list[act.target.prefab]~=nil then
+				local blueprint = SpawnPrefab(act.invobject.copy_list[act.target.prefab])
+				if blueprint ~= nil then
+					act.doer.components.inventory:GiveItem(blueprint)
+					removeItem(act.invobject)
+					return true
+				end
+			end
+		end,
+		state = "dolongaction",
+		actiondata = {
+			priority=7,
+		},
+	},
+	{
+		id = "MEDALTOOLSORB",--工具融合
+		str = STRINGS.MEDAL_NEWACTION.MEDALUPGRADE,
+		fn = function(act)
+			if act.doer ~= nil and act.doer:HasTag("player") and ((act.invobject:HasTag("cansorbtool") and act.target:HasTag("canbesorbtool")) or (act.invobject:HasTag("canbesorbtool") and act.target:HasTag("cansorbtool"))) then
+				local shadowtool = act.invobject:HasTag("cansorbtool") and act.invobject or act.target--不朽暗影工具
+				local targettool = act.invobject:HasTag("cansorbtool") and act.target or act.invobject--目标工具
+				if shadowtool.SorbToolFn then
+					return shadowtool:SorbToolFn(targettool,act.doer)
+				end
+			end
+		end,
+		state = "domediumaction",
+		actiondata = {
+			mount_valid=true,
+		},
+	},
+	{
+		id = "MEDALFEEDBIRD",--整组喂鸟
+		str = STRINGS.ACTIONS.GIVE.GENERIC,
+		fn = function(act)
+			if HasOriginMedal(act.doer,"spacetime_medal") and act.invobject~=nil and act.target.prefab == "birdcage" and act.target:HasTag("trader") then
+				if act.target.components.trader then
+					if act.target.components.trader:WantsToAccept(act.invobject, act.doer) then
+						if act.target.Medal_OnGetAllItem then
+							act.target:Medal_OnGetAllItem(act.doer, act.invobject)
+						end
+						act.target:PushEvent("trade", { giver = act.doer, item = act.invobject })
+						local fx = SpawnPrefab("pocketwatch_heal_fx")
+						fx.entity:SetParent(act.target.entity)
+						act.invobject:Remove()
+						return true
+					elseif act.target.components.trader.onrefuse ~= nil then
+						act.target.components.trader.onrefuse(act.target, act.doer, act.invobject)
+						return false
+					end
+				end
+			end
+		end,
+		state = "give",
+		actiondata = {
+			priority=7,
+		},
+		canqueuer = "allclick",--兼容排队论
+	},
+	{
+		id = "MEDAL_ADVANCE_ORIGIN_TREE_GROWTH",--本源之树催长
+		str = STRINGS.MEDAL_NEWACTION.MEDAL_ADVANCE_ORIGIN_TREE_GROWTH,
+		fn = function(act)
+			if act.doer ~= nil and act.invobject ~= nil and act.invobject.prefab=="medal_origin_essence" and act.target:HasTag("small_origin_tree") then
+				if act.target.OnTreeGrowthOriginEssence and not act.target:HasTag("no_medal_grow") then
+					act.target:OnTreeGrowthOriginEssence(act.invobject)
+					removeItem(act.invobject)
+					return true
+				end
+			end
+		end,
+		state = "domediumaction",
 	},
 	----------------------------SCENE点击物品----------------------------
 	{
@@ -1952,6 +2165,76 @@ local actions = {
 			end
 		end,
 		state = "doshortaction",
+	},
+	{
+		id = "MEDALBEEBOXHARVEST", --收获育王蜂箱
+		str = STRINGS.MEDAL_NEWACTION.MEDALBEEBOXHARVEST,
+		fn = function(act)
+			if act.doer ~= nil and act.target ~= nil and act.target.prefab=="medal_beebox" and act.target:HasTag("medal_beebox_full") then
+				if act.target.components.harvestable and act.target.components.harvestable.HarvestMedalBeeBox then
+					act.target.components.harvestable:HarvestMedalBeeBox(act.doer)
+					return true
+				end
+			end
+		end,
+		state = "doshortaction",
+		actiondata = {
+			priority=10,--99999,
+		},
+		canqueuer = "rightclick",--兼容排队论
+	},
+	{
+		id = "UNWRAPOVERSIZEDGIFTFRUIT", --拆开巨型包果
+		str = STRINGS.MEDAL_NEWACTION.UNWRAPSNACKS,
+		fn = function(act)
+			if act.doer ~= nil and HasOriginMedal(act.doer,"has_handy_medal") and act.target ~= nil and act.target.prefab=="medal_gift_fruit_oversized" then
+				if act.target.DropGift then
+					act.target:DropGift(act.doer)
+					act.target:Remove()
+					return true
+				end
+			end
+		end,
+		state = "domediumaction",
+		canqueuer = "allclick",--兼容排队论
+	},
+	{
+		id = "MEDALMOONTREEHARVEST", --采摘月树花
+		str = STRINGS.MEDAL_NEWACTION.MEDALMOONTREEHARVEST,
+		fn = function(act)
+			if act.doer ~= nil and HasOriginMedal(act.doer,"has_transplant_medal") and act.target ~= nil and act.target.prefab=="moon_tree" and act.target:HasTag("medal_harvestable") then
+				if act.target.size == "tall" then
+					local item = SpawnPrefab("moon_tree_blossom")--月树花
+					if item ~= nil then
+						if item.components.stackable ~= nil then
+							item.components.stackable:SetStackSize(2)
+						end
+						if act.doer.components.inventory then
+							act.doer.components.inventory:GiveItem(item)
+						end
+						local sapling = SpawnPrefab("moonbutterfly_sapling")--变回树苗
+						if sapling ~= nil then
+							sapling.Transform:SetPosition(act.target.Transform:GetWorldPosition())
+						end
+						if act.target.SoundEmitter then
+							act.target.SoundEmitter:PlaySound("dontstarve/forest/treeGrowFromWilt")
+						end
+						act.target:Remove()
+						-- if act.target.components.growable ~= nil then
+						-- 	act.target.components.growable:DoGrowth()
+						-- else
+						-- 	act.target:Remove()
+						-- end
+						return true
+					end
+				end
+				return false,"TOOSMALL"
+			end
+		end,
+		state = function(inst, action)
+            return inst:HasTag("medal_fastpicker") and "doshortaction" or "dolongaction"
+        end,
+		canqueuer = "rightclick",--兼容排队论
 	},
 	----------------------------EQUIPPED装备物品激活----------------------------
 	{
@@ -2010,13 +2293,16 @@ local actions = {
 		str = STRINGS.MEDAL_NEWACTION.MEDALHAMMER,
 		fn = function(act)
 			-- DoToolWork(act, ACTIONS.MEDALHAMMER)
+			if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(ACTIONS.MEDALHAMMER) then
+				return false
+			end
 			--原本破坏了能拿到什么东西，这里也不能落下
 			if act.target.components.workable ~= nil and
 				act.target.components.workable:CanBeWorked() then
 				act.target.components.workable:WorkedBy(act.doer,10)
 			end
 			--产生额外掉落
-			local loot = act.invobject.special_hammer_loot and act.invobject.special_hammer_loot[act.target.prefab]
+			local loot = TUNING_MEDAL.SPECIAL_HAMMER_LOOT[act.target.prefab]
 			if act.target.components.lootdropper and loot then
 				if #loot > 0 then
 					for i, v in ipairs(loot) do
@@ -2044,6 +2330,21 @@ local actions = {
 			rmb=true,
 		},
 		canqueuer = "rightclick",--兼容排队论
+	},
+	----------------------------不关联特定目标(比如玩家)的动作----------------------------
+	{
+		id = "MEDAL_ORIGIN_POLLINATION", --本源植物授粉
+		str = "_",--乱取一个
+		fn = function(act)
+			if act.target ~= nil and act.doer ~= nil and act.doer.OnPollination ~= nil then
+				if act.doer:OnPollination(act.target) then
+					local fx = SpawnPrefab("farm_plant_happy")
+        			fx.Transform:SetPosition(act.target.Transform:GetWorldPosition())
+					return true
+				end
+			end
+		end,
+		nobind = true,--不绑定给玩家
 	},
 }
 
@@ -2087,7 +2388,7 @@ local component_actions = {
 			{
 				action = "RELEASEMEDALSOUL",--释放勋章灵魂
 				testfn = function(inst,doer,actions,right)
-					return doer:HasTag("medal_blinker") and inst.prefab == "devour_soul_certificate" and not inst:HasTag("usesdepleted")
+					return doer:HasTag("medal_blinker") and inst:HasTag("canreleasesoul") and not inst:HasTag("usesdepleted")
 				end,
 			},
 			{
@@ -2169,6 +2470,18 @@ local component_actions = {
 					return inst.prefab=="medal_gift_fruit"
 				end,
 			},
+			{
+				action = "MEDALCALLMONSTER",--消耗怪物召唤符召唤怪物
+				testfn = function(inst,doer,actions,right)
+					return doer:HasTag("player") and inst.prefab=="medal_monster_symbol"
+				end,
+			},
+			{
+				action = "READCLOSEDBOOK",--阅读无字天书
+				testfn = function(inst,doer,actions,right)
+					return doer:HasTag("medal_canstudy") and inst.prefab=="closed_book"
+				end,
+			},
 		},
 	},
 	{
@@ -2178,7 +2491,7 @@ local component_actions = {
 			{
 				action = "GIVEIMMORTAL",--赋予不朽之力
 				testfn = function(inst, doer, target, actions, right)
-					return doer:HasTag("player") and inst.prefab == "immortal_gem" and target:HasTag("canbeimmortal") and not target:HasTag("keepfresh")
+					return doer:HasTag("player") and inst.prefab == "immortal_gem" and  target:HasTag("immortalable")
 				end,
 			},
 			{
@@ -2196,7 +2509,7 @@ local component_actions = {
 			{
 				action = "POWERPRINT",--能力印刻
 				testfn = function(inst, doer, target, actions, right)
-					return doer:HasTag("player") and ((inst:HasTag("copyfunctional") and target.prefab=="blank_certificate") or (inst.prefab=="blank_certificate" and target:HasTag("copyfunctional")))
+					return doer:HasTag("player") and ((inst:HasTag("copyfunctional") and target:HasTag("blank_certificate")) or (inst:HasTag("blank_certificate") and target:HasTag("copyfunctional")))
 				end,
 			},
 			{
@@ -2208,13 +2521,24 @@ local component_actions = {
 			{
 				action = "MEDALUPGRADE",--勋章升级
 				testfn = function(inst, doer, target, actions, right)
-					return inst:HasTag("upgradablemedal") and target:HasTag("upgradablemedal")
+					return inst:HasTag("upgradablemedal") and target:HasTag("upgradablemedal") and inst.prefab == target.prefab
 				end,
 			},
 			{
-				action = "REPAIRCOMMON",--通用补充耐久(finiteuses组件)
+				action = "INHERITMEDALUPGRADE",--传承勋章特殊升级
 				testfn = function(inst, doer, target, actions, right)
-					return doer:HasTag("player") and target.medal_repair_common and target.medal_repair_common[inst.prefab]~=nil
+					return target.prefab =="inherit_certificate" and target:HasTag("upgradablemedal") and (inst.prefab=="blank_certificate" or inst.prefab=="medal_inherit_page")
+				end,
+			},
+			{
+				action = "REPAIRCOMMON",--通用补充耐久
+				testfn = function(inst, doer, target, actions, right)
+					if target.medal_repair_common ~= nil and target.medal_repair_common[inst.prefab] ~= nil then
+						return true
+					end
+					if target:HasTag("isimmortal") and target.medal_repair_immortal ~= nil and target.medal_repair_immortal[inst.prefab] ~= nil then
+						return true
+					end
 				end,
 			},
 			{
@@ -2274,7 +2598,9 @@ local component_actions = {
 			{
 				action = "MAKEMUSHTREE",--变成蘑菇树
 				testfn = function(inst, doer, target, actions, right)
-					return doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight")) and (inst:HasTag("spore") or inst:HasTag("medal_spore")) and target:HasTag("stump") and  (target.prefab=="livingtree" or target.prefab=="livingtree_halloween")
+					return doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight") or HasOriginMedal(doer)) 
+						and (inst:HasTag("spore") or inst:HasTag("medal_spore")) 
+						and target:HasTag("stump") and  (target.prefab=="livingtree" or target.prefab=="livingtree_halloween")
 				end,
 			},
 			{
@@ -2292,7 +2618,9 @@ local component_actions = {
 			{
 				action = "MAKEMANDARKPLANT",--曼德拉草种植
 				testfn = function(inst, doer, target, actions, right)
-					return doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight")) and (inst.prefab=="mandrake" or inst.prefab=="mandrake_seeds") and target.prefab=="mound" and not target:HasTag("DIG_workable")
+					return doer:HasTag("has_transplant_medal") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight") or HasOriginMedal(doer)) 
+						and (inst.prefab=="mandrake" or inst.prefab=="mandrake_seeds") 
+						and target.prefab=="mound" and not target:HasTag("DIG_workable")
 				end,
 			},
 			{
@@ -2374,12 +2702,6 @@ local component_actions = {
 				end,
 			},
 			{
-				action = "MEDALREPAIR",--填充修复耐久(fuel组件)
-				testfn = function(inst, doer, target, actions, right)
-					return target.medal_repair_loot and target.medal_repair_loot[inst.prefab]~=nil
-				end,
-			},
-			{
 				action = "MEDALBEEBOXREGEN",--给育王蜂箱补充育王蜂
 				testfn = function(inst, doer, target, actions, right)
 					return doer:HasTag("player") and inst.prefab=="medal_bee_larva" and target.prefab=="medal_beebox"
@@ -2418,7 +2740,7 @@ local component_actions = {
 			{
 				action = "GIVEROOTCHESTSPACEPOS",--给树根宝箱添加时空锚点
 				testfn = function(inst, doer, target, actions, right)
-					return right and doer:HasTag("player") and inst.prefab=="medal_time_slider" and target:HasTag("addspaceposable")
+					return right and doer:HasTag("player") and inst.prefab=="medal_time_slider" and target.prefab=="medal_livingroot_chest" and not target:HasTag("isspacechest")
 				end,
 			},
 			{
@@ -2449,7 +2771,7 @@ local component_actions = {
 			{
 				action = "REMOVEROOTCHESTSPACEPOS",--移除树根宝箱时空锚点
 				testfn = function(inst, doer, target, actions, right)
-					return right and inst.prefab=="bottled_moonlight" and target.prefab=="medal_livingroot_chest" and not target:HasTag("addspaceposable")
+					return right and inst.prefab=="bottled_moonlight" and target.prefab=="medal_livingroot_chest" and target:HasTag("isspacechest")
 				end,
 			},
 			{
@@ -2462,6 +2784,52 @@ local component_actions = {
 				action = "MEDALDELIVERYTREASURE",--传送到藏宝点
 				testfn = function(inst, doer, target, actions, right)
 					return doer:HasTag("player") and inst.prefab=="medal_spacetime_runes" and inst.quickdelivery and inst.quickdelivery[target.prefab]
+				end,
+			},
+			{
+				action = "ADDMEDALIVY",--给雕像缠绕旋花藤
+				testfn = function(inst, doer, target, actions, right)
+					return inst.prefab=="medal_ivy" and target:HasTag("canaddmedalivy")
+				end,
+			},
+			{
+				action = "SOULMEDALLEVELUP",--噬灵勋章升级
+				testfn = function(inst, doer, target, actions, right)
+					return inst.prefab=="devour_soul_certificate" and target.prefab=="rage_krampus_soul"
+				end,
+			},
+			{
+				action = "MEDALCOPYINGBLUEPRINT",--临摹蓝图
+				testfn = function(inst, doer, target, actions, right)
+					return inst.prefab=="medal_inherit_page" and inst.copy_list ~= nil and inst.copy_list[target.prefab]~=nil
+				end,
+			},
+			{
+				action = "MEDALTOOLSORB",--工具融合
+				testfn = function(inst, doer, target, actions, right)
+					return doer:HasTag("player") and ((inst:HasTag("cansorbtool") and target:HasTag("canbesorbtool")) or (inst:HasTag("canbesorbtool") and target:HasTag("cansorbtool")))
+				end,
+			},
+			{
+				action = "MEDAL_ADVANCE_ORIGIN_TREE_GROWTH",--本源之树催长
+				testfn = function(inst, doer, target, actions, right)
+					return inst.prefab=="medal_origin_essence" and target:HasTag("small_origin_tree") and
+						not target:HasTag("no_medal_grow") and 
+						not target:HasTag("fire") and
+						not target:HasTag("burnt") and
+						not target:HasTag("stump")
+				end,
+			},
+		},
+	},
+	{
+		type = "USEITEM",
+		component = "tradable",
+		tests = {
+			{
+				action = "MEDALFEEDBIRD",--整组喂鸟
+				testfn = function(inst, doer, target, actions, right)
+					return HasOriginMedal(doer,"spacetime_medal") and target.prefab == "birdcage" and target:HasTag("trader")
 				end,
 			},
 		},
@@ -2480,6 +2848,24 @@ local component_actions = {
 				action = "MEDALDISMANTLE",--拆除坎普斯宝匣
 				testfn = function(inst,doer,actions,right)
 					return right and doer:HasTag("player") and inst ~= nil and inst.prefab=="medal_krampus_chest"
+				end,
+			},
+			{
+				action = "MEDALBEEBOXHARVEST",--收获育王蜂箱
+				testfn = function(inst,doer,actions,right)
+					return right and doer:HasTag("player") and inst ~= nil and inst.prefab=="medal_beebox" and inst:HasTag("medal_beebox_full")
+				end,
+			},
+			{
+				action = "UNWRAPOVERSIZEDGIFTFRUIT",--拆开巨型包果
+				testfn = function(inst,doer,actions,right)
+					return not right and HasOriginMedal(doer,"has_handy_medal") and inst ~= nil and inst.prefab=="medal_gift_fruit_oversized"
+				end,
+			},
+			{
+				action = "MEDALMOONTREEHARVEST",--采摘月树花
+				testfn = function(inst,doer,actions,right)
+					return right and HasOriginMedal(doer,"has_transplant_medal") and inst ~= nil and inst.prefab=="moon_tree" and inst:HasTag("medal_harvestable")
 				end,
 			},
 		},
@@ -2539,7 +2925,7 @@ local component_actions = {
 			{
 				action = "MEDALSPECIALHAMMER",--月光玻璃锤锤特殊东西
 				testfn = function(inst, doer, target, actions, right)
-					return right and doer:HasTag("player") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight")) and inst.prefab=="medal_moonglass_hammer" and inst.special_hammer_loot and inst.special_hammer_loot[target.prefab]~=nil
+					return right and doer:HasTag("player") and (TheWorld.state.isfullmoon or doer:HasTag("inmoonlight")) and inst:HasTag("MEDALHAMMER_tool") and TUNING_MEDAL.SPECIAL_HAMMER_LOOT[target.prefab]~=nil
 				end,
 			},
 		},
@@ -2547,10 +2933,18 @@ local component_actions = {
 }
 
 local old_blink_fn=ACTIONS.BLINK.fn
+local old_blink_strfn=ACTIONS.BLINK.strfn
+local old_blink_map_fn=ACTIONS.BLINK_MAP.fn
 local old_makeballoon_fn=ACTIONS.MAKEBALLOON.fn
 local old_cook_fn=ACTIONS.COOK.fn
 local old_fish_fn=ACTIONS.FISH.fn
 local old_net_fn=ACTIONS.NET.fn
+local old_chop_fn=ACTIONS.CHOP.fn
+local old_mine_fn=ACTIONS.MINE.fn
+local old_hammer_fn=ACTIONS.HAMMER.fn
+local old_dig_fn=ACTIONS.DIG.fn
+local old_usespellbook_strfn=ACTIONS.USESPELLBOOK.strfn
+local old_closespellbook_strfn=ACTIONS.CLOSESPELLBOOK.strfn
 
 --修改老动作
 local old_actions = {
@@ -2561,11 +2955,11 @@ local old_actions = {
 		state = {
 			--动作劫持判断(判断是否需特殊处理执行新动作)
 			testfn=function(inst, action)
-				return inst:HasTag("fastpicker")
+				return action.target and not action.target:HasTag("noquickpick") and (inst:HasTag("medal_fastpicker") or inst:HasTag("rod_fastpicker"))
 			end,
 			--根据判断返回具体动作
 			deststate=function(inst,action)
-				return inst:HasTag("lureplant_rod") and "attack" or "doshortaction"
+				return inst:HasTag("rod_fastpicker") and "attack" or "doshortaction"
 			end,
 		},
 	},
@@ -2576,11 +2970,11 @@ local old_actions = {
 		state = {
 			--动作劫持判断(判断是否需特殊处理执行新动作)
 			testfn=function(inst, action)
-				return inst:HasTag("fastpicker")
+				return inst:HasTag("medal_fastpicker") or inst:HasTag("rod_fastpicker")
 			end,
 			--根据判断返回具体动作
 			deststate=function(inst,action)
-				return inst:HasTag("lureplant_rod") and "attack" or "doshortaction"
+				return inst:HasTag("rod_fastpicker") and "attack" or "doshortaction"
 			end,
 		},
 	},
@@ -2590,10 +2984,10 @@ local old_actions = {
 		id = "TAKEITEM",
 		state = {
 			testfn=function(inst, action)
-				return inst:HasTag("fastpicker") and action.target~=nil
+				return (inst:HasTag("medal_fastpicker") or inst:HasTag("rod_fastpicker")) and action.target~=nil
 			end,
 			deststate=function(inst,action)
-				return inst:HasTag("lureplant_rod") and "attack" or "doshortaction"
+				return inst:HasTag("rod_fastpicker") and "attack" or "doshortaction"
 			end,
 		},
 	},
@@ -2617,9 +3011,10 @@ local old_actions = {
 		state = {
 			testfn=function(inst, action)
 				return action.invobject ~= nil and (
-					(action.invobject:HasTag("medalquickcast") and action.target ~= nil) 
+					action.invobject.prefab=="medal_space_staff"
+					or (action.invobject:HasTag("medalquickcast") and action.target ~= nil) 
 					or (action.invobject:HasTag("medalposquickcast") and action:GetActionPoint() ~= nil) 
-					or (action.invobject.prefab=="medal_space_staff" and action.target == inst)
+					-- or (action.invobject.prefab=="medal_space_staff" and action.target == inst)
 				)
 			end,
 			deststate=function(inst,action)
@@ -2648,6 +3043,33 @@ local old_actions = {
 		state = {
 			testfn=function(inst, action)
 				return inst:HasTag("has_handy_medal")--巧手勋章快速拆包
+			end,
+			deststate=function(inst,action)
+				return "domediumaction"
+			end,
+		},
+	},
+	--建造
+	{
+		switch = true,
+		id = "BUILD",
+		state = {
+			testfn=function(inst, action)
+				-- print("尝试自动切换勋章")
+				return inst:HasTag("has_handy_medal")--巧手勋章快速建造
+			end,
+			deststate=function(inst,action)
+				return "domediumaction"
+			end,
+		},
+	},
+	--拆除
+	{
+		switch = true,
+		id = "DISMANTLE",
+		state = {
+			testfn=function(inst, action)
+				return inst:HasTag("has_handy_medal")--巧手勋章快速建造
 			end,
 			deststate=function(inst,action)
 				return "domediumaction"
@@ -2708,7 +3130,12 @@ local old_actions = {
 		id = "BLINK",
 		actiondata = {
 			strfn = function(act)
-				return act.invobject == nil and act.doer ~= nil and (act.doer:HasTag("soulstealer") or act.doer:HasTag("temporaryblinker") or act.doer:HasTag("freeblinker") or act.doer:HasTag("medal_blinker")) and "SOUL" or nil
+				return act.invobject == nil and act.doer ~= nil and (
+					act.doer:HasTag("temporaryblinker")
+					or act.doer:HasTag("freeblinker")
+					or act.doer:HasTag("medal_blinker")
+				) and ((act.doer._freesoulhop_counter or 0) > 0 and "FREESOUL" or "SOUL") or 
+				old_blink_strfn(act)
 			end,
 			fn = function(act)
 				local act_pos = act:GetActionPoint()
@@ -2716,32 +3143,24 @@ local old_actions = {
 					if act.invobject.components.blinkstaff ~= nil then
 						return act.invobject.components.blinkstaff:Blink(act_pos, act.doer)
 					end
-				--临时穿梭者
-				elseif act.doer ~= nil
-					and act.doer:HasTag("temporaryblinker")
-					and act.doer.sg ~= nil
-					and act.doer.sg.currentstate.name == "portal_jumpin_pre"
-					and act_pos ~= nil then
-					act.doer:RemoveTag("temporaryblinker")
-					act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
-					return true
-				--自由穿梭者
-				elseif act.doer ~= nil
-					and act.doer:HasTag("freeblinker")
-					and act.doer.sg ~= nil
-					and act.doer.sg.currentstate.name == "portal_jumpin_pre"
-					and act_pos ~= nil then
-					act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
-					return true
-				--勋章穿梭者
-				elseif act.doer ~= nil
-					and act.doer:HasTag("medal_blinker")
-					and act.doer.sg ~= nil
-					and act.doer.sg.currentstate.name == "portal_jumpin_pre"
-					and act_pos ~= nil then
-					act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
-					act.doer:PushEvent("medal_blink")
-					return true
+				elseif act.doer ~= nil and act.doer.sg ~= nil and act.doer.sg.currentstate.name == "portal_jumpin_pre" and act_pos ~= nil then
+					--灵魂调料，一次性
+					if act.doer:HasTag("temporaryblinker") then
+						act.doer:RemoveTag("temporaryblinker")
+						act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
+						return true
+					end
+					--瓶装灵魂,定时无消耗
+					if act.doer:HasTag("freeblinker") then
+						act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
+						return true
+					end
+					--噬灵勋章
+					if act.doer:HasTag("medal_blinker") then
+						act.doer.sg:GoToState("portal_jumpin", {dest = act_pos,})
+						act.doer:PushEvent("medal_blink")
+						return true
+					end
 				end
 				return old_blink_fn(act)
 			end,
@@ -2752,6 +3171,24 @@ local old_actions = {
 			end,
 			deststate=function(inst,action)
 				return "portal_jumpin_pre"
+			end,
+		},
+	},
+	--地图灵魂跳跃
+	{
+		switch = true,
+		id = "BLINK_MAP",
+		actiondata = {
+			fn = function(act)
+				local act_pos = act:GetActionPoint()
+				if act.invobject == nil and act.doer and act.doer.sg ~= nil and act.doer.sg.currentstate.name == "portal_jumpin_pre" and act_pos ~= nil then
+					if act.doer.CanSoulhop and act.doer:CanSoulhop(act.distancecount) and act.doer:HasTag("medal_map_blinker") then
+						act.doer.sg:GoToState("portal_jumpin", {dest = act_pos, from_map = true,})
+						act.doer:PushEvent("medal_blink",{mapuse=act.distancecount})
+						return true
+					end
+				end
+				return old_blink_map_fn(act)
 			end,
 		},
 	},
@@ -2793,30 +3230,6 @@ local old_actions = {
 			end,
 		},
 	},
-	--攻击(修改弹弓射击动作)
-	{
-		switch = true,
-		id = "ATTACK",
-		state = {
-			testfn=function(inst, action)
-				if not (inst.sg:HasStateTag("attack") and action.target == inst.sg.statemem.attacktarget or (inst.components.health and inst.components.health:IsDead())) then
-					local weapon = inst.components.combat ~= nil and inst.components.combat:GetWeapon() or nil
-					return inst:HasTag("senior_childishness") and weapon and weapon:HasTag("slingshot")
-				end
-			end,
-			--客机动作劫持
-			client_testfn=function(inst, action)
-				if not (inst.sg:HasStateTag("attack") and action.target == inst.sg.statemem.attacktarget or (inst.replica.health and inst.replica.health:IsDead()))  then
-					local weapon = inst.replica.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
-					return inst:HasTag("senior_childishness") and weapon and weapon:HasTag("slingshot")
-				end
-			end,
-			deststate=function(inst,action)
-				inst.sg.mem.localchainattack = not action.forced or nil
-				return "medal_slingshot_shoot"
-			end,
-		},
-	},
 	--钓鱼
 	{
 		switch = true,
@@ -2850,15 +3263,94 @@ local old_actions = {
 		id = "NET",
 		actiondata = {
 			fn = function(act)
-				if act.invobject.prefab=="medal_moonglass_bugnet" then
+				if act.invobject ~= nil and (act.invobject.prefab=="medal_moonglass_bugnet" or act.invobject.prefab=="medal_shadow_tool") then
 					if act.target ~= nil and not (act.target.components.health ~= nil and act.target.components.health:IsDead()) then
-						DoToolWork(act, ACTIONS.NET)
-						return true
+						return DoToolWork(act, ACTIONS.NET)
 					end
 				end
 				if old_net_fn then
 					return old_net_fn(act)
 				end
+			end,
+		},
+	},
+	--砍树(耐久没了别砍了)
+	{
+		switch = true,
+		id = "CHOP",
+		actiondata = {
+			fn = function(act)
+				if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(ACTIONS.CHOP) then
+					return false
+				end
+				if old_chop_fn then
+					return old_chop_fn(act)
+				end
+			end,
+		},
+	},
+	--挖矿(耐久没了别挖了)
+	{
+		switch = true,
+		id = "MINE",
+		actiondata = {
+			fn = function(act)
+				if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(ACTIONS.MINE) then
+					return false
+				end
+				if old_mine_fn then
+					return old_mine_fn(act)
+				end
+			end,
+		},
+	},
+	--锤(耐久没了别锤了)
+	{
+		switch = true,
+		id = "HAMMER",
+		actiondata = {
+			fn = function(act)
+				if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(ACTIONS.HAMMER) then
+					return false,"USESDEPLETED"
+				end
+				if old_hammer_fn then
+					return old_hammer_fn(act)
+				end
+			end,
+		},
+	},
+	--挖(耐久没了别挖了)
+	{
+		switch = true,
+		id = "DIG",
+		actiondata = {
+			fn = function(act)
+				if act.invobject ~= nil and act.invobject.components.tool ~= nil and not act.invobject.components.tool:CanDoAction(ACTIONS.DIG) then
+					return false
+				end
+				if old_dig_fn then
+					return old_dig_fn(act)
+				end
+			end,
+		},
+	},
+	--打开快捷轮盘
+	{
+		switch = true,
+		id = "USESPELLBOOK",
+		actiondata = {
+			strfn = function(act)
+				return act.invobject ~= nil and act.invobject.prefab == "medal_shadow_tool" and "SHADOW_TOOL" or old_usespellbook_strfn(act)
+			end,
+		},
+	},
+	--关闭快捷轮盘
+	{
+		switch = true,
+		id = "CLOSESPELLBOOK",
+		actiondata = {
+			strfn = function(act)
+				return act.invobject ~= nil and act.invobject.prefab == "medal_shadow_tool" and "SHADOW_TOOL" or old_usespellbook_strfn(act)
 			end,
 		},
 	},

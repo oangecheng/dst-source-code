@@ -318,9 +318,22 @@ function Medal_Delivery:Delivery(deliverier,index)
 	self:CloseScreen()
 end
 
+--是否应该传送追随者
+local function ShouldTeleportFollower(follower)
+    if follower.components.follower and follower.components.follower.noleashing then
+        return false
+    end
+
+    if follower.components.inventoryitem and follower.components.inventoryitem:IsHeld() then
+        return false
+    end
+
+    return true
+end
+
 --执行传送
 function Medal_Delivery:Activate(deliverier,target)
-	if self.inst and deliverier and target then
+	if self.inst and deliverier and target and target:IsValid() then
 		--目标传送塔传送人数+1,如果有被激活函数则执行对应函数
 		if target.components.teleporter ~= nil then
 			if target.components.teleporter.onActivateByOther ~= nil then
@@ -347,15 +360,21 @@ function Medal_Delivery:Activate(deliverier,target)
 		--如果传送者有跟随者也一起传送走
 		if deliverier.components.leader ~= nil then
 			for follower, v in pairs(deliverier.components.leader.followers) do
-				Teleport(follower,target)
+				if ShouldTeleportFollower(follower) then
+					Teleport(follower,target)
+				end
 			end
 		end
+
+
 		--如果传送者身上的道具有跟随者，也一并传走(眼骨、格罗姆花等)
 		if deliverier.components.inventory ~= nil then
 			for k, item in pairs(deliverier.components.inventory.itemslots) do
 				if item.components.leader ~= nil then
 					for follower, v in pairs(item.components.leader.followers) do
-						Teleport(follower,target)
+						if ShouldTeleportFollower(follower) then
+							Teleport(follower,target)
+						end
 					end
 				end
 			end
@@ -364,7 +383,9 @@ function Medal_Delivery:Activate(deliverier,target)
 					for j, item in pairs(equipped.components.container.slots) do
 						if item.components.leader ~= nil then
 							for follower, v in pairs(item.components.leader.followers) do
-								Teleport(follower,target)
+								if ShouldTeleportFollower(follower) then
+									Teleport(follower,target)
+								end
 							end
 						end
 					end
@@ -489,7 +510,7 @@ end
 --------------------------------------------------------------------------
 
 function Medal_Delivery:OnUpdate(dt)
-    if self.deliverier == nil then
+	if self.deliverier == nil then
         self.inst:StopUpdatingComponent(self)
     elseif (self.deliverier.components.rider ~= nil and
             self.deliverier.components.rider:IsRiding())

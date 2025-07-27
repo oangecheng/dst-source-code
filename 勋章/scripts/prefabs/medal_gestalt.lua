@@ -106,6 +106,9 @@ local function fn()
 	inst.components.combat:SetRange(TUNING_MEDAL.MEDAL_GESTALT_ATTACK_RANGE)--攻击距离
     inst.components.combat:SetRetargetFunction(1, Retarget)
 
+	inst:AddComponent("medal_chaosdamage")--混沌伤害
+	inst.components.medal_chaosdamage:SetBaseDamage(TUNING_MEDAL.MEDAL_GESTALT_CHAOS_DAMAGE)
+
     inst:AddComponent("inspectable")
 
     inst:SetStateGraph("SGmedal_gestalt")

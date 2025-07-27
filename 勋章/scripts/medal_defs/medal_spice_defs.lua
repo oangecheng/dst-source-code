@@ -1,12 +1,5 @@
 --添加buff
 local function addBuff(eater,buff)
-	--[[
-	if eater.components.debuffable ~= nil and eater.components.debuffable:IsEnabled() and
-		not (eater.components.health ~= nil and eater.components.health:IsDead()) and
-		not eater:HasTag("playerghost") then
-		eater.components.debuffable:AddDebuff(buff,buff)
-	end
-	]]
 	eater:AddDebuff(buff,buff)
 end
 

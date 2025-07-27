@@ -117,11 +117,6 @@ local function MakeFruitTree(def)
 	    Asset("ANIM", "anim/"..def.build..".zip"),
 		Asset("ATLAS", "minimap/medal_fruit_tree.xml" ),
 	}
-	if def.skinnum then
-		for i=1,def.skinnum do
-			table.insert(fruit_tree_assets,Asset("ANIM", "anim/"..def.build.."_skin"..i..".zip"))
-		end
-	end
 	local prefabs_tree =
 	{
 	    def.produt,
@@ -138,8 +133,12 @@ local function MakeFruitTree(def)
 	
 	    inst.SoundEmitter:PlaySound("dontstarve/forest/treefall")
 	
-	    if inst.components.pickable ~= nil and inst.components.pickable.canbepicked then
-	    	inst.components.lootdropper:DropLoot()
+	    if inst.components.pickable ~= nil and inst.components.pickable.canbepicked and inst.fruit_tree_def ~= nil then
+	    	--掉落对应果实
+			local num = weighted_random_choice(inst.fruit_tree_def.productlist)
+			for i = 1, num do
+				inst.components.lootdropper:SpawnLootPrefab(inst.fruit_tree_def.product)
+			end
 	    end
 	    inst.components.lootdropper:SpawnLootPrefab(def.name.."_scion")--掉落对应接穗
 	    inst.components.pickable.caninteractwith = false
@@ -147,29 +146,34 @@ local function MakeFruitTree(def)
 	    inst.AnimState:PlayAnimation("fall")
 	    inst:ListenForEvent("animover", setupstump)
 	end
-	--掉落函数
-	local function SetupLoot(lootdropper)
-		local inst = lootdropper.inst
-		if inst.components.pickable ~= nil and inst.components.pickable.canbepicked and inst.fruit_tree_def then
-			local productnum=1--产出数量
-			local productloot={}--产物列表
-			--获取果树的产出配比表
-			if inst.fruit_tree_def.productlist then
-				local key=math.random()
-				--通过产出配比表权重来控制产出数量
-				for k,v in ipairs(inst.fruit_tree_def.productlist) do
-					key=key-v
-					if key<0 then
-						productnum=k
-						break
-					end
+	--采摘
+	local function PickFn(inst, picker)--, loot)
+		onpickedfn(inst)
+		if inst.fruit_tree_def and inst.fruit_tree_def.productlist then
+			local item = SpawnPrefab(inst.fruit_tree_def.product)
+            if item ~= nil then
+				local num = weighted_random_choice(inst.fruit_tree_def.productlist)--获取收获数量
+				if HasOriginMedal(picker,"medal_fastpicker") then--本源丰收加成
+					num = num + 1
 				end
-			end
-			--生成对应数量的产物
-			for i=1,productnum do
-				table.insert(productloot,inst.fruit_tree_def.product)
-			end
-			lootdropper:SetLoot(productloot)
+				local pt = inst:GetPosition()
+                --继承潮湿度
+				if item.components.inventoryitem ~= nil then
+					item.components.inventoryitem:InheritWorldWetnessAtTarget(inst)
+                end
+				--堆叠
+                if num > 1 and item.components.stackable ~= nil then
+                    item.components.stackable:SetStackSize(num)
+                end
+				if picker and picker.components.inventory then
+                    picker:PushEvent("picksomething", { object = inst, loot = item })
+				end
+				if picker and picker.components.inventory and item.components.inventoryitem then
+					picker.components.inventory:GiveItem(item, nil, pt)
+				else
+                    item.Transform:SetPosition(pt:Get())
+                end
+            end
 		end
 	end
 	--主函数
@@ -189,8 +193,9 @@ local function MakeFruitTree(def)
 	
 	    inst:AddTag("plant")
 		inst:AddTag("medal_fruit_tree")
+		inst:AddTag("event_trigger")--防止被暗影仆从霍霍了
 		-- inst:AddTag("tree")
-		if def.skinnum then
+		if def.skinable then
 			inst:AddTag("medal_skinable")--可换皮肤
 		end
 	
@@ -218,9 +223,9 @@ local function MakeFruitTree(def)
 	    inst.components.pickable.picksound = "dontstarve/wilson/pickup_reeds"
 	    -- inst.components.pickable:SetUp(def.product, def.growtime,def.productnum)
 	    inst.components.pickable:SetUp(nil,def.growtime)
-		inst.components.pickable.use_lootdropper_for_product = true
+		-- inst.components.pickable.use_lootdropper_for_product = true
 	    inst.components.pickable.onregenfn = onregenfn
-	    inst.components.pickable.onpickedfn = onpickedfn
+	    inst.components.pickable.onpickedfn = PickFn--onpickedfn
 	    inst.components.pickable.makeemptyfn = makeemptyfn
 	    inst.components.pickable.makefullfn = makefullfn
 	    inst.components.pickable.nomagic = def.nomagic--禁止催熟
@@ -232,7 +237,6 @@ local function MakeFruitTree(def)
 	    inst.components.workable:SetOnWorkCallback(tree_chop)
 	
 	    inst:AddComponent("lootdropper")
-		inst.components.lootdropper.lootsetupfn = SetupLoot--掉落物设置
 	    inst:AddComponent("inspectable")
 	
 	    if not def.noburnt then
@@ -251,7 +255,7 @@ local function MakeFruitTree(def)
 	    inst.OnSave = tree_onsave
 	    inst.OnLoad = tree_onload
 
-		if def.skinnum then
+		if def.skinable then
 			inst:AddComponent("medal_skinable")
 		end
 	
@@ -411,6 +415,7 @@ local function stump_fn()
     inst.MiniMapEntity:SetIcon("cave_banana_tree_stump.png")
 
     inst:AddTag("plant")
+	inst:AddTag("event_trigger")--防止被暗影仆从霍霍了
 
     inst.AnimState:SetBank("medal_fruit_tree_carrot")
     inst.AnimState:SetBuild("medal_fruit_tree_carrot")

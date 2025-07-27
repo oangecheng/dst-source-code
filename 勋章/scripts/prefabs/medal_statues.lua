@@ -45,6 +45,10 @@ local function MakeStatue(def)
 		if def.minimap then
 			inst.MiniMapEntity:SetIcon(def.minimap)
 		end
+		inst:AddTag("dustable")--可被尘蛾互动
+		inst:AddTag("event_trigger")--防止被暗影仆从镐击了
+		inst:AddTag("structure")--建筑,防投石机
+		inst:AddTag("sculpture")--雕刻,防投石机
 		--特定标签
 		if def.taglist then
 			for _,v in ipairs(def.taglist) do

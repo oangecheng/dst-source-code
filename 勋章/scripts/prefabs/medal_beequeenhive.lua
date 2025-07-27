@@ -206,14 +206,9 @@ local function OnWorked(inst, worker, workleft)
 			if worker.components.pinnable ~= nil then
 				-- worker.components.pinnable:Stick("medal_blood_honey_goo")
                 --有黑暗血糖
-                if worker.components.debuffable and worker.components.debuffable:HasDebuff("buff_medal_suckingblood") then
-                    --暗影盾
-                    local fx=SpawnPrefab("medal_shield_player")
-                    if fx then fx.entity:SetParent(worker.entity) end
+                if worker.medal_dark_ningxue then
                     --抵消buff时长
-                    worker.components.debuffable:AddDebuff("buff_medal_suckingblood", "buff_medal_suckingblood",{extend_durationfn=function(timer_left)
-                        return math.max(0,timer_left - TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
-                    end})
+                    ConsumeMedalBuff(worker,"buff_medal_suckingblood",TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
                 else
                     worker.components.pinnable:Stick("medal_blood_honey_goo")--黏他
                 end

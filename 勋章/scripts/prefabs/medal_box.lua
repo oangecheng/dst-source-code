@@ -22,11 +22,6 @@ local function MakeBox(name,box_def)
 		Asset("ATLAS", "images/"..box_def.atlas..".xml"),
 		Asset("ATLAS_BUILD", "images/"..box_def.atlas..".xml",256),
 	}
-	if box_def.skinname then
-		for i, v in ipairs(box_def.skinname) do
-			table.insert(assets,Asset("ANIM", "anim/"..v..".zip"))
-		end
-	end
 	
 	local function fn()
 	    local inst = CreateEntity()
@@ -55,6 +50,8 @@ local function MakeBox(name,box_def)
 	    if not TheWorld.ismastersim then
 	        return inst
 	    end
+		
+		-- inst.medal_box_sign = 1
 	
 	    inst:AddComponent("inspectable")
 		inst:AddComponent("inventoryitem")
@@ -72,6 +69,8 @@ local function MakeBox(name,box_def)
 		if box_def.extrafn then
 			box_def.extrafn(inst)
 		end
+
+		SetAutoOpenContainer(inst)
 	
 	    return inst
 	end
@@ -89,7 +88,6 @@ box_defs.medal_box={
 	atlas="medal_box",
 	taglist={"medal_box","medal_skinable"},
 	weight="medal_box",
-	skinname={"medal_box_skin1","medal_box_skin2"},
 	onopenfn=function(inst)
 		inst.AnimState:PlayAnimation("open")
 		inst.SoundEmitter:PlaySound("dontstarve/wilson/chest_open")
@@ -117,7 +115,6 @@ box_defs.spices_box={
 	atlas="spices_box",
 	taglist={"medal_skinable"},
 	weight="spices_box",
-	skinname={"spices_box_skin1","spices_box_skin2","spices_box_skin3"},
 	onopenfn=function(inst)
 		inst.AnimState:PlayAnimation("open")
 		inst.SoundEmitter:PlaySound("dontstarve/wilson/chest_open")

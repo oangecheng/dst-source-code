@@ -42,20 +42,28 @@ end
 --做出选择(答案,回答者)
 function medal_examable:MakeChoice(answer,answerer)
 	local true_answer = medal_exams and medal_exams[self.examid] and medal_exams[self.examid].answer or 0
-	if answer == true_answer then--答对了扣耐久
+	local answer_str = true_answer>0 and medal_exams[self.examid].options and medal_exams[self.examid].options[true_answer]
+	if answer == true_answer and answerer.hasdictionary then--答对了扣耐久(必须用了字典才能答对哦)
 		if self.inst.components.finiteuses then
 			--原本会读书的角色收益更大
-			local consume = (answerer and answerer:HasTag("reader") and 10 or 5)*TUNING_MEDAL.WISDOM_TEST.CONSUME_MULT
+			local consume = ((answerer:HasTag("reader") and not answerer:HasTag("aspiring_bookworm")) and 2 or 1)*TUNING_MEDAL.WISDOM_TEST.EXAM_CONSUME
 			self.inst.components.finiteuses:Use(consume)
-			SpawnMedalTips(answerer,consume,5)--弹幕提示
+			if not RewardToiler(answerer,0.1) then--天道酬勤
+				SpawnMedalTips(answerer,consume,5)--弹幕提示
+			end
 		end
 	else--答错了加耐久
 		if self.inst.components.finiteuses then
-			local consume = 5
-			self.inst.components.finiteuses:SetUses(math.min(self.inst.components.finiteuses:GetUses()+consume,self.inst.components.finiteuses.total))
+			local consume = TUNING_MEDAL.WISDOM_TEST.EXAM_CONSUME
+			self.inst.components.finiteuses:Repair(consume)
+			-- self.inst.components.finiteuses:SetUses(math.min(self.inst.components.finiteuses:GetUses()+consume,self.inst.components.finiteuses.total))
 			SpawnMedalTips(answerer,consume,15)--弹幕提示
 		end
+		if answer_str ~= nil and answerer.hasdictionary then
+			MedalSay(answerer,STRINGS.WISDOM_MEDAL_SPEECH.SAYANSWER..answer_str)
+		end
 	end
+	answerer.hasdictionary=nil
 	self:ChangeExamId()
 end
 

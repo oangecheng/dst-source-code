@@ -11,7 +11,6 @@ local prefabs =
 {
 	"halloween_moonpuff",
 }
-local easy_offset=TUNING.IS_LOW_COST and 1 or 0--简易模式补偿
 --变异关系表
 local changeList={
 	--树枝
@@ -90,15 +89,13 @@ local changeList={
 	pepper_oversized={medal_fruit_tree_pepper_scion=1,pepper_oversized_rotten=1},
 	durian_oversized={medal_fruit_tree_durian_scion=1,durian_oversized_rotten=1},
 	lucky_fruit_oversized={medal_fruit_tree_lucky_fruit_scion=1,lucky_fruit_oversized_rotten=1},
-	--不朽果实12.5%
-	immortal_fruit_oversized={medal_fruit_tree_immortal_fruit_scion=1+easy_offset,immortal_fruit=1,immortal_fruit_seed=6-easy_offset},
 }
 
 --变异函数
 local function makeVariation(inst,target,doer)
 	local newitem_name=nil
-	if target.prefab == "immortal_fruit_oversized" and target.medal_destiny_num then
-		newitem_name = GetMedalRandomItem(TUNING_MEDAL.IMMORTAL_FRUIT_VARIATION_ROOT,target.medal_destiny_num)--冥冥之中已有定数
+	if target.prefab == "immortal_fruit_oversized" then
+		newitem_name = GetMedalRandomItem(TUNING_MEDAL.IMMORTAL_FRUIT_VARIATION_ROOT,target)--冥冥之中已有定数
 	elseif changeList[target.prefab] then
 		newitem_name=weighted_random_choice(changeList[target.prefab])
 	end
@@ -124,7 +121,9 @@ local function makeVariation(inst,target,doer)
 						newitem.components.pickable.transplanted=true
 						if newitem.prefab~="monkeytail" and (target:HasTag("medal_transplant") or target.prefab=="monkeytail") then
 							newitem.components.pickable.cycles_left=nil--取消采摘次数上限
-							newitem.components.workable:SetWorkAction(ACTIONS.MEDALNORMALTRANSPLANT)
+							if newitem.components.workable then
+								newitem.components.workable:SetWorkAction(ACTIONS.MEDALNORMALTRANSPLANT)
+							end
 							newitem:RemoveTag("cantdestroy")
 						end
 					end

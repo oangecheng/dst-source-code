@@ -37,11 +37,13 @@ end
 local function OnEat(inst, data)
     if data.food ~= nil and data.food:HasTag("medaldustmothfood") then
         inst._charged = true--吃饱了
+        inst.eat_snack = data.food.prefab == "medal_spacetime_snacks"--吃了时空零食
     end
 end
 --修复完巢穴了
 local function OnFinishRepairingDen(inst, den)
     inst._charged = false--扫完就饿了
+    inst.eat_snack = nil
 end
 --是否可接受道具
 local function ShouldAcceptItem(inst, item)
@@ -108,11 +110,15 @@ local function OnSave(inst, data)
     if inst._charged then
         data.charged = true
     end
+    if inst.eat_snack then
+        data.eat_snack = true
+    end
 end
 
 local function OnLoad(inst, data)
-    if data ~= nil and data.charged ~= nil then
+    if data ~= nil then
         inst._charged = data.charged
+        inst.eat_snack = data.eat_snack
     end
 end
 

@@ -6,19 +6,6 @@ local assets =
 	Asset("ATLAS", "images/marblepickaxe.xml"),
 	Asset("ATLAS_BUILD", "images/marblepickaxe.xml",256),
 }
---清除快速饥饿标签
-local function emptyQuickHungerTag(owner)
-	--移除快速饥饿标签
-	if owner:HasTag("quickhunger_marbleaxe") then
-		owner:RemoveTag("quickhunger_marbleaxe")
-	end
-	if owner:HasTag("quickhunger_marbleaxe_more") then
-		owner:RemoveTag("quickhunger_marbleaxe_more")
-	end
-	if owner:HasTag("quickhunger_marbleaxe_most") then
-		owner:RemoveTag("quickhunger_marbleaxe_most")
-	end
-end
 --设置饱食下降速度和移速
 local function setHungerModifier(inst,owner)
 	if owner.components.hunger ~= nil then
@@ -66,6 +53,14 @@ local function onunequip(inst, owner)
 	inst:RemoveEventCallback("changeminermedal", inst.changemine, owner)
 end
 
+--添加可装备组件相关内容
+local function SetupEquippable(inst)
+	inst:AddComponent("equippable")
+    inst.components.equippable:SetOnEquip(onequip)
+    inst.components.equippable:SetOnUnequip(onunequip)
+	inst.components.equippable.walkspeedmult = TUNING_MEDAL.MARBLEPICKAXE.SPEED_MULT--设置移动速度
+end
+
 local function fn()
     local inst = CreateEntity()
 
@@ -90,6 +85,12 @@ local function fn()
         inst:AddTag("weapon")
     end
 
+	inst.medal_repair_immortal = {--修补列表
+		marble = TUNING_MEDAL.MARBLEPICKAXE.ADDUSE,--大理石
+		immortal_essence = TUNING_MEDAL.MARBLEPICKAXE.MAXUSES,--不朽精华
+		immortal_fruit = TUNING_MEDAL.MARBLEPICKAXE.MAXUSES,--不朽果实
+	}
+
     MakeInventoryFloatable(inst, "small", 0.05, {1.2, 0.75, 1.2})
 
     inst.entity:SetPristine()
@@ -109,7 +110,6 @@ local function fn()
 	inst:AddComponent("finiteuses")
 	inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.MARBLEPICKAXE.MAXUSES)
 	inst.components.finiteuses:SetUses(TUNING_MEDAL.MARBLEPICKAXE.MAXUSES)
-	inst.components.finiteuses:SetOnFinished(inst.Remove)
 	inst.components.finiteuses:SetConsumption(ACTIONS.MINE, 1)
 
 	-------
@@ -117,14 +117,12 @@ local function fn()
 	inst.components.weapon:SetDamage(TUNING.AXE_DAMAGE)
 
     inst:AddComponent("inspectable")
-    inst:AddComponent("equippable")
-    inst.components.equippable:SetOnEquip(onequip)
-    inst.components.equippable:SetOnUnequip(onunequip)
-	inst.components.equippable.walkspeedmult = TUNING_MEDAL.MARBLEPICKAXE.SPEED_MULT--设置移动速度
 
     MakeHauntableLaunch(inst)
 	
 	inst.components.floater:SetBankSwapOnFloat(true, -11, {sym_build = "marblepickaxe",sym_name = "swap_marblepickaxe",bank = "marblepickaxe",anim = "marblepickaxe"})
+
+	SetImmortalTool(inst,SetupEquippable,TUNING_MEDAL.MARBLEPICKAXE.MAXUSES,true)
 
     return inst
 end

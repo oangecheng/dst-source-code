@@ -85,6 +85,21 @@ local minisign_show_list = {
 	"medal_ivy",--旋花藤
 	"medal_weed_seeds",--杂草种子
 	"medal_skin_coupon",--皮肤券
+	"medal_diligence_token",--酬勤令
+	"medal_monster_symbol",--暗影挑战符
+	"medal_shadow_magic_stone",--暗影魔法石
+	"medal_moonlight_staff",--月光法杖
+	"medal_inherit_page",--传承书页
+	--暗影工具
+	"medal_shadow_axe",
+	"medal_shadow_pickaxe",
+	"medal_shadow_pitchfork",
+	"medal_shadow_hammer",
+	"medal_shadow_shovel",
+	"medal_shadow_oar",
+	"medal_shadow_farm_hoe",
+	"medal_shadow_fishingrod",
+	"medal_shadow_bugnet",
 	--皮肤
 	"lureplant_rod_skin1",--食人花手杖(霸王之花)
 	"medal_naughtybell_skin1",--淘气铃铛(冰雪格罗姆)
@@ -144,11 +159,11 @@ end
 local function draw(inst)
 	if inst.components.drawable then
 		local oldondrawnfn = inst.components.drawable.ondrawnfn or nil
-		inst.components.drawable.ondrawnfn = function(inst, image, src, atlas, bgimagename, bgatlasname)
+		inst.components.drawable.ondrawnfn = function(inst, image, src, atlas, ...)
 			if oldondrawnfn ~= nil then
-				oldondrawnfn(inst, image, src, atlas, bgimagename, bgatlasname)
+				oldondrawnfn(inst, image, src, atlas, ...)
 			end
-			-- print(image,atlas)
+			print(image,atlas)
 			if image ~= nil and table.contains(minisign_show_list,image) then --是我的物品
 				if atlas==nil then
 					atlas="images/"..image..".xml"
@@ -164,3 +179,4 @@ end
 
 AddPrefabPostInit("minisign", draw)
 AddPrefabPostInit("minisign_drawn", draw)
+AddPrefabPostInit("decor_pictureframe", draw)

@@ -13,7 +13,8 @@ local assets =
 local function changeAttackRange(inst,owner)
     local medal = owner and owner.components.inventory and owner.components.inventory:EquipMedalWithgroupTag("tentacle_certificate")
     if medal and medal.medal_level and medal.medal_level>0 then
-        inst.components.weapon:SetRange(TUNING_MEDAL.MEDAL_TENTACLESPIKE.ACCTACK_RANGE+medal.medal_level*TUNING_MEDAL.MEDAL_TENTACLESPIKE.ADD_ACCTACK_RANGE)
+        local mult = HasOriginMedal(owner,"tentaclemedal") and 2 or 1
+        inst.components.weapon:SetRange(TUNING_MEDAL.MEDAL_TENTACLESPIKE.ACCTACK_RANGE + medal.medal_level * TUNING_MEDAL.MEDAL_TENTACLESPIKE.ADD_ACCTACK_RANGE * mult)
     else
         inst.components.weapon:SetRange(TUNING_MEDAL.MEDAL_TENTACLESPIKE.ACCTACK_RANGE)
     end
@@ -55,18 +56,6 @@ local function onattack(inst, attacker, target)
 		if target.SoundEmitter ~= nil then
 			target.SoundEmitter:PlaySound("dontstarve/common/whip_small")
 		end
-	end
-end
-
-local function onsavefn(inst,data)
-	if inst.components.finiteuses and inst.components.finiteuses:GetUses()==TUNING_MEDAL.MEDAL_TENTACLESPIKE.MAXUSES then
-		data.uses=inst.components.finiteuses:GetUses()
-	end
-end
-
-local function onloadfn(inst,data)
-	if data~=nil and data.uses then
-		inst.components.finiteuses:SetUses(data.uses)
 	end
 end
 
@@ -116,6 +105,7 @@ local function fn()
     inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.MEDAL_TENTACLESPIKE.MAXUSES)
     inst.components.finiteuses:SetUses(TUNING_MEDAL.MEDAL_TENTACLESPIKE.USES)
     inst.components.finiteuses:SetOnFinished(inst.Remove)
+    inst.components.finiteuses:SetDoesNotStartFull(true)
 
     inst:AddComponent("inspectable")
     inst:AddComponent("inventoryitem")
@@ -127,9 +117,6 @@ local function fn()
     inst.components.equippable:SetOnUnequip(onunequip)
 
     MakeHauntableLaunch(inst)
-	
-	inst.OnSave = onsavefn
-	inst.OnLoad = onloadfn
 
     return inst
 end

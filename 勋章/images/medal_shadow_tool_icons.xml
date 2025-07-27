@@ -1,0 +1,15 @@
+<Atlas>
+	<Texture filename="medal_shadow_tool_icons.tex"/>
+	<Elements>
+		<Element name="axe.tex" u1="0.000000" u2="0.329897" v1="0.753846" v2="1.000000"/>
+		<Element name="pickaxe.tex" u1="0.000000" u2="0.329897" v1="0.503846" v2="0.750000"/>
+		<Element name="multi_use.tex" u1="0.335052" u2="0.664948" v1="0.753846" v2="1.000000"/>
+		<Element name="hammer.tex" u1="0.670103" u2="1.000000" v1="0.503846" v2="0.750000"/>
+		<Element name="shovel.tex" u1="0.000000" u2="0.329897" v1="0.003846" v2="0.250000"/>
+		<Element name="pitchfork.tex" u1="0.335052" u2="0.664948" v1="0.503846" v2="0.750000"/>
+		<Element name="oar.tex" u1="0.670103" u2="1.000000" v1="0.753846" v2="1.000000"/>
+		<Element name="farm_hoe.tex" u1="0.000000" u2="0.329897" v1="0.253846" v2="0.500000"/>
+		<Element name="fishingrod.tex" u1="0.335052" u2="0.664948" v1="0.253846" v2="0.500000"/>
+		<Element name="bugnet.tex" u1="0.670103" u2="1.000000" v1="0.253846" v2="0.500000"/>
+	</Elements>
+</Atlas>

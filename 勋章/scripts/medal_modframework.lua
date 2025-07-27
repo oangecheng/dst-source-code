@@ -1,15 +1,17 @@
-local pcall = GLOBAL.pcall
-local require = GLOBAL.require
-local STRINGS = GLOBAL.STRINGS
-
 -------------------------------导入自定义配方----------------------------------
 local recipes_status,recipes_data = pcall(require,"medal_defs/medal_recipes")
-local difficulty_level=1--游戏难度，普通
-if TUNING.IS_LOW_COST then
-	difficulty_level=2--简易
-end
+local difficulty_level = TUNING.IS_LOW_COST and 2 or 1--游戏难度,1普通,2简易
+
 if recipes_status then
-    if recipes_data.Recipes then
+    if recipes_data.RecipeFilters then
+		for _,data in pairs(recipes_data.RecipeFilters) do
+			if data.needshow then
+				AddRecipeFilter(data)
+			end
+		end
+	end
+	
+	if recipes_data.Recipes then
         for _,data in pairs(recipes_data.Recipes) do
 			local ingredientID=nil--配方编号
 			local needHidden=false--是否隐藏
@@ -23,41 +25,30 @@ if recipes_status then
 			if difficulty_level>1 then
 				needHidden=data.needHidden or false
 			end
-			if not data.noatlas then
-				atlas = data.atlas or ("images/"..(data.product or data.name)..".xml")
-			end
-			if not data.noimage then
-				image = data.image or ((data.product or data.name)..".tex")
-			end
+			
             if not needHidden then
 				local level=data.level
 				if TUNING.MEDAL_TECH_LOCK and (level==TECH.SCIENCE_ONE or level==TECH.SCIENCE_TWO or level==TECH.SCIENCE_THREE or level==TECH.MAGIC_TWO or level==TECH.MAGIC_THREE) then
 					level = TECH.NONE
 				end
+				if not data.noatlas then
+					atlas = data.atlas or ("images/"..(data.product or data.name)..".xml")
+				end
+				if not data.noimage then
+					image = data.image or ((data.product or data.name)..".tex")
+				end
+				local more_data = data.more_data or {}
+				more_data.atlas = atlas
+				more_data.image = image
+				if recipes_data.MoreDataKeys then
+					for i, key in ipairs(recipes_data.MoreDataKeys) do
+						if data[key] ~= nil then
+							more_data[key] = data[key]
+						end
+					end
+				end
 				
-				AddRecipe2(data.name, data.ingredients[ingredientID],level,{
-					min_spacing = data.min_spacing,
-					nounlock = data.nounlock,
-					numtogive = data.numtogive,
-					builder_tag = data.builder_tag,
-					atlas = atlas,
-					image = image,
-					testfn = data.testfn,
-					product = data.product,
-					build_mode = data.build_mode,
-					build_distance = data.build_distance,
-
-					placer=data.placer,
-					filter=data.filter,
-					description=data.description,
-					canbuild=data.canbuild,
-					sg_state=data.sg_state,
-					no_deconstruction=data.no_deconstruction,
-					require_special_event=data.require_special_event,
-					dropitem=data.dropitem,
-					actionstr=data.actionstr,
-					manufactured=data.manufactured,
-				},data.filters)
+				AddRecipe2(data.name, data.ingredients[ingredientID],level,more_data,data.filters)
 			end 
         end
     end
@@ -87,15 +78,18 @@ if actions_status then
 				queueractlist[act.id]=act.canqueuer
 				-- table.insert(queueractlist,act.id)
 			end
-            AddStategraphActionHandler("wilson",GLOBAL.ActionHandler(action, act.state))
-            AddStategraphActionHandler("wilson_client",GLOBAL.ActionHandler(action,act.state))
+			if not act.nobind then
+				AddStategraphActionHandler("wilson",GLOBAL.ActionHandler(action, act.state))
+            	AddStategraphActionHandler("wilson_client",GLOBAL.ActionHandler(action,act.state))
+			end
         end
     end
     -- 导入动作与组件的绑定
     if actions_data.component_actions then
         for _,v in pairs(actions_data.component_actions) do
             local testfn = function(...)
-                local actions = GLOBAL.select (-2,...)
+                local rank = v.type=="POINT" and -3 or -2
+				local actions = GLOBAL.select (rank,...)
                 for _,data in pairs(v.tests) do
                     if data and data.testfn and data.testfn(...) then
                         data.action = string.upper( data.action )
@@ -120,11 +114,11 @@ if actions_status then
 					local testfn = act.state.testfn
 					AddStategraphPostInit("wilson", function(sg)
 						local old_handler = sg.actionhandlers[action].deststate
-						sg.actionhandlers[action].deststate = function(inst, action)
+						sg.actionhandlers[action].deststate = function(inst, action, ...)
 							if testfn and testfn(inst,action) and act.state.deststate then
 								return act.state.deststate(inst,action)
 							end
-							return old_handler(inst, action)
+							return old_handler(inst, action, ...)
 						end
 					end)
 					if act.state.client_testfn then
@@ -132,11 +126,11 @@ if actions_status then
 					end
 					AddStategraphPostInit("wilson_client", function(sg)
 						local old_handler = sg.actionhandlers[action].deststate
-						sg.actionhandlers[action].deststate = function(inst, action)
+						sg.actionhandlers[action].deststate = function(inst, action, ...)
 							if testfn and testfn(inst,action) and act.state.deststate then
 								return act.state.deststate(inst,action)
 							end
-							return old_handler(inst, action)
+							return old_handler(inst, action, ...)
 						end
 					end)
 				end

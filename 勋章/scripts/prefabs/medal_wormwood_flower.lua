@@ -232,7 +232,7 @@ local function fn()
     -- MakeSmallBurnable(inst)
     -- MakeSmallPropagator(inst)
 
-    MakeHauntableIgnite(inst)
+    -- MakeHauntableIgnite(inst)
 
     return inst
 end

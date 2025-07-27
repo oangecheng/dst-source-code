@@ -115,12 +115,11 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_STATUE_MARBLE_GUGUGU = {
 	"吃曼德拉果也会进入迷糊状态哦，月圆可以靠它来装瓶装月光！",
 	"开采格罗姆雕像可以增加很多挖矿熟练度哦！",
 	"高效耕地机可以抹平蚁狮造成的地陷。",
-	"用空瓶子可以将坎普斯的灵魂装起来！",
+	"用空瓶子可以将坎普斯之灵装起来！",
 	"喂眼球草一包时空零食后，吞噬法杖就长出来了！",
 	"往船上钓鱼池里丢藤壶可以吸引到更多的鱼~",
 	"用空白勋章可以吸收黑暗灵魂获得噬灵勋章！",
 	"空白勋章可以直接吸收格罗姆雕像的能力！连吸两次会变成真正的淘气勋章哦！",
-	"暗夜坎普斯非常怕火，打不过的话就用火吓跑它吧！",
 	"把空白勋章放到远古档案馆的法阵上，可以把被遗忘的知识灌注进去变成传承勋章！",
 	"其实曼德拉果也可以当作弹弓子弹，它有催眠的效果，而且也有概率掉曼德拉种子~",
 	"空白勋章也能吸收羽绒服和蓝晶帽的能力~",
@@ -134,7 +133,7 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_STATUE_MARBLE_GUGUGU = {
 	"在不同的水域里可以钓到不同的遗失塑料袋，前提是有玻璃钓竿和对应的鱼饵。",
 	"打开遗失塑料袋·空间可以额外获得一个零食包装袋",
 	"用零食包装袋可以把时空灵石装进去变成时空零食",
-	"黑暗血糖能抵御血蜜，也能抵御时空虚影的冲撞",
+	"在和混沌生物的对战时，黑暗血糖有大用！",
 	"时空迷雾里的时空虚影太多了？可以选择暂时离开迷雾一会儿让它们自行消散。",
 	"在时空迷雾里使用流星法杖可以召唤一座时空晶矿。",
 	"想要空间塑料袋却不想等夏天？不妨用未解之谜召唤一个虚空钓鱼池吧！",
@@ -159,7 +158,7 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_STATUE_MARBLE_SALTFISH = {
 	"其实不需要被烧死，你只需要用浴火重生奇遇给的重生护符复活就能拿到浴火勋章~",
 	"蜘蛛墓碑下面埋的是韦伯的头骨，是你埋的吗？",
 	"昆阳之战奇遇并不是百分百能拿到流星法杖的。说到昆阳之战，你知道刘秀的故事吗？",
-	"遇到香蕉林奇遇，最好马上把它们砍掉！",
+	"遇到香蕉林奇遇，最好马上把它们烧掉！",
 	"其实以前吞噬法杖还是个因果律武器。",
 	"直接把曼德拉草喂鸟也可以拿到曼德拉种子。",
 	"夏天来不及做灭火器的话，不妨多做几个树根宝箱试试。",
@@ -382,8 +381,8 @@ STRINGS.RECIPE_DESC.IMMORTAL_BOOK = "里面藏着不朽的秘密"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.IMMORTAL_BOOK = "里面藏着不朽的秘密"
 --无字天书
 STRINGS.NAMES.CLOSED_BOOK = "无字天书"
-STRINGS.RECIPE_DESC.CLOSED_BOOK = "没有书可读的时候，就读读它吧"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.CLOSED_BOOK = "没有书可读的时候，就读读它吧"
+STRINGS.RECIPE_DESC.CLOSED_BOOK = "读书破万卷，下笔如有神"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.CLOSED_BOOK = "读书破万卷，下笔如有神"
 --血汗钱
 STRINGS.NAMES.TOIL_MONEY = "血汗钱"
 STRINGS.RECIPE_DESC.TOIL_MONEY = "这是用生命换来的钱！"
@@ -391,7 +390,10 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.TOIL_MONEY = "这是用生命换来的钱！
 --熊皮宝箱
 STRINGS.NAMES.BEARGER_CHEST = "熊皮宝箱"
 STRINGS.RECIPE_DESC.BEARGER_CHEST = "妈妈再也不用担心食物会坏啦~"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEARGER_CHEST = "妈妈再也不用担心食物会坏啦~"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEARGER_CHEST = {
+	GENERIC = "妈妈再也不用担心食物会坏啦~",
+	UPGRADED_STACKSIZE = "这下多少食物都塞的下了！",
+}
 --不朽果实
 STRINGS.NAMES.IMMORTAL_FRUIT = "不朽果实"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.IMMORTAL_FRUIT = "看起来很好吃的样子~"
@@ -424,6 +426,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_KRAMPUS_CHEST_ITEM = "带着它去旅�
 --硝化树
 STRINGS.NAMES.MEDAL_NITRIFY_TREE = "硝化树"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_NITRIFY_TREE = "它是受到了不朽之力的洗礼才变成了这副模样！"
+--不朽道具
+STRINGS.NAMES.IMMORTAL_ITEM = "不朽的{item}"
+STRINGS.NAMES.IMMORTAL_ITEM_LEVEL = "{level}级不朽{item}"
 ------------------------------------------------------------------
 -----------------------------友善勋章-----------------------------
 ------------------------------------------------------------------
@@ -462,6 +467,9 @@ STRINGS.RECIPE_DESC.BLANK_CERTIFICATE = "什么都没有等于什么都能有~"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.BLANK_CERTIFICATE = "什么都没有等于什么都能有~"
 STRINGS.NAMES.BLANK_CERTIFICATE_COPY = "仿·{medal}"
 STRINGS.NAMES.BLANK_CERTIFICATE_LEVEL = "仿·{level}级{medal}"
+STRINGS.NAMES.COPY_BLANK_CERTIFICATE = "空白勋章"
+STRINGS.RECIPE_DESC.COPY_BLANK_CERTIFICATE = "什么都没有等于什么都能有~"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.COPY_BLANK_CERTIFICATE = "什么都没有等于什么都能有~"
 --羽绒勋章
 STRINGS.NAMES.DOWN_FILLED_COAT_CERTIFICATE = "羽绒勋章"
 STRINGS.RECIPE_DESC.DOWN_FILLED_COAT_CERTIFICATE = "戴着它就好像穿了一件羽绒服~"
@@ -506,6 +514,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.SANITYROCK_FRAGMENT = "失去了暗影的力
 STRINGS.NAMES.SANITYROCK_MACE = "方尖锏"
 STRINGS.RECIPE_DESC.SANITYROCK_MACE = "强大的暗影力量"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.SANITYROCK_MACE = "它很强大，但我觉得它在吞噬我的理智！"
+--传承书页
+STRINGS.NAMES.MEDAL_INHERIT_PAGE = "传承书页"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_INHERIT_PAGE = "看起来很有年代感了。"
 ------------------------------------------------------------------
 -----------------------------女武神勋章-----------------------------
 ------------------------------------------------------------------
@@ -589,12 +600,20 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.IMMORTAL_STAFF = "石头有得是时间，�
 STRINGS.NAMES.MEDAL_SKIN_STAFF = "风花雪月"
 STRINGS.RECIPE_DESC.MEDAL_SKIN_STAFF = "六块首充，免费赠送"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SKIN_STAFF = "你是大千世界尘埃等闲，也是我仅有的风花雪月。"
+--月光法杖
+STRINGS.NAMES.MEDAL_MOONLIGHT_STAFF = "月光法杖"
+STRINGS.RECIPE_DESC.MEDAL_MOONLIGHT_STAFF = "稳定的月光能量"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_MOONLIGHT_STAFF = "当这月光照亮你，你还会是原来的那个你么？"
 --特制鱼食
 STRINGS.NAMES.MEDAL_CHUM = "特制鱼食"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_CHUM = "不知道这鱼食是怎么调配出来的，对鱼竟然有这么大的吸引力！"
+STRINGS.RECIPE_DESC.MEDAL_CHUM = "会喂鱼才会钓鱼"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_CHUM = "谁也想不到这东西对鱼有多么大的吸引力！"
 --皮肤券
 STRINGS.NAMES.MEDAL_SKIN_COUPON = "皮肤券"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SKIN_COUPON = "也许该用它换点好看的皮肤！"
+------------------------------------------------------------------
+-----------------------------天道酬勤-----------------------------
+------------------------------------------------------------------
 --奉纳盒
 STRINGS.NAMES.MEDAL_PAY_TRIBUTE_BOX = "奉纳盒"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_PAY_TRIBUTE_BOX = "向伟大的永恒大陆进贡！"
@@ -628,6 +647,12 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_GIFT_FRUIT_OVERSIZED = "圣诞老人�
 --使命勋章
 STRINGS.NAMES.MISSION_CERTIFICATE = "使命勋章"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MISSION_CERTIFICATE = "使命，听起来有点沉重。"
+--酬勤令
+STRINGS.NAMES.MEDAL_DILIGENCE_TOKEN = "酬勤令"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DILIGENCE_TOKEN = "这是勤劳的人应得的！我该用它换点什么好呢？"
+--暗影挑战符
+STRINGS.NAMES.MEDAL_MONSTER_SYMBOL = "暗影挑战符"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_MONSTER_SYMBOL = "浓郁的暗影气息，我得做好战斗的准备！"
 ------------------------------------------------------------------
 -----------------------------矿工勋章-----------------------------
 ------------------------------------------------------------------
@@ -845,6 +870,12 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.DEVOUR_SOUL_CERTIFICATE = "灵魂是什么�
 --暗夜坎普斯
 STRINGS.NAMES.MEDAL_RAGE_KRAMPUS = "暗夜坎普斯"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_RAGE_KRAMPUS = "他看起来不太好惹！"
+--噬魂勋章
+STRINGS.NAMES.MEDIUM_DEVOUR_SOUL_CERTIFICATE = "噬魂勋章"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDIUM_DEVOUR_SOUL_CERTIFICATE = "我想听听看灵魂的回声。"
+--噬空勋章
+STRINGS.NAMES.LARGE_DEVOUR_SOUL_CERTIFICATE = "噬空勋章"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.LARGE_DEVOUR_SOUL_CERTIFICATE = "原来灵魂也能打破时空的束缚呀？！"
 ------------------------------------------------------------------
 -----------------------------渔翁勋章-----------------------------
 ------------------------------------------------------------------
@@ -932,6 +963,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_RESONATOR_ITEM = "它能带着我找�
 --神秘土堆
 STRINGS.NAMES.MEDAL_TREASURE = "神秘土堆"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_TREASURE = "下面会埋着什么呢？"
+--藏宝洞
+STRINGS.NAMES.MEDAL_TREASURE_CHEST = "藏宝洞"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_TREASURE_CHEST = "宝藏就在里面！"
 --童心箱
 STRINGS.NAMES.MEDAL_CHILDISHNESS_CHEST = "童心箱"
 STRINGS.RECIPE_DESC.MEDAL_CHILDISHNESS_CHEST = "承载着童心的箱子"
@@ -968,7 +1002,8 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_AMMO_BOX = "这可是射手的必备�
 -----------------------------蜂王勋章-----------------------------
 ------------------------------------------------------------------
 --蜂王勋章
-STRINGS.NAMES.BEE_KING_CERTIFICATE = "蜂王勋章"
+STRINGS.NAMES.BEE_KING_CERTIFICATE = "蜂王勋章·毒伤"
+STRINGS.NAMES.BEE_KING_CERTIFICATE_ISAOE = "蜂王勋章·群攻"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEE_KING_CERTIFICATE = "戴上它，我就是真正的万蜂之王了！"
 --凋零之蜂
 STRINGS.NAMES.MEDAL_BEEQUEEN = "凋零之蜂"
@@ -1206,6 +1241,70 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DUSTMERINGUE = "那群小家伙肯定�
 STRINGS.NAMES.MEDAL_DUSTMOTHDEN_BASE = "尘蛾巢台"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DUSTMOTHDEN_BASE = "那些小家伙适合在上面做窝。"
 ------------------------------------------------------------------
+-----------------------------暗影魔法-----------------------------
+------------------------------------------------------------------
+--驱光遗骸
+STRINGS.NAMES.MEDAL_SHADOWTHRALL_SCREAMER = "驱光遗骸"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOWTHRALL_SCREAMER = "大扑棱蛾子！"
+--暗影魔法石
+STRINGS.NAMES.MEDAL_SHADOW_MAGIC_STONE = "暗影魔法石"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOW_MAGIC_STONE = "那股黑暗仿佛要把我吞噬了！"
+--暗影勋章
+STRINGS.NAMES.SHADOWMAGIC_CERTIFICATE = "暗影魔法勋章"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SHADOWMAGIC_CERTIFICATE = "承载着藏在阴暗里的力量。"
+--血色飓风
+STRINGS.NAMES.MEDAL_RED_TORNADO = "血色飓风"
+--混沌拳击袋
+STRINGS.NAMES.PUNCHINGBAG_CHAOS = "混沌拳击袋"
+STRINGS.RECIPE_DESC.PUNCHINGBAG_CHAOS = "测试你的武器在对付混沌生物时的表现。"
+--暗影工具
+STRINGS.NAMES.MEDAL_SHADOW_TOOL = "暗影魔法工具"
+STRINGS.RECIPE_DESC.MEDAL_SHADOW_TOOL = "随意切换造型"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOW_TOOL = "没有比它更全能的了！"
+------------------------------------------------------------------
+-----------------------------本源之树-----------------------------
+------------------------------------------------------------------
+--本源勋章
+STRINGS.NAMES.ORIGIN_CERTIFICATE = "本源勋章"
+STRINGS.RECIPE_DESC.ORIGIN_CERTIFICATE = "也许能激发出勋章更多的力量"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.ORIGIN_CERTIFICATE = "也许能激发出勋章更多的力量"
+--本源精华
+STRINGS.NAMES.MEDAL_ORIGIN_ESSENCE = "本源精华"
+STRINGS.RECIPE_DESC.MEDAL_ORIGIN_ESSENCE = "万物之源"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_ESSENCE = "万物之源"
+--本源之树
+STRINGS.NAMES.MEDAL_ORIGIN_TREE = "本源之树"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE = "好大的树！"
+--本源小树
+STRINGS.NAMES.MEDAL_ORIGIN_SMALL_TREE = "本源之树"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_SMALL_TREE = "快快长大吧！"
+--本源根鞭
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_ROOT = "本源根鞭"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_ROOT = "被它抽到绝对不会好受！"
+--本源之花
+STRINGS.NAMES.MEDAL_ORIGIN_FLOWER = "本源之花"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_FLOWER = "越好看越危险！赶紧把它摘了！"
+--本源花瓣
+STRINGS.NAMES.MEDAL_ORIGIN_PETALS = "本源花瓣"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_PETALS = "看起是一味好药材。"
+--本源孢子云
+STRINGS.NAMES.MEDAL_SPORECLOUD = "本源孢子云"
+--本源果蝇
+STRINGS.NAMES.MEDAL_ORIGIN_FRUITFLY = "本源果蝇"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_FRUITFLY = "你不要过来啊！"
+--本源果妖
+STRINGS.NAMES.MEDAL_ORIGIN_ELF = "本源果妖"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_ELF = "这些家伙也太吵了！"
+--本源守卫幼苗
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD_SAPLING = "本源守卫幼苗"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD_SAPLING = "不及时挖了后果不堪设想！"
+--本源守卫
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD = "本源守卫"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD = "我要赶紧把它清理掉！"
+--本源守卫藤蔓
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD_VINE_END = "本源守卫藤蔓"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD_VINE_END = "离我远点！"
+------------------------------------------------------------------
 -------------------------------BUFF-------------------------------
 ------------------------------------------------------------------
 --羊角帽电击
@@ -1224,10 +1323,10 @@ STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_QUICKLOCOMOTOR ="静若处
 STRINGS.NAMES.BUFF_MEDAL_BLOODSUCKING = "血糖"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_BLOODSUCKING ="我想要战斗！"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_BLOODSUCKING ="仿佛身体被抽空…"
---黑暗血糖,吸血
+--黑暗血糖
 STRINGS.NAMES.BUFF_MEDAL_SUCKINGBLOOD = "黑暗血糖"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_SUCKINGBLOOD ="我体内的野兽被唤醒了。"
-STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_SUCKINGBLOOD ="我刚刚怎么了，我吸了谁的血？"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_SUCKINGBLOOD ="我刚刚怎么了，好像有一股黑暗吞噬了我的灵魂…"
 --土豆淀粉,耐饿
 STRINGS.NAMES.BUFF_MEDAL_ASSUAGEHUNGER = "土豆淀粉"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_ASSUAGEHUNGER ="感觉肚子胀胀的…"
@@ -1264,6 +1363,8 @@ STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_INJURED ="蜂毒终于解�
 STRINGS.NAMES.BUFF_MEDAL_BLOODHONEYMARK = "血蜜标记"
 --时之伤(debuff)
 STRINGS.NAMES.MEDAL_DELAY_DAMAGE = "时之伤"
+--寄生值(debuff)
+STRINGS.NAMES.MEDAL_PARASITIC_VALUE = "寄生值"
 --山力叶酱,强壮
 STRINGS.NAMES.BUFF_MEDAL_STRONG = "山力叶酱"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_STRONG ="我现在能搬得动山！"
@@ -1275,7 +1376,22 @@ STRINGS.NAMES.BUFF_MEDAL_MALAISE = "萎靡"
 --鱼人诅咒(debuff)
 STRINGS.NAMES.BUFF_MEDAL_MERMCURSE = "鱼人诅咒"
 --天道酬勤标记
-STRINGS.NAMES.BUFF_MEDAL_REWARDTOILER_MARK = "天道酬勤"
+STRINGS.NAMES.MEDAL_REWARDTOILER_MARK = "天道酬勤"
+--迷糊标记(debuff)
+STRINGS.NAMES.BUFF_MEDAL_CONFUSED = "迷迷糊糊"
+--红蓝晶充能
+STRINGS.NAMES.MEDAL_RED_CHARGING = "红晶充能"
+STRINGS.NAMES.MEDAL_BLUE_CHARGING = "蓝晶充能"
+--流血(方尖弹)
+STRINGS.NAMES.BUFF_MEDAL_BLEED = "流血"
+--混乱,反向操作(debuff)
+STRINGS.NAMES.BUFF_MEDAL_CONFUSION = "混乱"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_CONFUSION ="我好像有点搞不清方向了！"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_CONFUSION ="我的方向感又回来了！"
+--正义值
+STRINGS.NAMES.MEDAL_JUSTICE_VALUE = "正义值"
+--爆发力
+STRINGS.NAMES.MEDAL_SILENCE_DAMAGE = "爆发力"
 
 --原版Buff，兼容buff显示用
 STRINGS.NAMES.BUFF_ATTACK = "辣椒面"
@@ -1284,6 +1400,7 @@ STRINGS.NAMES.BUFF_ELECTRICATTACK = "电击"
 STRINGS.NAMES.BUFF_MOISTUREIMMUNITY = "干燥"
 STRINGS.NAMES.BUFF_PLAYERABSORPTION = "蒜粉"
 STRINGS.NAMES.BUFF_SLEEPRESISTANCE = "蘑菇蛋糕"
+STRINGS.NAMES.BUFF_FIREFRENZY = "狂热"
 STRINGS.NAMES.HEALTHREGENBUFF = "彩虹糖豆"
 STRINGS.NAMES.TILLWEEDSALVE_BUFF = "犁地草膏"
 STRINGS.NAMES.SWEETTEA_BUFF = "舒缓茶"
@@ -1297,15 +1414,28 @@ STRINGS.NAMES.HALLOWEENPOTION_BRAVERY_LARGE_BUFF = "终止恐惧的药液"
 STRINGS.NAMES.MEDAL_TEMPERATURE_UP = "保温"
 STRINGS.NAMES.MEDAL_TEMPERATURE_DOWN = "降温"
 STRINGS.NAMES.MEDAL_WORMLIGHT = "发光(同类型会覆盖)"
+STRINGS.NAMES.NIGHTVISION_BUFF = STRINGS.NAMES.ANCIENTFRUIT_NIGHTVISION or "夜莓"
+STRINGS.NAMES.HEALINGSALVE_ACIDBUFF = STRINGS.NAMES.HEALINGSALVE_ACID or "黏糊糊的药膏"
 
 --一些配方的命名，防止蓝图报错
 STRINGS.NAMES.TOIL_MONEY_COPY = "血汗钱"
 STRINGS.NAMES.MEDAL_FISHINGROD_NEW = "玻璃钓竿"
 STRINGS.NAMES.TENTACLESPIKE_MEDAL = "触手尖刺"
 STRINGS.NAMES.MESSAGEBOTTLEEMPTY_MEDAL = "空瓶子"
-STRINGS.NAMES.DUSTMOTHDEN_COPY = "整洁洞穴"
-STRINGS.RECIPE_DESC.DUSTMOTHDEN = "给小家伙做个窝"
 STRINGS.NAMES.MEDAL_GLOMMER_ESSENCE_COPY = "格罗姆精华"
+STRINGS.NAMES.DUSTMOTHDEN_COPY = STRINGS.NAMES.DUSTMOTHDEN or "整洁洞穴"
+STRINGS.RECIPE_DESC.DUSTMOTHDEN = STRINGS.NAMES.DUSTMOTHDEN or "整洁洞穴"
+STRINGS.NAMES.ARCHIVE_COOKPOT_COPY = STRINGS.NAMES.ARCHIVE_COOKPOT or "远古窑"
+STRINGS.RECIPE_DESC.ARCHIVE_COOKPOT = STRINGS.NAMES.ARCHIVE_COOKPOT or "远古窑"
+STRINGS.NAMES.INSANITYROCK_COPY = "精神失常方尖碑"
+STRINGS.RECIPE_DESC.INSANITYROCK = STRINGS.RECIPE_DESC.INSANITYROCK or "san高时下降，san低时上升"
+STRINGS.NAMES.SANITYROCK_COPY = "精神正常方尖碑"
+STRINGS.RECIPE_DESC.SANITYROCK = STRINGS.RECIPE_DESC.SANITYROCK or "san高时上升，san低时下降"
+STRINGS.NAMES.MEATRACK_HERMIT_COPY = STRINGS.NAMES.MEATRACK_HERMIT or "晾肉架"
+STRINGS.RECIPE_DESC.MEATRACK_HERMIT = STRINGS.NAMES.MEATRACK_HERMIT or "晾肉架"
+STRINGS.NAMES.BEEBOX_HERMIT_COPY = STRINGS.NAMES.BEEBOX_HERMIT or "蜂箱"
+STRINGS.RECIPE_DESC.BEEBOX_HERMIT = STRINGS.NAMES.BEEBOX_HERMIT or "蜂箱"
+STRINGS.NAMES.MEDAL_COMPOSTWRAP = STRINGS.NAMES.COMPOSTWRAP or "肥料包"
 ------------------------------------------------------------------
 ------------------------------新对话------------------------------
 ------------------------------------------------------------------
@@ -1313,10 +1443,12 @@ STRINGS.NAMES.MEDAL_GLOMMER_ESSENCE_COPY = "格罗姆精华"
 STRINGS.IMMORTALSPEECH={
 	SUCCESS="我给它赋予了不朽之力！",
 	ALREADY="它早就已经拥有不朽之力了！",
-	NOTENOUGH="我身上的不朽精华数量不够！需要",
-	NOTENOUGH2="个不朽精华！",
+	NOTENOUGH="我身上的不朽精华数量不够！需要{consume}个不朽精华！",
 	POWERNOTENOUGH="不朽之力不够了…",
 	ISEQUIPPED="也许我应该先把它取下来。",
+	ISMAX="这已经是它的极限了！",
+	NOGEM="需要{consume}个不朽宝石才能升级！",
+	CANTADD="它现在还不能赋予不朽之力！",
 }
 --能力印刻
 STRINGS.POWERPRINTSPEECH={
@@ -1403,12 +1535,13 @@ STRINGS.NAUGHTYBELLSPEECH={
 	MAKETROUBLE="我好像闯祸了…",--激怒小偷
 	ONLUNARISLAND="连月亮女神都看不下去了吗…",--在月岛摇铃铛
 	LISTENER="它们盯上我了…",--聆听者
+	NOTHING="好像什么也没发生，也许我该换个地方试试看了！",--没召唤成功
 }
 --能力印刻
 STRINGS.MEDALUPGRADESPEECH={
 	SUCCESS="它们合二为一了！",
 	ISMAX="看来这已经是它的极限了…",
-	UNLIKE="看起来它们俩不能融合…",
+	-- UNLIKE="看起来它们俩不能融合…",
 	ISEQUIPPED="在装备的时候进行融合是不明智的…",
 	NEEDEMPTY="嘿，里面还装着东西呢！",
 }
@@ -1427,6 +1560,11 @@ STRINGS.PLACECHUMSPEECH={
 STRINGS.WASHFUNCTIONALSPEECH={
 	ISEQUIPPED="佩戴时不能进行清洗哦！",
 	CANTWASH="我觉得不应该在地上清洗。",
+}
+--月光变异
+STRINGS.MEDAL_MOONLIGHT_SPEECH={
+	CANT="好像没有任何作用！",
+	NOTENOUGH="魔力好像不够了。",
 }
 --吃了秘制料理
 STRINGS.EATPOOPSPEECH={
@@ -1586,6 +1724,32 @@ STRINGS.MEDAL_READ_RESULT={
 	NOWISDOMVALUE = "我的脑子有点不够用了…",--耐久不够
 	MUSTLAND = "这里可不适合读这个！",--必需在岸上读
 }
+--智慧勋章相关提示
+STRINGS.WISDOM_MEDAL_SPEECH={
+	SAYANSWER = "我觉得正确答案应该是：",--公布答案(答题)
+	COUNTVALUE = "也许可以换到：",--奉纳盒价值预测
+}
+--奉纳盒提示
+STRINGS.Medal_PAY_TRIBUTE_SPEECH={
+	FAIL = "害，差一点就对了，答案应该是:{veg1},{veg2},{veg3},{veg4}",--奉纳失败
+	PROPHESY = "我在它的光芒里看到了:{veg1},{veg2},{veg3},{veg4}",--预言
+	ANSWER = "答案是:{veg1},{veg2},{veg3},{veg4}",--显示答案
+}
+--GM提示
+STRINGS.MEDAL_DEBUG_SPEECH={
+	TAGCOUNT1="我",
+	TAGCOUNT2="身上有",
+	TAGCOUNT3="个标签",
+}
+------------------------------------------------------
+-------------------------公告-------------------------
+------------------------------------------------------
+STRINGS.MEDAL_ANNOUNCE={
+	NEWMOON="月黑风高夜…",
+	REINCARNATION1=" 险些死于： ",
+	REINCARNATION2="，在紧要关头掉入时空塌陷得救了！",
+}
+
 ------------------------------------------------------------------
 -------------------------新动作的文字提示-------------------------
 ------------------------------------------------------------------
@@ -1598,6 +1762,7 @@ STRINGS.MEDAL_NEWACTION={
 	SEALSPIDER="封印",
 	POWERABSORB="能力吸收",
 	MEDALUPGRADE="融合",
+	INHERITMEDALUPGRADE="升级",
 	-- REPAIRSTAFF="补充能量",
 	REPAIRARMORBLUECRYSTAL="修补",
 	MAKECOOLDOWN="降温",
@@ -1658,7 +1823,15 @@ STRINGS.MEDAL_NEWACTION={
 	MEDALUSESKINCOUPON="兑换",
 	WORMWOODFLOWERPLANT="缠绕",
 	CALLTRIBUTEBOX="召唤",
+	READCLOSEDBOOK="学习",
+	MEDALCOPYINGBLUEPRINT="临摹蓝图",
+	MEDALBEEBOXHARVEST="收取凋零蜂王浆",
+	MEDALMOONTREEHARVEST="采摘",
+	MEDAL_ADVANCE_ORIGIN_TREE_GROWTH="使用",
 }
+--原版动作文字补充
+STRINGS.ACTIONS.USESPELLBOOK.SHADOW_TOOL="切换形态"
+STRINGS.ACTIONS.CLOSESPELLBOOK.SHADOW_TOOL="取消切换"
 ---------------------------动作失败提示------------------------
 --原版动作失败提示(勋章新增的特定提示)
 STRINGS.MEDAL_ACTIONFAIL_SPEECH={
@@ -1668,6 +1841,8 @@ STRINGS.MEDAL_ACTIONFAIL_SPEECH={
 		MUSTLAND = "这里可不适合读这个！",--必需在岸上读
 	},
 }
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.BUILD.INHERITMEDALNORECIPE = "传承勋章未解锁该配方！"
+--勋章动作失败提示
 STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.WORMWOODFLOWERPLANT={
 	NOTENOUGH = "这点藤蔓或许还不够缠满它！",
 }
@@ -1678,9 +1853,50 @@ STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALPYTREDE={
 	TOOOFTEN="先让我缓缓…",
 	NOTNEWMOON="这种事情可见不得光…",
 }
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.READCLOSEDBOOK={
+	NOSANITY = "我有点头晕眼花，学不进去了！",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.FISHMOONINWATER={
+	TOOCONFUSED = "我八成是疯了，怎么会去做这种傻事？！",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALTOOLSORB={
+	UNSUPPORTED = "这俩玩意儿似乎不能融合！",
+	ALREADY = "它已经融合过这个工具了！",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALMOONTREEHARVEST={
+	TOOSMALL = "再让它长长吧！",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALDELIVERYTREASURE={
+	CANTSPAWN = "这个位置无法建立空间连接！",
+}
+
+-- STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.HAMMER={
+-- 	USESDEPLETED = "没耐久了",
+-- }
 ------------------------------------------------------------------
 ----------------------------UI文字提示----------------------------
 ------------------------------------------------------------------
+--新制作栏标题
+STRINGS.UI.CRAFTING_FILTERS.MEDAL = "能力勋章道具"
+--制作栏解锁提醒
+STRINGS.UI.CRAFTING.NEEDSCARTOGRAPHYDESK = "你需要一张制图桌来解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.SEASONINGCHEF = "佩戴主厨勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.WISDOMBUILDER = "佩戴智慧勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_HANDY_MEDAL = "佩戴巧手勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_PLANT_MEDAL = "佩戴虫木勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_TRANSPLANT_MEDAL = "佩戴植物勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.TENTACLEMEDAL = "佩戴触手勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.NAUGHTYMEDAL = "佩戴淘气勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_BATHFIRE_MEDAL = "佩戴浴火勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_CHILDISHNESS = "佩戴童心勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.SENIOR_CHILDISHNESS = "佩戴童真勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.IS_BEE_KING = "佩戴蜂王勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.SPACETIME_MEDAL = "佩戴时空勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_SHADOWMAGIC_MEDAL = "佩戴暗影魔法勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER1 = "佩戴传承勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER2 = "佩戴2级传承勋章解锁！"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER3 = "佩戴3级传承勋章解锁！"
+
 STRINGS.MEDAL_UI={
 	MEDALPAGETIPS="点击打开能力勋章设置界面",
 	DRAGABLETIPS="按住右键可拖拽",
@@ -1697,13 +1913,33 @@ STRINGS.MEDAL_UI={
 	SKIN_TITLE="风花雪月",
 	SKIN_BUY_BUTTON="购买",
 	SKIN_BOUGHT="已拥有",
+	SKIN_FREEUSE="免费使用",
 	SKIN_TIP_TITLE="购买皮肤",
 	SKIN_TIP_INFO1="确定要消耗",
 	SKIN_TIP_INFO2="皮肤币购买该皮肤吗？",
 	SKIN_HELP="可使用血汗钱充值，1血汗钱=10皮肤币",
 	SKIN_NEED_COUPON="皮肤券解锁",
+	SKIN_VIP_TIME_TIP={
+		TIP = "雪月卡有效期:",
+		DAY = "天",
+		HOUR = "小时",
+		MINUTE = "分钟",
+		LESSMINUTE = "不到一分钟",
+		NOTIME = "未激活",
+	},
 	BUFF_OPEN_TIP="展开",
 	LISTEN_QUESTION="请听题",
+	PAY_TRIBUTE="奉纳",
+	PAY_TRIBUTE_TITLE="蔬果奉纳",
+	PAY_TRIBUTE_SMALL_TITLE1="备选蔬果：",
+	PAY_TRIBUTE_SMALL_TITLE2="奉纳记录",
+	PAY_TRIBUTE_TIPS={
+		"放入任意4个备选蔬果(可重复)",
+		"表示[位置和种类都正确]的数量",
+		"表示[种类正确但位置不正确]的数量",
+		"携带预言水晶球不消耗答题次数",
+		"不朽果实可以替代任何蔬果",
+	},
 }
 STRINGS.MEDAL_SETTING_UI={
 	TITLE="勋章设置",
@@ -1720,6 +1956,40 @@ STRINGS.MEDAL_SETTING_UI={
 	LOWEST="最低",
 	SHOW_MEDAL_INFO="更多信息展示",
 	MUST="必要内容",
+	SHOWTAGSNUM="查看我的标签数量",
+	CONTAINER_DRAG="容器拖拽",
+	SLINGSHOT_LOCK="弹弓锁敌范围倍数",
+	USECKD="使用兑换码",
+	SUBMIT="提交",
+}
+STRINGS.MEDAL_USECDK_UI={
+	TITLE="雪月卡兑换码",
+	TIPS="请输入正确的兑换码",
+	STATE={
+		"网络被时空吞噬者吃了,连接异常！请重试！",
+		"系统时间异常，请保证电脑时间与现实同步！",
+		"已经激活过了，不需要再重复使用！",
+		"兑换失败,无效的cdk！",
+		"还是无效的cdk,再好好检查下吧~",
+		"还是无效,不要手打了直接复制粘贴吧！",
+		"你小子还搁这试呢,这样只会浪费时间！",
+		-- "你已经使用过这个福利码了！",
+		-- "换一个试试吧，这个你已经用过了！",
+		-- "一个码只能用一次！",
+	},
+	SUCCESS="兑换成功！有效期到",
+	DAY="天",
+}
+STRINGS.MEDAL_SHADOW_TOOL_UI={
+	AXE="斧头形态",
+	PICKAXE="鹤嘴锄形态",
+	SHOVEL="铲子形态",
+	HAMMER="锤子形态",
+	BUGNET="捕虫网形态",
+	FARM_HOE="锄头形态",
+	PITCHFORK="干草叉形态",
+	OAR="船桨形态",
+	MULTI_USE="五合一形态",
 }
 STRINGS.MEDAL_INFO={
 	FRONT="剩余:",
@@ -1740,6 +2010,7 @@ STRINGS.MEDAL_INFO={
 	IMMUNITY="魔法免疫力:",
 	FOODLOG="烹饪并收获新料理,已记录:",
 	FOODLOG2="烹饪并收获大厨料理,已记录:",
+	FOODLOG3="制作或使用调味料(上限50点),当前:",
 	NEEDSPICE="制作并收获任意调味料理可降低耐久",
 	HONOR="荣誉:",
 	LOSSPACK="遗失包裹",
@@ -1754,6 +2025,27 @@ STRINGS.MEDAL_INFO={
 	SPACETIMEVALUE="时空饱食度:",
 	TRIBUTE_TIP1="收集：",
 	TRIBUTE_TIP2="\n可获得4个包果+1颗包果种子",
+	JUSTICE_VALUE="正义值:",
+}
+--奉纳盒提示
+STRINGS.MEDAL_PAY_TRIBUTE_INFO={
+	FISHBOX="奉纳要求：任意海鲜，格子不可为空\n温馨提示：种类越多收益越大",
+	FOODBOX="奉纳要求：任意非调味料理，格子不可为空，不可堆叠\n温馨提示：种类越多并且越贴合偏好收益越大，模组料理不计入种类",
+	FOOD_PREFERENCE="料理偏好：",
+	FOOD_PREFERENCE_LOOT={
+		"肉类",
+		"素类",
+		"糖类",
+		"蜜制品",
+		"大厨料理",
+		"零嘴(饱食度<=12.5)",
+		"小吃(12.5<饱食度<=25)",
+		"主食(25<饱食度<75)",
+		"大餐(饱食度>=75)",
+	},
+	FOOD_NOPREFERENCE="无",
+	CREATUREBOX="奉纳要求：任意小动物，格子不可为空，不可堆叠\n温馨提示：同一种小动物只计数一次",
+	VEGGIESBOX="奉纳要求：任意农作物或种子，格子不可为空，可堆叠\n温馨提示：种类越多、单格物品数量越多收益越大，农作物和其种子算同一个种类",
 }
 STRINGS.MISSION_TAGINFO={
 	--击杀目标
@@ -1907,60 +2199,65 @@ STRINGS.MEDAL_HOVER_TIPS={
 	medal_space_staff="喂料理加耐久，用砂之石加空间之力",
 	medal_skin_staff="塞血汗钱充值",
 	medal_gift_fruit="有宿命的,别回档开了",
-	medal_pay_tribute_box="不可堆叠的祭品，放入一个后点建造按钮，就可以继续往里放了",
+	handy_test_certificate="已制作过的物品在制作栏里有会数字标记，格式为：已消耗耐久/最大消耗上限",
+	-- medal_pay_tribute_box="不可堆叠的祭品，放入一个后点建造按钮，就可以继续往里放了",
 }
 
 ----------------------------皮肤名----------------------------
 STRINGS.MEDAL_SKIN_NAME={
 	UNDEFINED = "暂无皮肤数据",
-	MEDAL_STATUE_GUGUGU_SKIN1="鸽王之王",
-	MEDAL_STATUE_GUGUGU_SKIN2="合家欢乐",
-	MEDAL_STATUE_GUGUGU_SKIN3="冰雕玉琢",
-	MEDAL_STATUE_SALTFISH_SKIN1="虎虎生威",
-	MEDAL_STATUE_SALTFISH_SKIN2="幸运锦鲤",
-	MEDAL_STATUE_SALTFISH_SKIN3="冰雕玉琢",
-	MEDAL_STATUE_STUPIDCAT_SKIN1="招财进宝",
-	MEDAL_STATUE_STUPIDCAT_SKIN2="冰雕玉琢",
-	LUREPLANT_ROD_SKIN1="霸王之花",
-	MEDAL_NAUGHTYBELL_SKIN1="冰雪格罗姆",
-	MEDAL_NAUGHTYBELL_SKIN2="虎年吉祥",
-	SANITYROCK_MACE_SKIN1="锦依玉石",
-	SANITYROCK_MACE_SKIN2="一剑霜寒",
-	DEVOUR_STAFF_SKIN1="贪吃蛇",
-	MEDAL_KRAMPUS_CHEST_ITEM_SKIN1="福禄呈祥",
-	MEDAL_KRAMPUS_CHEST_ITEM_SKIN2="镂冰雕琼",
-	MEDAL_FISHINGROD_SKIN1="红梅报喜",
-	MEDAL_GOATHAT_SKIN1="财运亨通",
-	BEARGER_CHEST_SKIN1="八珍玉食",
-	BEARGER_CHEST_SKIN2="时空宝箱",
-	MEDAL_BOX_SKIN1="金钗钿合",
-	MEDAL_BOX_SKIN2="纸上雪",
-	SPICES_BOX_SKIN1="五味俱全",
-	SPICES_BOX_SKIN2="祈福香囊",
-	SPICES_BOX_SKIN3="星星糖果罐",
-	MEDAL_STATUE_CHANGEABLE_SKIN1="大白",
-	MEDAL_STATUE_CHANGEABLE_SKIN2="某幻想家",
-	MEDAL_STATUE_CHANGEABLE_SKIN3="Hubert",
-	MEDAL_STATUE_CHANGEABLE_SKIN4="暗夜坎普斯",
-	MEDAL_STATUE_CHANGEABLE_SKIN5="凋零之蜂",
-	MEDAL_STATUE_CHANGEABLE_SKIN6="时空吞噬者",
-	METEOR_STAFF_SKIN1="北斗七星",
-	MEDAL_SEAPOND_SKIN1="泳池派对",
-	MEDAL_SEAPOND_SKIN2="冬日温泉",
-	MEDAL_STATUE_BLACKEGG_SKIN1="黑大帅",
-	MEDAL_STATUE_BLACKEGG_SKIN2="大白蛋子？",
-	MEDAL_COOKPOT_SKIN1="铜炉火锅",
-	MEDAL_FRUIT_TREE_IMMORTAL_FRUIT_SKIN1="琼紫玉藤",
-	MEDAL_STATUE_POTTING_SKIN1="迎春花",
-	MEDAL_STATUE_POTTING_SKIN2="梨花",
-	MEDAL_STATUE_POTTING_SKIN3="丁香花",
-	MEDAL_STATUE_POTTING_SKIN4="蔷薇花",
-	MEDAL_STATUE_POTTING_SKIN5="杜鹃花",
-	MEDAL_STATUE_POTTING_SKIN6="睡莲",
-	MEDAL_LIVINGROOT_CHEST_SKIN1="蘑菇丛林",
-	MEDAL_SPACE_STAFF_SKIN1="小鸟时钟",
-	MEDAL_TOY_CHEST_SKIN1="玩具收纳箱",
-	MEDAL_SKIN_STAFF_SKIN1="雪花谣",
-	DOWN_FILLED_COAT_SKIN1="加绒唐装",
-	MEDAL_WATERPUMP_SKIN1="雪农与水",
 }
+
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin1="鸽王之王"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin2="合家欢乐"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin3="冰雕玉琢"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin4="鸽之"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin5="烤乳鸽"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin1="虎虎生威"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin2="幸运锦鲤"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin3="冰雕玉琢"
+STRINGS.SKIN_NAMES.medal_statue_stupidcat_skin1="招财进宝"
+STRINGS.SKIN_NAMES.medal_statue_stupidcat_skin2="冰雕玉琢"
+STRINGS.SKIN_NAMES.lureplant_rod_skin1="霸王之花"
+STRINGS.SKIN_NAMES.medal_naughtybell_skin1="冰雪格罗姆"
+STRINGS.SKIN_NAMES.medal_naughtybell_skin2="虎年吉祥"
+STRINGS.SKIN_NAMES.sanityrock_mace_skin1="锦依玉石"
+STRINGS.SKIN_NAMES.sanityrock_mace_skin2="一剑霜寒"
+STRINGS.SKIN_NAMES.devour_staff_skin1="贪吃蛇"
+STRINGS.SKIN_NAMES.medal_krampus_chest_item_skin1="福禄呈祥"
+STRINGS.SKIN_NAMES.medal_krampus_chest_item_skin2="镂冰雕琼"
+STRINGS.SKIN_NAMES.medal_fishingrod_skin1="红梅报喜"
+STRINGS.SKIN_NAMES.medal_goathat_skin1="财运亨通"
+STRINGS.SKIN_NAMES.bearger_chest_skin1="八珍玉食"
+STRINGS.SKIN_NAMES.bearger_chest_skin2="时空宝箱"
+STRINGS.SKIN_NAMES.medal_box_skin1="金钗钿合"
+STRINGS.SKIN_NAMES.medal_box_skin2="纸上雪"
+STRINGS.SKIN_NAMES.spices_box_skin1="五味俱全"
+STRINGS.SKIN_NAMES.spices_box_skin2="祈福香囊"
+STRINGS.SKIN_NAMES.spices_box_skin3="星星糖果罐"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin1="大白"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin2="某幻想家"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin3="hubert"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin4="暗夜坎普斯"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin5="凋零之蜂"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin6="时空吞噬者"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin7="驱光遗骸"
+STRINGS.SKIN_NAMES.meteor_staff_skin1="北斗七星"
+STRINGS.SKIN_NAMES.medal_seapond_skin1="泳池派对"
+STRINGS.SKIN_NAMES.medal_seapond_skin2="冬日温泉"
+STRINGS.SKIN_NAMES.medal_statue_blackegg_skin1="黑大帅"
+STRINGS.SKIN_NAMES.medal_statue_blackegg_skin2="大白蛋子？"
+STRINGS.SKIN_NAMES.medal_cookpot_skin1="铜炉火锅"
+STRINGS.SKIN_NAMES.medal_fruit_tree_immortal_fruit_skin1="琼紫玉藤"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin1="迎春花"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin2="梨花"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin3="丁香花"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin4="蔷薇花"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin5="杜鹃花"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin6="睡莲"
+STRINGS.SKIN_NAMES.medal_livingroot_chest_skin1="蘑菇丛林"
+STRINGS.SKIN_NAMES.medal_space_staff_skin1="小鸟时钟"
+STRINGS.SKIN_NAMES.medal_toy_chest_skin1="玩具收纳箱"
+STRINGS.SKIN_NAMES.medal_skin_staff_skin1="雪花谣"
+STRINGS.SKIN_NAMES.down_filled_coat_skin1="加绒唐装"
+STRINGS.SKIN_NAMES.medal_waterpump_skin1="雪农与水"

@@ -3,9 +3,7 @@ local assets =
     Asset("ANIM", "anim/fishingrod.zip"),
     Asset("ANIM", "anim/swap_fishingrod.zip"),
 	Asset("ANIM", "anim/medal_fishingrod.zip"),
-	Asset("ANIM", "anim/medal_fishingrod_skin1.zip"),
 	Asset("ANIM", "anim/swap_medal_fishingrod.zip"),
-	Asset("ANIM", "anim/swap_medal_fishingrod_skin1.zip"),
     Asset("ATLAS", "images/medal_fishingrod.xml"),
 	Asset("ATLAS_BUILD", "images/medal_fishingrod.xml",256),
 }
@@ -138,7 +136,7 @@ local pond_loot={
 	},
 }
 
---钓取遗失包裹(鱼竿,池塘,钓友)
+--钓取遗失塑料袋(鱼竿,池塘,钓友)
 local function getLossPouch(inst,pond,fisher)
 	if pond==nil then return end
 	if fisher==nil then return end
@@ -171,33 +169,26 @@ local function getLossPouch(inst,pond,fisher)
 			local lure_loot = pond_loot[pond.prefab]
 			if lure_loot ~= nil and lure_loot[lure.prefab] then
 				local chance = lure_loot[lure.prefab].chance
-				local reward_chance = (0.25-chance)*0.4--天道酬勤概率
+				local reward_chance = chance*0.3--天道酬勤概率
 				local chance_mult = fisher.medal_fishing_chance_mult or 1--概率加成
 				local consume_mult = fisher.medal_fishing_consume_mult or 1--消耗减免
 				local product=lure_loot[lure.prefab].product
 				chance=chance*chance_mult
 				reward_chance = reward_chance*chance_mult
 				-- print("塑料袋概率:"..chance..",鱼饵消耗概率:"..lure_loot[lure.prefab].consume*consume_mult)
-				if math.random() < chance then
+				--保底掉落
+				if GuaranteedRandom(fisher,chance,product) then
 					--消耗鱼饵
 					if math.random() < lure_loot[lure.prefab].consume*consume_mult then
 						inst.components.container:RemoveItem(lure):Remove()
 					end
-					if fisher.medal_pouch_count then
-						fisher.medal_pouch_count[product] = 0--清空计数
+					--提前初始化一下遗失塑料袋宿命池
+					if TheWorld and TheWorld.components.medal_serverdestiny ~= nil then
+						TheWorld.components.medal_serverdestiny:InitDestinyKey("medal_losswetpouch")
 					end
 					return product
-				else--保底
-					fisher.medal_pouch_count = fisher.medal_pouch_count or {}
-					fisher.medal_pouch_count[product] = fisher.medal_pouch_count[product] and fisher.medal_pouch_count[product]+1 or 1
-					-- print("保底计数:"..fisher.medal_pouch_count[product]..",第"..math.ceil(1/chance*1.5).."次必出")
-					if fisher.medal_pouch_count[product]>=math.ceil(1/chance*1.5) then
-						fisher.medal_pouch_count[product] = 0--清空计数
-						SpawnMedalTips(fisher,1,14)--弹幕提示
-						return product
-					else--天道酬勤
-						RewardToiler(fisher,reward_chance)
-					end
+				else
+					RewardToiler(fisher,reward_chance)--天道酬勤
 				end
 			end
 		end

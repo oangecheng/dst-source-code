@@ -12,11 +12,20 @@ local function onequip(inst, owner)
 	owner.AnimState:OverrideSymbol("swap_object", "swap_medal_moonglass_bugnet", "swap_bugnet")
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")
+    owner.spore_moon_catcher = true--月亮孢子捕手
 end
 
 local function onunequip(inst, owner)
     owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
+    owner.spore_moon_catcher = nil--月亮孢子捕手
+end
+
+--添加可装备组件相关内容
+local function SetupEquippable(inst)
+	inst:AddComponent("equippable")
+    inst.components.equippable:SetOnEquip(onequip)
+    inst.components.equippable:SetOnUnequip(onunequip)
 end
 
 local function fn()
@@ -37,7 +46,14 @@ local function fn()
 
     --weapon (from weapon component) added to pristine state for optimization
     inst:AddTag("weapon")
-	inst:AddTag("moon_bugnet")--月光捕虫网标签，可捕捉月亮孢子
+	-- inst:AddTag("moon_bugnet")--月光捕虫网标签，可捕捉月亮孢子
+
+    inst.medal_repair_immortal = {--修补列表
+        moonglass = TUNING_MEDAL.MOONGLASS_TOOL.ADDUSE_LESS,--月光玻璃
+        immortal_essence = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES_LESS,--不朽精华
+        immortal_fruit = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES_LESS,--不朽果实
+	}
+
 
     local swap_data = {sym_build = "swap_medal_moonglass_bugnet",sym_name = "swap_bugnet"}
     MakeInventoryFloatable(inst, "med", 0.09, {0.9, 0.4, 0.9}, true, -14.5, swap_data)
@@ -60,8 +76,6 @@ local function fn()
     inst:AddComponent("finiteuses")
     inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES_LESS)
     inst.components.finiteuses:SetUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES_LESS)
-    inst.components.finiteuses:SetOnFinished(inst.Remove)
-
     inst.components.finiteuses:SetConsumption(ACTIONS.NET, 2)
 
     inst:AddComponent("inspectable")
@@ -70,11 +84,9 @@ local function fn()
 	inst.components.inventoryitem.imagename = "medal_moonglass_bugnet"
 	inst.components.inventoryitem.atlasname = "images/medal_moonglass_bugnet.xml"
 
-    inst:AddComponent("equippable")
-    inst.components.equippable:SetOnEquip(onequip)
-    inst.components.equippable:SetOnUnequip(onunequip)
-
     MakeHauntableLaunch(inst)
+
+	SetImmortalTool(inst,SetupEquippable,TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES_LESS,true)
 
     return inst
 end

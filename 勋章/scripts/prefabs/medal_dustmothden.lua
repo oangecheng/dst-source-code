@@ -63,6 +63,7 @@ local function MakeWhole(inst, play_growth_anim)
     --获取尘蛾，给它推送已修复事件
     local repairer = inst.components.entitytracker:GetEntity("repairer")
     if repairer ~= nil and repairer:IsValid() then
+        inst.has_slider = repairer.eat_snack--尘蛾吃了时空零食后修的，则必然会出时空碎片
         repairer:PushEvent("dustmothden_repaired", inst)
     end
     --遗忘修复的尘蛾
@@ -78,12 +79,17 @@ end
 local function OnFinishWork(inst, worker)
     -- inst.components.lootdropper:DropLoot()
     --这里要特殊处理掉落，不然用月光玻璃锤就无限刷了
-    local chance = math.random()
-    if chance < .05 then
-        inst.components.lootdropper:SpawnLootPrefab("medal_time_slider")
+    local chance = 0.05
+    if inst.has_slider then
+        chance = 1
+        inst.has_slider = nil
     end
-    for i = 1, math.random(3,6) do
-        inst.components.lootdropper:SpawnLootPrefab("medal_spacetime_lingshi")
+    if math.random() < chance then
+        inst.components.lootdropper:SpawnLootPrefab("medal_time_slider")
+    else
+        for i = 1, math.random(3,6) do
+            inst.components.lootdropper:SpawnLootPrefab("medal_spacetime_lingshi")
+        end
     end
     
     inst.components.workable.workable = false
@@ -92,6 +98,13 @@ local function OnFinishWork(inst, worker)
 
     inst.SoundEmitter:PlaySoundWithParams("dontstarve/creatures/together/antlion/sfx/ground_break", { size = 1 })
 end
+
+local function OnSave(inst, data)
+    if inst.has_slider then
+        data.has_slider = true
+    end
+end
+
 --后加载,也就是加载完数据后执行
 local function OnLoadPostPass(inst, ents, data)
     --更新巢穴当前的挖掘状态
@@ -104,6 +117,9 @@ local function OnLoadPostPass(inst, ents, data)
     --暂停修复定时器
     if inst.components.timer:TimerExists("repair") then
         PauseRepairing(inst)
+    end
+    if data and data.has_slider then
+        inst.has_slider = data.has_slider
     end
 end
 --预加载
@@ -177,10 +193,10 @@ local function fn()
 
     inst.OnLoadPostPass = OnLoadPostPass
     inst.OnPreLoad = OnPreLoad
+    inst.OnSave = OnSave
 
     return inst
 end
 
 return Prefab("medal_dustmothden", fn, assets, prefabs),
-    MakePlacer("medal_dustmothden_placer", "dustmothden", "medal_dustmothden", "idle"),
-    MakePlacer("dustmothden_placer", "dustmothden", "dustmothden", "idle")
+    MakePlacer("medal_dustmothden_placer", "dustmothden", "medal_dustmothden", "idle")

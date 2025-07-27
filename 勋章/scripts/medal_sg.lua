@@ -1,3 +1,4 @@
+--------------------------------------------------添加勋章新sg---------------------------------------------
 AddStategraphState('wilson',
     --摇铃铛动画
 	State{
@@ -81,7 +82,7 @@ AddStategraphState('wilson',
             end),
             TimeEvent(26 * FRAMES, function(inst)
                 --传送塔和目标传送塔不为空则传送
-				if inst.sg.statemem.teleporter ~= nil and inst.sg.statemem.target ~= nil then
+				if inst.sg.statemem.teleporter ~= nil and inst.sg.statemem.target ~= nil and inst.sg.statemem.target:IsValid() then
                     if inst.sg.statemem.teleporter.components.medal_delivery then
 						inst.sg.statemem.teleporter.components.medal_delivery:Activate(inst,inst.sg.statemem.target)
 					end
@@ -226,337 +227,13 @@ AddStategraphState('wilson',
 	}
 )
 
---食人花诱饵动画
-AddStategraphState('lureplant',
-	State{
-        name = "showbait",
-        tags = { "busy" },
-
-        onenter = function(inst, playanim)
-            if inst.lure then
-                if inst.lure.prefab=="devour_staff" then
-					inst.AnimState:OverrideSymbol("swap_dried", "devour_staff", "showbait_devour_staff")
-				elseif inst.lure.prefab=="immortal_staff" then
-					inst.AnimState:OverrideSymbol("swap_dried", "immortal_staff", "showbait_immortal_staff")
-				else
-					inst.AnimState:OverrideSymbol("swap_dried", "meat_rack_food", inst.lure.prefab)
-				end
-                inst.Physics:Stop()
-                inst.AnimState:PlayAnimation("emerge")
-            else
-                inst.sg:GoToState("idlein")
-            end
-        end,
-
-        timeline =
-        {
-            TimeEvent(FRAMES, function(inst) inst.SoundEmitter:PlaySound("dontstarve/creatures/eyeplant/lure_open") end),
-        },
-
-        events =
-        {
-            EventHandler("animover", function(inst)
-                if inst.AnimState:AnimDone() then
-                    inst.sg:GoToState("taunt")
-                end
-            end),
-        },
-    }
-)
-
---坎普斯嘲讽sg
-AddStategraphState('krampus',
-	State{
-        name = "taunt",
-        tags = { "busy" },
-
-        onenter = function(inst, cb)
-            inst.Physics:Stop()
-            inst.AnimState:PlayAnimation("taunt")
-            inst.SoundEmitter:PlaySound("dontstarve/creatures/krampus/taunt")
-			inst:PushEvent("krampustaunt")
-        end,
-
-        events=
-        {
-			EventHandler("animover", function(inst) inst.sg:GoToState("idle") end),
-        },
-    }
-)
---防止坎普斯、暗夜坎普斯死亡多次掉落
-AddStategraphState('krampus',
-	State{
-        name = "death",
-		tags = {"busy"},
-		onenter = function(inst)
-			inst.SoundEmitter:PlaySound("dontstarve/creatures/krampus/death")
-			inst.AnimState:PlayAnimation("death")
-			inst.components.locomotor:StopMoving()
-			--死过一次的就别再死了
-			if not inst.died_once then
-				inst.components.lootdropper:DropLoot(Vector3(inst.Transform:GetWorldPosition()))
-				inst.died_once=true
-				if inst.prefab=="medal_rage_krampus" then
-					--生成雕像皮肤券
-					local skin_coupon = SpawnPrefab("medal_skin_coupon")
-					if skin_coupon then
-						if skin_coupon.setSkinData then
-							skin_coupon:setSkinData("medal_statue_marble_changeable",4)
-						end
-						inst.components.lootdropper:FlingItem(skin_coupon)
-					end
-				end
-			end
-		end,
-    }
-)
---坎普斯卡无敌了就跑路吧
-AddStategraphState('krampus',
-	State{
-		name = "idle",
-		tags = {"idle", "canrotate"},
-		onenter = function(inst, playanim)
-			if math.random() < .333 then inst.SoundEmitter:PlaySound("dontstarve/creatures/krampus/growlshort") end
-			inst.Physics:Stop()
-			inst.AnimState:PlayAnimation("idle", true)
-		end,
-
-		events=
-		{
-			EventHandler("animover", function(inst) 
-				if inst.components.health and inst.components.health:IsInvincible() then
-					inst.sg:GoToState("exit")
-				elseif math.random() < .1 then
-					inst.sg:GoToState("taunt")
-				else
-					inst.sg:GoToState("idle")
-				end 
-			end),
-		},
-	}
-)
-
-AddStategraphState('wilson',
-    --快速射击动画
-	State{
-		name = "medal_slingshot_shoot",
-		tags = { "attack" },
-	
-		onenter = function(inst)
-			if inst.components.combat:InCooldown() then
-				inst.sg:RemoveStateTag("abouttoattack")
-				inst:ClearBufferedAction()
-				inst.sg:GoToState("idle", true)
-				return
-			end
-			local buffaction = inst:GetBufferedAction()
-			local target = buffaction ~= nil and buffaction.target or nil
-			if target ~= nil and target:IsValid() then
-				inst:ForceFacePoint(target.Transform:GetWorldPosition())
-				inst.sg.statemem.attacktarget = target -- this is to allow repeat shooting at the same target
-			end
-	
-			inst.sg.statemem.abouttoattack = true
-	
-			-- inst.AnimState:PlayAnimation("slingshot_pre")
-			inst.AnimState:PlayAnimation("sand_idle_pre")
-			inst.AnimState:PushAnimation("slingshot", false)
-	
-			if inst.sg.laststate == inst.sg.currentstate then
-				inst.sg.statemem.chained = true
-				inst.AnimState:SetTime(3 * FRAMES)
-			end
-	
-			inst.components.combat:StartAttack()
-			inst.components.combat:SetTarget(target)
-			inst.components.locomotor:Stop()
-	
-			inst.sg:SetTimeout((inst.sg.statemem.chained and 25 or 28) * FRAMES)
-		end,
-	
-		timeline =
-		{
-			TimeEvent(1 * FRAMES, function(inst)
-				if inst.sg.statemem.chained then
-					local buffaction = inst:GetBufferedAction()
-					local target = buffaction ~= nil and buffaction.target or nil
-					if not (target ~= nil and target:IsValid() and inst.components.combat:CanTarget(target)) then
-						inst:ClearBufferedAction()
-						inst.sg:GoToState("idle")
-					end
-				end
-			end),
-	
-			TimeEvent(2 * FRAMES, function(inst) -- start of slingshot
-				if inst.sg.statemem.chained then
-					inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/stretch")
-				end
-			end),
-	
-			TimeEvent(8 * FRAMES, function(inst)
-				if inst.sg.statemem.chained then
-					local buffaction = inst:GetBufferedAction()
-					local equip = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
-					if equip ~= nil and equip.components.weapon ~= nil and equip.components.weapon.projectile ~= nil then
-						local target = buffaction ~= nil and buffaction.target or nil
-						if target ~= nil and target:IsValid() and inst.components.combat:CanTarget(target) then
-							inst.sg.statemem.abouttoattack = false
-							inst:PerformBufferedAction()
-							inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/shoot")
-						else
-							inst:ClearBufferedAction()
-							inst.sg:GoToState("idle")
-						end
-					else -- out of ammo
-						inst:ClearBufferedAction()
-						MedalSay(inst,STRINGS.MEDAL_SHOT_SPEECH.NOAMMO)
-						inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/no_ammo")
-					end
-				end
-			end),
-	
-			TimeEvent(4 * FRAMES, function(inst)
-				if not inst.sg.statemem.chained then
-					local buffaction = inst:GetBufferedAction()
-					local target = buffaction ~= nil and buffaction.target or nil
-					if not (target ~= nil and target:IsValid() and inst.components.combat:CanTarget(target)) then
-						inst:ClearBufferedAction()
-						inst.sg:GoToState("idle")
-					end
-				end
-			end),
-	
-			TimeEvent(5 * FRAMES, function(inst) -- start of slingshot
-				if not inst.sg.statemem.chained then
-					inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/stretch")
-				end
-			end),
-	
-			TimeEvent(11 * FRAMES, function(inst)
-				if not inst.sg.statemem.chained then
-					local buffaction = inst:GetBufferedAction()
-					local equip = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
-					if equip ~= nil and equip.components.weapon ~= nil and equip.components.weapon.projectile ~= nil then
-						local target = buffaction ~= nil and buffaction.target or nil
-						if target ~= nil and target:IsValid() and inst.components.combat:CanTarget(target) then
-							inst.sg.statemem.abouttoattack = false
-							inst:PerformBufferedAction()
-							inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/shoot")
-						else
-							inst:ClearBufferedAction()
-							inst.sg:GoToState("idle")
-						end
-					else -- out of ammo
-						inst:ClearBufferedAction()
-						MedalSay(inst,STRINGS.MEDAL_SHOT_SPEECH.NOAMMO)
-						inst.SoundEmitter:PlaySound("dontstarve/characters/walter/slingshot/no_ammo")
-					end
-				end
-			end),
-		},
-	
-		ontimeout = function(inst)
-			inst.sg:RemoveStateTag("attack")
-			inst.sg:AddStateTag("idle")
-		end,
-	
-		events =
-		{
-			EventHandler("equip", function(inst) inst.sg:GoToState("idle") end),
-			EventHandler("unequip", function(inst) inst.sg:GoToState("idle") end),
-			EventHandler("animqueueover", function(inst)
-				if inst.AnimState:AnimDone() then
-					inst.sg:GoToState("idle")
-				end
-			end),
-		},
-	
-		onexit = function(inst)
-			inst.components.combat:SetTarget(nil)
-			if inst.sg.statemem.abouttoattack and inst.replica.combat ~= nil then
-				inst.replica.combat:CancelAttack()
-			end
-		end,
-	}
-)
-
-AddStategraphState('wilson_client',
-    --快速射击动画
-	State{
-		name = "medal_slingshot_shoot",
-		tags = { "attack" },
-	
-		onenter = function(inst)
-			inst.components.locomotor:Stop()
-			-- inst.AnimState:PlayAnimation("slingshot_pre")
-			-- inst.AnimState:PushAnimation("slingshot_lag", true)
-			inst.AnimState:PlayAnimation("sand_idle_pre")
-			inst.AnimState:PushAnimation("slingshot", false)
-	
-			if inst.sg.laststate == inst.sg.currentstate then
-				inst.sg.statemem.chained = true
-				inst.AnimState:SetTime(3 * FRAMES)
-			end
-	
-			local buffaction = inst:GetBufferedAction()
-			if buffaction ~= nil then
-				if buffaction.target ~= nil and buffaction.target:IsValid() then
-					inst:ForceFacePoint(buffaction.target:GetPosition())
-					inst.sg.statemem.attacktarget = buffaction.target -- this is to allow repeat shooting at the same target
-				end
-	
-				inst:PerformPreviewBufferedAction()
-			end
-	
-			inst.sg:SetTimeout(2)
-		end,
-	
-		onupdate = function(inst)
-			if inst.sg.timeinstate >= (inst.sg.statemem.chained and 27 or 30)*FRAMES and inst.sg.statemem.flattened_time == nil and inst:HasTag("attack") then
-				if inst.entity:FlattenMovementPrediction() then
-					inst.sg.statemem.flattened_time = inst.sg.timeinstate
-					inst.sg:AddStateTag("idle")
-					inst.sg:AddStateTag("canrotate")
-					inst.entity:SetIsPredictingMovement(false) -- so the animation will come across
-				end
-			end
-	
-			if inst.bufferedaction == nil and inst.sg.statemem.flattened_time ~= nil and inst.sg.statemem.flattened_time < inst.sg.timeinstate then
-				inst.sg.statemem.flattened_time = nil
-				inst.entity:SetIsPredictingMovement(true)
-				inst.sg:RemoveStateTag("attack")
-				inst.sg:AddStateTag("idle")
-			end
-		end,
-	
-		ontimeout = function(inst)
-			inst:ClearBufferedAction()
-			inst.sg:GoToState("idle")
-		end,
-	
-		events =
-		{
-			EventHandler("animqueueover", function(inst)
-				if inst.AnimState:AnimDone() then
-					inst.sg:GoToState("idle")
-				end
-			end),
-		},
-	
-		onexit = function(inst)
-			if inst.sg.statemem.flattened_time ~= nil then
-				inst.entity:SetIsPredictingMovement(true)
-			end
-		end,
-	}
-)
-
 --超长搓手动画(2,4秒)
 AddStategraphState('wilson',
 	State{
 		name = "medal_dolongestaction",
 		onenter = function(inst)
-			inst.sg:GoToState("dolongaction", math.random(2,4))
+			local mult = HasOriginMedal(inst,"has_handy_medal") and .5 or 1--本源+巧手时间减半
+			inst.sg:GoToState("dolongaction", math.random(2,4) * mult)
 		end,
 	}
 )
@@ -570,109 +247,6 @@ AddStategraphState('wilson_client',
 		end,
 	}
 )
-
-
-AddStategraphPostInit("wilson", function(sg)
-    --玩家拥有免僵直标签时被攻击不会僵直
-	if sg.events and sg.events.attacked then
-		local oldattackedfn = sg.events.attacked.fn
-		sg.events.attacked.fn = function(inst, data)
-            --这里顺便加个playerghost的判断，免得玩家濒死的时候又挨了一下揍报错
-			if inst:HasTag("nostiff") or inst:HasTag("playerghost") then
-				return
-			elseif oldattackedfn then
-				return oldattackedfn(inst, data)
-			end
-            
-        end
-	end
-	--吃了山力叶酱的玩家背东西速度增快
-	if sg.states.run_start then
-		local oldonenter = sg.states.run_start.onenter
-		sg.states.run_start.onenter = function(inst)
-			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:RunForward()
-				inst.AnimState:PlayAnimation("heavy_walk_fast_pre")
-				inst.sg.mem.footsteps = 0--(inst.sg.statemem.goose or inst.sg.statemem.goosegroggy) and 4 or 0
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-	if sg.states.run then
-		local oldonenter = sg.states.run.onenter
-		sg.states.run.onenter = function(inst)
-			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:RunForward()
-				if not inst.AnimState:IsCurrentAnimation("heavy_walk_fast") then
-					inst.AnimState:PlayAnimation("heavy_walk_fast", true)
-				end
-				inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength() + .5 * FRAMES)
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-	if sg.states.run_stop then
-		local oldonenter = sg.states.run_stop.onenter
-		sg.states.run_stop.onenter = function(inst)
-			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:Stop()
-				inst.AnimState:PlayAnimation("heavy_walk_fast_pst")
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-end)
---客户端当然也要处理啦
-AddStategraphPostInit("wilson_client", function(sg)
-    --吃了山力叶酱的玩家背东西速度增快
-	if sg.states.run_start then
-		local oldonenter = sg.states.run_start.onenter
-		sg.states.run_start.onenter = function(inst)
-			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:RunForward()
-				inst.AnimState:PlayAnimation("heavy_walk_fast_pre")
-				inst.sg.mem.footsteps = 0
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-	if sg.states.run then
-		local oldonenter = sg.states.run.onenter
-		sg.states.run.onenter = function(inst)
-			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:RunForward()
-				if not inst.AnimState:IsCurrentAnimation("heavy_walk_fast") then
-					inst.AnimState:PlayAnimation("heavy_walk_fast", true)
-				end
-				inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength() + .5 * FRAMES)
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-	if sg.states.run_stop then
-		local oldonenter = sg.states.run_stop.onenter
-		sg.states.run_stop.onenter = function(inst)
-			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
-				inst.sg.statemem.heavy_fast=true
-				inst.components.locomotor:Stop()
-				inst.AnimState:PlayAnimation("heavy_walk_fast_pst")
-			elseif oldonenter then
-				oldonenter(inst)
-			end
-		end
-	end
-end)
-
 
 --掉入时空塌陷
 AddStategraphState('wilson',
@@ -724,6 +298,20 @@ AddStategraphState('wilson',
 						else
 							inst.Transform:SetPosition(posinfo.pos.x,0,posinfo.pos.z)
 						end
+						--恢复保存的血量
+						if posinfo.savehealth and inst.components.health then
+							if inst.components.oldager then--旺达需要特殊回复血量,不过也就续个2岁了，趁着没死赶紧跑吧
+								inst.components.oldager:StopDamageOverTime()
+								inst.components.health.currenthealth = 2
+								inst.components.oldager._taking_time_damage = true
+								inst.components.health:DoDelta(0)
+								inst.components.oldager._taking_time_damage = false
+							else
+								inst.components.health.currenthealth = posinfo.savehealth
+								inst.components.health:DoDelta(0)
+							end
+							inst:AddDebuff("spawnprotectionbuff", "spawnprotectionbuff")
+						end
 					end
 					--骑牛不播掉落动画了
 					if inst.components.rider and inst.components.rider:IsRiding() then
@@ -754,38 +342,270 @@ AddStategraphState('wilson',
 	}
 )
 
---曼德拉草
-AddStategraphState('mandrake',
-	State{
-        name = "idle",
-        tags = { "idle", "canrotate" },
+--------------------------------------------------hook原版sg---------------------------------------------
+--食人花sg
+AddStategraphPostInit("lureplant", function(sg)
+	if sg.states and sg.states.showbait then
+		local oldonenter = sg.states.showbait.onenter
+		sg.states.showbait.onenter = function(inst, ...)
+			--诱饵是吞噬法杖的时候展示吞噬法杖
+			if inst.lure and inst.lure.prefab=="devour_staff" then
+                inst.AnimState:OverrideSymbol("swap_dried", "devour_staff", "showbait_devour_staff")
+				inst.Physics:Stop()
+                inst.AnimState:PlayAnimation("emerge")
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+end)
 
-        onenter = function(inst, pushanim)
-            inst.Physics:Stop()
-            inst.AnimState:PlayAnimation("idle_loop")
-        end,
-
-        timeline =
-        {
-            TimeEvent(3*FRAMES, function(inst)
-				if inst.components.follower then--跟随佩戴了虫木勋章或植物勋章的玩家不会发出声音
-					local leader = inst.components.follower:GetLeader()
-					if leader and leader:HasTag("has_plant_medal") then return end
+--坎普斯sg
+AddStategraphPostInit("krampus", function(sg)
+	if sg.states then
+		--防止坎普斯、复仇坎普斯多倍掉落
+		if sg.states.death then
+			local oldonenter = sg.states.death.onenter
+			sg.states.death.onenter = function(inst, ...)
+				if not inst.died_once then
+					if oldonenter then
+						oldonenter(inst, ...)
+					end
+					inst.died_once = true
 				end
-				inst.SoundEmitter:PlaySound("dontstarve/creatures/mandrake/walk")
-			end),
-            TimeEvent(16*FRAMES, function(inst)
-				if inst.components.follower then
-					local leader = inst.components.follower:GetLeader()
-					if leader and leader:HasTag("has_plant_medal") then return end
+			end
+		end
+		--防止坎普斯卡无敌
+		if sg.states.idle and sg.states.idle.events then
+			local oldanimover = sg.states.idle.events.animover and sg.states.idle.events.animover.fn
+			if oldanimover ~= nil then
+				sg.states.idle.events.animover.fn = function(inst, ...)
+					if inst.components.health and inst.components.health:IsInvincible() then
+						inst.sg:GoToState("exit")
+					else
+						oldanimover(inst, ...)
+					end
 				end
-				inst.SoundEmitter:PlaySound("dontstarve/creatures/mandrake/walk")
-			end),
-        },
+			end
+		end
+	end
+end)
 
-        events =
-        {
-            EventHandler("animover", function(inst) inst.sg:GoToState("idle") end),
-        },
-    }
-)
+--暗影大触手sg
+AddStategraphPostInit("bigshadowtentacle", function(sg)
+	if sg.states then
+		--本源触手勋章召唤的暗影大触手攻击后就直接移除了
+		if sg.states.attack and sg.states.attack.events then
+			local oldanimqueueover = sg.states.attack.events.animqueueover and sg.states.attack.events.animqueueover.fn
+			if oldanimqueueover ~= nil then
+				sg.states.attack.events.animqueueover.fn = function(inst, ...)
+					if inst.from_tentaclemedal then
+						inst.sg:GoToState("attack_post")
+					else
+						oldanimqueueover(inst, ...)
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- timeline[idx].fn(self.inst)
+--曼德拉草,跟随佩戴了虫木勋章或植物勋章的玩家不会发出声音
+AddStategraphPostInit("mandrake", function(sg)
+	if sg.states and sg.states.idle and sg.states.idle.timeline then
+		for k, v in pairs(sg.states.idle.timeline) do
+			local oldfn = v and v.fn
+			if oldfn ~= nil then
+				v.fn = function(inst, ...)
+					local leader = inst.components.follower and inst.components.follower:GetLeader()
+					if leader and leader:HasTag("has_plant_medal") then return end
+					oldfn(inst, ...)
+				end
+			end
+		end
+	end
+end)
+
+AddStategraphPostInit("wilson", function(sg)
+    --玩家拥有免僵直标签时被攻击不会僵直
+	if sg.events and sg.events.attacked then
+		local oldattackedfn = sg.events.attacked.fn
+		sg.events.attacked.fn = function(inst, ...)
+            --这里顺便加个playerghost的判断，免得玩家濒死的时候又挨了一下揍报错
+			if inst:HasTag("nostiff") or inst:HasTag("playerghost") then
+				return
+			elseif oldattackedfn then
+				return oldattackedfn(inst, ...)
+			end
+            
+        end
+	end
+	--吃了山力叶酱的玩家背东西速度增快
+	if sg.states.run_start then
+		local oldonenter = sg.states.run_start.onenter
+		sg.states.run_start.onenter = function(inst, ...)
+			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:RunForward()
+				inst.AnimState:PlayAnimation("heavy_walk_fast_pre")
+				inst.sg.mem.footsteps = 0--(inst.sg.statemem.goose or inst.sg.statemem.goosegroggy) and 4 or 0
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+	if sg.states.run then
+		local oldonenter = sg.states.run.onenter
+		sg.states.run.onenter = function(inst, ...)
+			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:RunForward()
+				if not inst.AnimState:IsCurrentAnimation("heavy_walk_fast") then
+					inst.AnimState:PlayAnimation("heavy_walk_fast", true)
+				end
+				inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength() + .5 * FRAMES)
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+	if sg.states.run_stop then
+		local oldonenter = sg.states.run_stop.onenter
+		sg.states.run_stop.onenter = function(inst, ...)
+			if inst.components.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.components.rider and inst.components.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:Stop()
+				inst.AnimState:PlayAnimation("heavy_walk_fast_pst")
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+	--使用工具前切换暗影工具形态
+	local tool_states = {
+		"chop_start",--砍树
+		"mine_start",--挖矿
+		"dig_start",--铲
+		"hammer_start",--锤
+		"bugnet_start",--捕捉
+	}
+	for i, v in ipairs(tool_states) do
+		if sg.states[v] then
+			local oldonenter = sg.states[v].onenter
+			sg.states[v].onenter = function(inst, ...)
+				if inst.medal_multi_use_tool and inst.components.inventory then
+					local handitem = inst.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
+					if handitem and handitem.prefab == "medal_shadow_tool" and handitem.ResetToolAnim then
+						handitem:ResetToolAnim(i)
+					end
+				end
+				if oldonenter then
+					oldonenter(inst, ...)
+				end
+			end
+		end
+	end
+	--童真射击加速
+	if sg.states.slingshot_shoot then
+		local oldonenter = sg.states.slingshot_shoot.onenter
+		sg.states.slingshot_shoot.onenter = function(inst, ...)
+			if oldonenter then
+				oldonenter(inst, ...)
+			end
+			--戴了童真并且当前射速慢于5帧，则把射速设置成5帧
+			local timeout = inst.sg.timeout
+			if inst:HasTag("senior_childishness") and timeout ~= nil then
+				--如果初始时间低于5帧，那就可以低于5帧
+				timeout = timeout/FRAMES
+				timeout = math.clamp(timeout-1, math.min(timeout,5), HasOriginMedal(inst,"senior_childishness") and 5 or 10)
+				-- print("左键",timeout)
+				inst.sg:SetTimeout(timeout* FRAMES)
+			end
+		end
+	end
+	--童真射击加速(右键射击)
+	if sg.states.slingshot_special then
+		local oldonenter = sg.states.slingshot_special.onenter
+		sg.states.slingshot_special.onenter = function(inst, ...)
+			if oldonenter then
+				oldonenter(inst, ...)
+			end
+			local timeout = inst.sg.timeout
+			if inst:HasTag("senior_childishness") and timeout ~= nil then
+				--如果初始时间低于5帧，那就可以低于5帧
+				timeout = timeout/FRAMES
+				timeout = math.clamp(timeout-2, math.min(timeout,5), HasOriginMedal(inst,"senior_childishness") and 8 or 12)
+				-- print("右键",timeout)
+				inst.sg:SetTimeout(timeout*FRAMES)
+			end
+		end
+	end
+	--伐木抵抗
+	if sg.states and sg.states.chop and sg.states.chop.timeline then
+		local line1 = sg.states.chop.timeline[1]
+		local oldfn = line1 and line1.fn
+		if oldfn ~= nil then
+			line1.fn = function(inst, ...)
+				inst.sg.statemem.recoilstate = "mine_recoil"
+				oldfn(inst, ...)
+			end
+		end
+	end
+	--挖掘抵抗
+	if sg.states and sg.states.dig and sg.states.dig.timeline then
+		local line1 = sg.states.dig.timeline[1]
+		local oldfn = line1 and line1.fn
+		if oldfn ~= nil then
+			line1.fn = function(inst, ...)
+				inst.sg.statemem.recoilstate = "mine_recoil"
+				oldfn(inst, ...)
+			end
+		end
+	end
+end)
+
+--客户端当然也要处理啦
+AddStategraphPostInit("wilson_client", function(sg)
+    --吃了山力叶酱的玩家背东西速度增快
+	if sg.states.run_start then
+		local oldonenter = sg.states.run_start.onenter
+		sg.states.run_start.onenter = function(inst, ...)
+			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:RunForward()
+				inst.AnimState:PlayAnimation("heavy_walk_fast_pre")
+				inst.sg.mem.footsteps = 0
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+	if sg.states.run then
+		local oldonenter = sg.states.run.onenter
+		sg.states.run.onenter = function(inst, ...)
+			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:RunForward()
+				if not inst.AnimState:IsCurrentAnimation("heavy_walk_fast") then
+					inst.AnimState:PlayAnimation("heavy_walk_fast", true)
+				end
+				inst.sg:SetTimeout(inst.AnimState:GetCurrentAnimationLength() + .5 * FRAMES)
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+	if sg.states.run_stop then
+		local oldonenter = sg.states.run_stop.onenter
+		sg.states.run_stop.onenter = function(inst, ...)
+			if inst.replica.inventory:IsHeavyLifting() and inst:HasTag("medal_strong") and not (inst.replica.rider ~= nil and inst.replica.rider:IsRiding()) then
+				inst.sg.statemem.heavy_fast=true
+				inst.components.locomotor:Stop()
+				inst.AnimState:PlayAnimation("heavy_walk_fast_pst")
+			elseif oldonenter then
+				oldonenter(inst, ...)
+			end
+		end
+	end
+end)

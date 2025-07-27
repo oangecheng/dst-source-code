@@ -11,17 +11,12 @@ local assets =
 
 --切换移植状态标签
 local function changeTransplantTag(inst,owner)
-	--清除移植工具标签
-	if inst:HasTag("MEDALTRANSPLANT_tool") then
-		inst:RemoveTag("MEDALTRANSPLANT_tool")
-	end
-	--清除移植者标签
-	if owner:HasTag("transplantman") then
-		owner:RemoveTag("transplantman")
-	end
 	if TheWorld.state.isfullmoon or owner:HasTag("inmoonlight") then
 		inst:AddTag("MEDALTRANSPLANT_tool")--移植工具标签
-		owner:AddTag("transplantman")--移植者标签
+		owner.medal_transplantman = true--月光移植者(可铲出砧木桩)
+	else
+		inst:RemoveTag("MEDALTRANSPLANT_tool")
+		owner.medal_transplantman = nil
 	end
 end
 
@@ -31,18 +26,12 @@ local function onequip(inst, owner)
 	-- owner.AnimState:OverrideSymbol("swap_object", "medal_moonglass_shovel", "swap_shovel")
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")
-	
-	--监听是否月圆
-	inst.onfullmoonfn=function(inst,isfullmoon)
-		changeTransplantTag(inst,owner)
-	end 
-	inst:WatchWorldState("isfullmoon", inst.onfullmoonfn)--监听月圆
-	
-	--监听玩家可移植状态变化
-	inst.changestatefn=function(self)
+	owner.medal_has_moon_shovel = true--手持月光玻璃铲
+	inst.changetooltag = function(source,isfullmoon)
 		changeTransplantTag(inst,owner)
 	end
-	inst:ListenForEvent("changetransplantstate", inst.changestatefn, owner)--监听玩家可移植状态变化
+	inst:WatchWorldState("isfullmoon", inst.changetooltag)--监听月圆
+	inst:ListenForEvent("change_medal_moonlinght", inst.changetooltag, owner)--监听玩家可移植状态变化
 	
 	changeTransplantTag(inst,owner)
 end
@@ -50,20 +39,19 @@ end
 local function onunequip(inst, owner)
 	owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
-	
-	--取消监听月圆事件
-	inst:StopWatchingWorldState("isfullmoon", inst.onfullmoonfn)
-	--取消监听玩家状态
-	inst:RemoveEventCallback("changetransplantstate", inst.changestatefn,owner)
-	
-	--清除移植工具标签
-	if inst:HasTag("MEDALTRANSPLANT_tool") then
-		inst:RemoveTag("MEDALTRANSPLANT_tool")
-	end
-	--清除移植者标签
-	if owner:HasTag("transplantman") then
-		owner:RemoveTag("transplantman")
-	end
+	owner.medal_has_moon_shovel = nil
+
+	inst:StopWatchingWorldState("isfullmoon", inst.changetooltag)--取消监听月圆事件
+	inst:RemoveEventCallback("change_medal_moonlinght", inst.changetooltag,owner)--取消监听玩家状态
+	inst.changetooltag = nil
+	inst:RemoveTag("MEDALTRANSPLANT_tool")--清除移植工具标签
+	owner.medal_transplantman = nil--清除移植者标签
+end
+--添加可装备组件相关内容
+local function SetupEquippable(inst)
+	inst:AddComponent("equippable")
+    inst.components.equippable:SetOnEquip(onequip)
+    inst.components.equippable:SetOnUnequip(onunequip)
 end
 
 local function fn()
@@ -90,6 +78,12 @@ local function fn()
         --weapon (from weapon component) added to pristine state for optimization
         inst:AddTag("weapon")
     end
+
+	inst.medal_repair_immortal = {--修补列表
+		moonglass = TUNING_MEDAL.MOONGLASS_TOOL.ADDUSE,--月光玻璃
+		immortal_essence = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,--不朽精华
+		immortal_fruit = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,--不朽果实
+	}
 
     -- MakeInventoryFloatable(inst, "small", 0.05, {1.2, 0.75, 1.2})
 	MakeInventoryFloatable(inst, "med", 0.05, {0.8, 0.4, 0.8})
@@ -120,7 +114,6 @@ local function fn()
 	inst:AddComponent("finiteuses")
 	inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES)
 	inst.components.finiteuses:SetUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES)
-	inst.components.finiteuses:SetOnFinished(inst.Remove)
 	inst.components.finiteuses:SetConsumption(ACTIONS.MEDALTRANSPLANT, 1)--月光移植
 	inst.components.finiteuses:SetConsumption(ACTIONS.DIG, 1)--挖掘
 	inst.components.finiteuses:SetConsumption(ACTIONS.MEDALNORMALTRANSPLANT, 1)--普通移植
@@ -130,13 +123,12 @@ local function fn()
 	inst.components.weapon:SetDamage(TUNING.SHOVEL_DAMAGE)
 
     inst:AddComponent("inspectable")
-    inst:AddComponent("equippable")
-    inst.components.equippable:SetOnEquip(onequip)
-    inst.components.equippable:SetOnUnequip(onunequip)
 
     MakeHauntableLaunch(inst)
 	
 	inst.components.floater:SetBankSwapOnFloat(true, -11, {sym_build = "swap_medal_moonglass_shovel",sym_name = "swap_shovel"})
+
+	SetImmortalTool(inst,SetupEquippable,TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,true)
 
     return inst
 end

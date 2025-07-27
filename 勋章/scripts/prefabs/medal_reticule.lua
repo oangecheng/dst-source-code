@@ -7,6 +7,11 @@ local assets =
 local PAD_DURATION = .1
 local FLASH_TIME = .3
 
+local function SetRadius(inst, radius)
+	local scale = radius and radius/3 or TUNING_MEDAL.IMMORTAL_STAFF_RADIUS/3
+	inst.AnimState:SetScale(scale, scale)
+end
+
 local function UpdatePing(inst, s0, s1, t0, duration, multcolour, addcolour)
     if next(multcolour) == nil then
         multcolour[1], multcolour[2], multcolour[3], multcolour[4] = inst.AnimState:GetMultColour()
@@ -48,11 +53,14 @@ local function MakePing(name, anim, scale,scaleup)
         inst.AnimState:SetOrientation(ANIM_ORIENTATION.OnGroundFixed)
         inst.AnimState:SetLayer(LAYER_WORLD_BACKGROUND)
         inst.AnimState:SetSortOrder(3)
-        inst.AnimState:SetScale(scale, scale)
+        -- inst.AnimState:SetScale(scale, scale)
         inst.AnimState:SetBloomEffectHandle("shaders/anim.ksh")
+
+        inst.SetRadius = SetRadius
+        SetRadius(inst)
 		
 		local duration = .5
-        inst:DoPeriodicTask(0, UpdatePing, nil, 1, scaleup, GetTime(), duration, {}, {})
+        inst:DoPeriodicTask(0, UpdatePing, nil, 1, scaleup or 1.1, GetTime(), duration, {}, {})
         inst:DoTaskInTime(duration, inst.Remove)
 
         return inst
@@ -61,5 +69,4 @@ local function MakePing(name, anim, scale,scaleup)
     return Prefab(name, fn, assets)
 end
 
-return MakePing("devour_staff_scale_fx", "idle_target", TUNING_MEDAL.DEVOUR_STAFF_RADIUS/3, 1.1),
-    MakePing("immortal_staff_scale_fx", "idle_target", TUNING_MEDAL.IMMORTAL_STAFF_RADIUS/3, 1.025)
+return MakePing("medal_reticule_scale_fx", "idle_target")

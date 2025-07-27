@@ -1,6 +1,6 @@
 local medal_showbufftime = Class(function(self, inst)
     self.inst = inst
-	self._buffinfo=net_string(inst.GUID,"_buffinfo")
+	self._buffinfo=net_string(inst.GUID,"medal_showbufftime._buffinfo")
 end)
 --获取Buff信息
 function medal_showbufftime:GetBuffInfo()

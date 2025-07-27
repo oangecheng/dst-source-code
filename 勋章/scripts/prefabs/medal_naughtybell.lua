@@ -1,32 +1,35 @@
 local assets =
 {
 	Asset("ANIM", "anim/medal_naughtybell.zip"),
-	Asset("ANIM", "anim/medal_naughtybell_skin1.zip"),
-	Asset("ANIM", "anim/medal_naughtybell_skin2.zip"),
 	Asset("ATLAS", "images/medal_naughtybell.xml"),
 	Asset("ATLAS_BUILD", "images/medal_naughtybell.xml",256),
 }
 
---召唤小偷(玩家,是否是摇铃铛者)
-local function CallKrampus(player,ismusician)
+--召唤小偷(玩家,是否是摇铃铛者,额外召唤数量)
+local function CallKrampus(player,ismusician,extraNum)
 	local thiefNum=math.random(ismusician and TUNING_MEDAL.BELL_THIEFNUM_NOMAL or TUNING_MEDAL.BELL_THIEFNUM_LESS)--小偷数量
-	local sanityLoss=TUNING_MEDAL.BELL_SANITYLOSS_NORMAL--精神损失
-	local needSay=STRINGS.NAUGHTYBELLSPEECH.ONPLAYED--感叹词
+	local sanityLoss = TUNING_MEDAL.BELL_SANITYLOSS_NORMAL--精神损失
+	local needSay = STRINGS.NAUGHTYBELLSPEECH.ONPLAYED--感叹词
+	local has_origin = HasOriginMedal(player,"naughtymedal")--本源淘气
 	
 	--装备淘气铃铛小偷数量加成
 	if player:HasTag("naughtymedal") then
 		--小概率惹怒小偷
 		if ismusician and math.random() < TUNING_MEDAL.BELL_PROVOKE_THIEF_CHANCE then
-			thiefNum=TUNING_MEDAL.BELL_THIEFNUM_MAX
-			sanityLoss=TUNING_MEDAL.BELL_SANITYLOSS_MAX
-			needSay=STRINGS.NAUGHTYBELLSPEECH.MAKETROUBLE
+			thiefNum = TUNING_MEDAL.BELL_THIEFNUM_MAX
+			sanityLoss = sanityLoss * (has_origin and 1 or 2)
+			needSay = STRINGS.NAUGHTYBELLSPEECH.MAKETROUBLE
 		else
-			thiefNum=thiefNum+TUNING_MEDAL.BELL_THIEFNUM_MEDAL_ADDITION
-			sanityLoss=TUNING_MEDAL.BELL_SANITYLOSS_MORE
+			thiefNum = thiefNum + TUNING_MEDAL.BELL_THIEFNUM_MEDAL_ADDITION
+			sanityLoss = sanityLoss * (1 + .5 * (has_origin and -1 or 1))
 		end
 	end
+	thiefNum = thiefNum + (extraNum or 0) + (has_origin and 1 or 0)--试图额外增加小偷数量
 	
-	if player and player.components.sanity then
+	thiefNum = SpawnNaughtyKrampus(player,thiefNum)--召唤小偷
+	if thiefNum == 0 then--没成功生成小偷
+		needSay=STRINGS.NAUGHTYBELLSPEECH.NOTHING
+	elseif player and player.components.sanity then
 		--启蒙值模式就加启蒙值，否则扣精神
 		if player.components.sanity:IsLunacyMode() then
 			sanityLoss = -sanityLoss
@@ -40,7 +43,7 @@ local function CallKrampus(player,ismusician)
 		end
 	end
 	MedalSay(player,ismusician and needSay or STRINGS.NAUGHTYBELLSPEECH.LISTENER)--感叹词
-	SpawnNaughtyKrampus(player,thiefNum)--召唤小偷
+	-- SpawnNaughtyKrampus(player,thiefNum)--召唤小偷
 end
 
 --演奏
@@ -50,22 +53,24 @@ local function OnPlayed(inst, musician)
 
 	local count = 0
 	for i, v in ipairs(players) do
-		if v==musician then--演奏者必定能招
-			CallKrampus(v,true)
-		elseif count<4 then--最多有4个聆听者能生效
+		if v ~= musician and count<4 then--最多有4个聆听者能生效
 			count = count + 1
 			CallKrampus(v)
 		end
 	end
-	if count <= 0 then
+
+	local extraNum = 0--额外召唤数量
+	if count <= 0 then--周围没有聆听者时，若附近有假人，可额外多召唤一只
 		local ents = TheSim:FindEntities(x, y, z, 10, {"equipmentmodel"})
 		for i, v in ipairs(ents) do
 			if v.prefab=="sewing_mannequin" then
-				SpawnNaughtyKrampus(musician,1)--召唤小偷
+				extraNum = 1
+				-- SpawnNaughtyKrampus(musician,1)--召唤小偷
 				break
 			end
 		end
 	end
+	CallKrampus(musician,true,extraNum)
 end
 --闪光
 local function shine(inst)

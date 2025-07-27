@@ -7,7 +7,6 @@ local assets =
     Asset("ANIM", "anim/firefighter_placement.zip"),
     Asset("ANIM", "anim/boat_waterpump.zip"),
     Asset("ANIM", "anim/medal_waterpump.zip"),
-    Asset("ANIM", "anim/medal_waterpump_skin1.zip"),
 	Asset("ATLAS", "images/medal_waterpump.xml"),
 }
 

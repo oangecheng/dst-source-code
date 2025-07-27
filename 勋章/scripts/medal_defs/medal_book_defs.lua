@@ -1,16 +1,5 @@
 local easing = require("easing")
 
---播放特效
-local function spawnFX(fx,target,x,y,z)
-	if TUNING.SHOW_MEDAL_FX then
-		if target then
-			SpawnPrefab(fx).Transform:SetPosition(target.Transform:GetWorldPosition())
-		else
-			SpawnPrefab(fx).Transform:SetPosition(x,y,z)
-		end
-	end
-end
-
 --设置随机皮肤
 local function setRandomSkinMedal(item,player)
 	--生成皮肤
@@ -31,85 +20,23 @@ local function setRandomSkinMedal(item,player)
 	end
 end
 
-----------------生成各种怪圈(玩家,预置物列表,感叹词)-----------------
-local function spawnCircleItem(player,spawnLoot,talk)
-	if player then
-		local px,py,pz = player.Transform:GetWorldPosition()--获取玩家坐标
-		local item=nil--空实体
-		--遍历生成物列表
-		for _,v in ipairs(spawnLoot) do
-			--对玩家执行函数
-			if v.playerfn then
-				v.playerfn(player)
-			end
-			--有代码则生成对应预置物
-			if v.item or v.randomlist then
-				local num=v.num or 1--生成数量
-				local specialnum=v.specialfn and math.random(num)-1 or nil--特殊道具
-				--生成怪圈
-				for i=0,num-1 do
-					local code=v.item--预置物代码
-					if v.randomlist then
-						code=GetRandomItem(v.randomlist)--从随机列表里取一种
-					end
-					local angle_offset=v.angle_offset or 0--角度偏移
-					local angle = (i+angle_offset) * 2 * PI / (num)--根据数量计算角度
-					local tries =v.offset and 5 or 1--尝试生成次数,有偏移值的情况下要多次尝试生成,避免少刷
-					local canspawn=nil--是否可生成
-					for j=1,tries do
-						--有偏移值则用偏移值生成坐标，否则根据半径生成坐标，没半径则原地生成
-						local ix=v.offset and (math.random()*2-1)*v.offset+px or v.radius and v.radius*math.cos(angle)+px or px
-						local iy=0--py--别在天上生成了
-						local iz=v.offset and (math.random()*2-1)*v.offset+pz or v.radius and v.radius*math.sin(angle)+pz or pz
-						--水中奇遇则判断坐标点是不是在水里;canoverlap表示生成点可以有其他东西
-						if v.iswater then
-							canspawn = TheWorld.Map:IsOceanAtPoint(ix, iy, iz) and (v.canoverlap or TheWorld.Map:IsDeployPointClear(Vector3(ix, iy, iz), nil, 1))
-						else
-							canspawn = TheWorld.Map:IsPassableAtPoint(ix, iy, iz) and (v.canoverlap or TheWorld.Map:IsDeployPointClear(Vector3(ix, iy, iz), nil, 1))
-						end
-						--坐标点可生成则生成，否则继续尝试
-						if canspawn then
-							item = SpawnPrefab(code)
-							if item then
-								item.Transform:SetPosition(ix, iy, iz)
-								--如果没有特意取消，那么开出来的生物默认仇恨玩家
-								if item.components.combat and not v.noaggro then
-									item.components.combat:SuggestTarget(player)
-								end
-								--有特殊函数则执行特殊函数
-								if specialnum and i==specialnum then
-									v.specialfn(item,player)
-								elseif v.itemfn then--否则执行正常预置物函数
-									v.itemfn(item,player)
-								end
-							end
-							break
-						end
-					end
-				end
-			end
-		end
-		--发出感叹词
-		if talk then
-			MedalSay(player,talk)
-		end
-	end
-end
-
 --打乱算法
 local function disorganize(loot,key)
-	local harf=math.floor(#loot/2)
-	for i=1,harf do
-		local c=(i+math.floor(10^(i%6+1)*key)+1)%#loot+1
-		loot[i],loot[c]=loot[c],loot[i]
+	local new_loot={}
+	key = key or math.random()
+	for k,v in ipairs(loot) do
+		-- if key == 0 then key = math.random() end--虽然loot数量有上限,但是后面多余的部分固定也无所谓
+		table.insert(new_loot,math.max(math.ceil(k*key),1),v)
+		key = key*10%1
 	end
-	return loot
+	return new_loot
 end
 
 ------------------------献祭加成函数(书本,玩家,献祭品表,召唤物表,是否不消耗)-----------------------------
 local function doSacrifice(inst,player,itemlist,summonedlist,noconsume)
-	local chance_list=deepcopy(summonedlist)--权重统计表
+	local weight_list=deepcopy(summonedlist)--权重统计表
 	local weight_add_list={}--权重加成表
+	local chance_list={}--概率统计表(优先级高于权重,可叠加,适合做保底)
 	--获取玩家坐标并对周围献祭品进行统计
 	local x, y, z = player.Transform:GetWorldPosition()
 	local ents=TheSim:FindEntities(x, y, z, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS,nil, { "INLIMBO","player","fx"})
@@ -117,36 +44,37 @@ local function doSacrifice(inst,player,itemlist,summonedlist,noconsume)
 	if #ents>0 then
 		for i,v in ipairs(ents) do
 			--如果献祭品列表里有对应献祭品，则对权重进行增值
-			if itemlist[v.prefab] then
+			local sdata = itemlist[v.prefab]
+			if sdata ~= nil then
 				--需要通过特殊检查才能进行献祭
-				if itemlist[v.prefab].testfn==nil or itemlist[v.prefab].testfn() then
-					--需要有特定标签才能献祭
-					if not itemlist[v.prefab].notag or not v:HasTag(itemlist[v.prefab].notag) then
+				if sdata.testfn==nil or sdata.testfn(player) then
+					--不能有特定标签才能献祭
+					if not sdata.notag or not v:HasTag(sdata.notag) then
 						local itemnum= v.components.stackable and v.components.stackable:StackSize() or 1--献祭品数量
 						local consumenum=itemnum--祭品需消耗数量
-						--权重增值登记
-						if weight_add_list[itemlist[v.prefab].key] then
-							if itemlist[v.prefab].maxnum then
-								consumenum=math.min(itemnum,itemlist[v.prefab].maxnum-weight_add_list[itemlist[v.prefab].key].num)
+						if sdata.chance then--概率增值
+							chance_list[sdata.key] = math.min((chance_list[sdata.key] or 0) + sdata.chance * consumenum,(sdata.maxchance or 1))
+						elseif sdata.weight then--权重增值登记
+							if weight_add_list[sdata.key] == nil then
+								weight_add_list[sdata.key]={
+									num=0,
+									weight=0
+								}
+							end
+							local wdata = weight_add_list[sdata.key]
+							if sdata.maxnum then
+								consumenum=math.min(itemnum,sdata.maxnum-wdata.num)
 							end
 							if consumenum>0 then
-								weight_add_list[itemlist[v.prefab].key].num=weight_add_list[itemlist[v.prefab].key].num+consumenum
-								weight_add_list[itemlist[v.prefab].key].weight=weight_add_list[itemlist[v.prefab].key].weight+itemlist[v.prefab].chance*consumenum
+								wdata.num=wdata.num+consumenum
+								wdata.weight=wdata.weight+sdata.weight*consumenum
 							end
-						else
-							if itemlist[v.prefab].maxnum then
-								consumenum=math.min(itemnum,itemlist[v.prefab].maxnum)
-							end
-							weight_add_list[itemlist[v.prefab].key]={
-								num=consumenum,
-								weight=itemlist[v.prefab].chance*consumenum
-							}
 						end
 
 						if consumenum>0 and not noconsume then
 							--播放献祭动画
-							if not itemlist[v.prefab].nofx then
-								spawnFX(itemlist[v.prefab].fx or "spawn_fx_tiny",v)
+							if not sdata.nofx then
+								SpawnMedalFX(sdata.fx or "spawn_fx_tiny",v)
 							end
 							--移除献祭品
 							if v.components.stackable then
@@ -160,16 +88,22 @@ local function doSacrifice(inst,player,itemlist,summonedlist,noconsume)
 			end
 		end
 	end
+
+	local destiny = GetMedalDestiny(inst)--宿命
+	--优先在概率池中获取key
+	for k, v in pairs(chance_list) do
+		if destiny < v then
+			return k
+		end
+	end
 	--权重增值
-	for k, v in ipairs(chance_list) do
+	for k, v in ipairs(weight_list) do
 		if weight_add_list[v.key] then
 			v.weight=v.weight+weight_add_list[v.key].weight
 		end
 	end
-	if inst.medal_destiny_num then
-		chance_list = disorganize(chance_list,inst.medal_destiny_num)--打乱
-	end
-	return GetMedalRandomItem(chance_list,inst.medal_destiny_num)--返回权重增值后的随机key
+	weight_list = disorganize(weight_list,destiny)--打乱
+	return GetMedalRandomItem(weight_list,destiny)--返回权重增值后的随机key
 end
 
 --高礼帽函数(预置物,是否是特殊的)
@@ -255,24 +189,30 @@ local function SpawnMonster(player,monstername,iswater,monster_data)
     end
 end
 
---雕像列表,chance权重增值,monster怪物名,动画特效
+--祭品列表,chance概率增值(优先级高于权重),weight权重增值,key召唤物名,fx动画特效
 local chesspiece_list={
 	land={
-		chesspiece_deerclops={chance=12,key="deerclops",fx="collapse_small"},--巨鹿
-		chesspiece_bearger={chance=12,key="bearger",fx="collapse_small"},--熊大
-		chesspiece_moosegoose={chance=12,key="moose",fx="collapse_small"},--鹿鸭
-		chesspiece_dragonfly={chance=12,key="dragonfly",fx="collapse_small"},--蜻蜓
-		chesspiece_beequeen={chance=12,key="beequeen",fx="collapse_small"},--蜂后
-		chesspiece_toadstool={chance=12,key="toadstool",fx="collapse_small"},--蛤蟆
-		chesspiece_minotaur={chance=6,maxnum=10,key="minotaur",fx="collapse_small"},--犀牛
-		bottled_soul={chance=35,key="medal_rage_krampus",fx="messagebottle_break_fx"},--瓶装灵魂--暗夜坎普斯
-		fruitflyfruit={chance=35,key="lordfruitfly",notag="fruitflyfruit",fx="collapse_small"},--友好果蝇果--果蝇王
-		medal_spacetime_snacks={chance=50,key="medal_spacetime_devourer",fx="pocketwatch_heal_fx",testfn=function()
+		chesspiece_deerclops={weight=12,key="deerclops",fx="collapse_small"},--巨鹿
+		chesspiece_bearger={weight=12,key="bearger",fx="collapse_small"},--熊大
+		chesspiece_moosegoose={weight=12,key="moose",fx="collapse_small"},--鹿鸭
+		chesspiece_dragonfly={weight=12,key="dragonfly",fx="collapse_small"},--蜻蜓
+		chesspiece_beequeen={weight=12,key="beequeen",fx="collapse_small"},--蜂后
+		chesspiece_toadstool={weight=12,key="toadstool",fx="collapse_small"},--蛤蟆
+		chesspiece_minotaur={weight=6,maxnum=10,key="minotaur",fx="collapse_small"},--犀牛
+		bottled_soul={weight=35,key="medal_rage_krampus",fx="messagebottle_break_fx"},--瓶装灵魂--暗夜坎普斯
+		fruitflyfruit={weight=35,key="lordfruitfly",notag="fruitflyfruit",fx="collapse_small"},--友好果蝇果--果蝇王
+		medal_spacetime_snacks={weight=50,key="medal_spacetime_devourer",fx="pocketwatch_heal_fx",testfn=function(inst)
 			return TheWorld and TheWorld:HasTag("forest") and not TheSim:FindFirstEntityWithTag("medal_spacetime_devourer")
 		end},--时空碎片--时空吞噬者
+		voidcloth={weight=6,key="medal_shadowthrall_screamer",fx="collapse_small",testfn=function(inst)
+			local fossil_stalker = FindEntity(inst, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, function(inst)
+				return inst.prefab=="fossil_stalker" and inst.form == 2 and inst.moundsize == 8 
+			end, {"structure","trader"}, nil, nil)
+			return fossil_stalker ~= nil
+		end},--暗影碎布--驱光遗骸
 	},
 	water={
-		chesspiece_malbatross={chance=2,key="malbatross",fx="collapse_small"},--邪天翁
+		chesspiece_malbatross={weight=2,key="malbatross",fx="collapse_small"},--邪天翁
 	}
 }
 --怪物列表(key怪物名,value权重)
@@ -292,6 +232,7 @@ local monster_loot={
 		{key="medal_rage_krampus",weight=0},--暗夜坎普斯
 		{key="lordfruitfly",weight=0},--果蝇王
 		{key="medal_spacetime_devourer",weight=0},--时空吞噬者
+		{key="medal_shadowthrall_screamer",weight=0},--驱光遗骸
 	},
 	water={
 		{key="malbatross",weight=1},--邪天翁
@@ -320,36 +261,70 @@ local monster_data={
 	gnarwail={--一角鲸
 		spawn_dist=5,
 	},
+	medal_spacetime_devourer={--时空吞噬者,召唤时空迷雾
+		special_spawn=function(reader)
+			local pt = reader:GetPosition()
+			if TheWorld and TheWorld.components.medal_spacetimestormmanager then
+				if not TheWorld.components.medal_spacetimestormmanager:StartSpacetimestorm(TheWorld.Map:GetNodeIdAtPoint(pt.x, pt.y, pt.z)) then
+					TheWorld.components.medal_spacetimestormmanager:StartSpacetimestorm()
+				end
+			end
+		end
+	},
+	medal_shadowthrall_screamer={--驱光遗骸,特殊出场动画
+		special_spawn=function(reader)
+			local fossil_stalker = FindEntity(reader, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, function(inst)
+				return inst.prefab=="fossil_stalker" and inst.form == 2 and inst.moundsize == 8 
+			end, {"structure","trader"}, nil, nil)
+			if fossil_stalker ~= nil then
+				SpawnPrefab("medal_shadowthrall_revive_from_bones_fx").Transform:SetPosition(fossil_stalker.Transform:GetWorldPosition())
+				fossil_stalker:DoTaskInTime(2, function() 
+					if fossil_stalker and fossil_stalker:IsValid() then
+						local monster = SpawnPrefab("medal_shadowthrall_screamer")
+						if monster then
+							monster.Transform:SetPosition(fossil_stalker.Transform:GetWorldPosition())
+							monster.sg:GoToState("spawndelay")
+							if monster.components.combat then
+								monster.components.combat:SetTarget(reader)
+							end
+							SpawnPrefab("dreadstone_spawn_fx").Transform:SetPosition(fossil_stalker.Transform:GetWorldPosition())
+							fossil_stalker:Remove()
+						end
+					end
+				end)
+			end
+		end
+	},
 }
 
-local un_mult = TUNING_MEDAL.UNSOLVED_ITEM_CHANCE_MULT or 1--献祭品权重增值倍数
+local un_mult = TUNING_MEDAL.UNSOLVED_ITEM_WEIGHT_MULT or 1--献祭品权重增值倍数
 --未解之谜献祭品列表
 local unsolved_item_list={
 	land={
-		atrium_key={chance=15*un_mult,key="yuangu",testfn=function()
+		atrium_key={weight=15*un_mult,key="yuangu",testfn=function(inst)
 			return not (TheWorld and TheWorld:HasTag("cave"))--不能在洞穴献祭
 		end},--远古钥匙--远古祭坛
-		minotaurhorn={chance=15*un_mult,key="yuangu",testfn=function()
+		minotaurhorn={weight=15*un_mult,key="yuangu",testfn=function(inst)
 			return TheWorld and TheWorld:HasTag("cave")--只能在洞穴献祭
 		end},--守护者之角--远古祭坛
-		spicepack={chance=4*un_mult,key="dachu"},--厨师包--大厨套装
-		spiderhat={chance=5*un_mult,key="mudi"},--蜘蛛帽--蜘蛛墓碑
-		lavaeel={chance=4*un_mult,key="ranshao"},--熔岩鳗鱼--浴火重生
-		tentaclespots={chance=4*un_mult,key="chushou"},--触手皮--困兽之斗
-		honeycomb={chance=5*un_mult,key="sharenfeng"},--蜂巢--杀人蜂窝
-		beeswax={chance=5*un_mult,key="sharenfeng"},--蜂蜡--杀人蜂窝
-		tophat={chance=5*un_mult,key="hattrick"},--高礼帽--帽子戏法
-		moonrocknugget={chance=2*un_mult,key="liuxingyu"},--月石--流星雨
-		medal_blue_obsidian={chance=5*un_mult,key="bingshan"},--蓝曜石--冰天雪地
-		-- bottled_moonlight={chance=6*un_mult,key="fullmoon",testfn=function()
+		spicepack={weight=4*un_mult,key="dachu"},--厨师包--大厨套装
+		spiderhat={weight=5*un_mult,key="mudi"},--蜘蛛帽--蜘蛛墓碑
+		lavaeel={weight=4*un_mult,key="ranshao"},--熔岩鳗鱼--浴火重生
+		tentaclespots={weight=4*un_mult,key="chushou"},--触手皮--困兽之斗
+		honeycomb={weight=5*un_mult,key="sharenfeng"},--蜂巢--杀人蜂窝
+		beeswax={weight=5*un_mult,key="sharenfeng"},--蜂蜡--杀人蜂窝
+		tophat={weight=5*un_mult,key="hattrick"},--高礼帽--帽子戏法
+		moonrocknugget={weight=2*un_mult,key="liuxingyu"},--月石--流星雨
+		medal_blue_obsidian={weight=5*un_mult,key="bingshan"},--蓝曜石--冰天雪地
+		-- bottled_moonlight={weight=6*un_mult,key="fullmoon",testfn=function(inst)
 		-- 	return not (TheWorld and TheWorld:HasTag("cave"))--不能在洞穴献祭
 		-- end},--瓶装月光--月圆
-		medal_chum={chance=10*un_mult,key="fishpond"},--特制鱼食--虚空钓鱼池
-		barnaclestuffedfishhead={chance=2*un_mult,key="mermhead"},--酿鱼头--鱼人头
+		medal_chum={weight=10*un_mult,key="fishpond"},--特制鱼食--虚空钓鱼池
+		barnaclestuffedfishhead={weight=2*un_mult,key="mermhead"},--酿鱼头--鱼人头
 	},
 	water={
-		saltrock={chance=2*un_mult,key="yankuang"},--盐晶--盐矿
-		kelp={chance=1*un_mult,key="kelprevenge"},--海带--复仇海带
+		saltrock={weight=2*un_mult,key="yankuang"},--盐晶--盐矿
+		kelp={weight=1*un_mult,key="kelprevenge"},--海带--复仇海带
 	}
 }
 
@@ -591,7 +566,7 @@ local unsolved_loot={
 				player.components.freezable:AddColdness(12,10)--冰冻
 			end
 		end},
-		{item="coldfire",num=10,radius=2,itemfn=function(item,player)
+		{item="coldfire",num=8,radius=2,itemfn=function(item,player)
 			if item.components.burnable then
 				--火灭了出蓝曜石
 				item.components.burnable:SetOnExtinguishFn(function(inst)
@@ -636,8 +611,10 @@ local unsolved_loot={
 			if TheWorld and TheWorld:HasTag("forest") and not TheSim:FindFirstEntityWithTag("medal_beequeen") then
 				local x,y,z=item.Transform:GetWorldPosition()
 				item:ListenForEvent("death", function(inst)
-					SpawnPrefab("lucy_transform_fx").Transform:SetPosition(x,y,z)
-					SpawnPrefab("medal_rose_terrace").Transform:SetPosition(x,y,z)
+					if not TheSim:FindFirstEntityWithTag("medal_beequeen") then
+						SpawnPrefab("lucy_transform_fx").Transform:SetPosition(x,y,z)
+						SpawnPrefab("medal_rose_terrace").Transform:SetPosition(x,y,z)
+					end
 				end)
 			end
 		end},--杀人蜂窝
@@ -823,88 +800,94 @@ local unsolved_loot={
 	},
 }
 
+
+--不朽之谜列表
+local immortal_loot={
+	loot1={--初始
+		{key="bundlewrap",weight=4},--捆绑包装纸
+		{key="beeswax",weight=1},--蜂蜡
+		{key="bearger_chest_blueprint",weight=5},--熊皮宝箱蓝图
+	},
+	loot2={--学过熊皮宝箱
+		{key="bundlewrap",weight=3},--捆绑包装纸
+		{key="beeswax",weight=1},--蜂蜡
+		{key="immortal_gem_blueprint",weight=3},--不朽宝石蓝图
+		{key="immortal_essence",weight=1},--不朽精华
+		{key="immortal_fruit",weight=2},--不朽果实
+	},
+	loot3={--学过不朽宝石
+		{key="bundlewrap",weight=3},--捆绑包装纸
+		{key="beeswax",weight=1},--蜂蜡
+		{key="immortal_fruit_seed",weight=2},--不朽种子
+		{key="immortal_essence",weight=1},--不朽精华
+		{key="immortal_fruit",weight=3},--不朽果实
+	},
+}
 local function GetImmortalItem(inst,reader)
-	--不朽之谜列表
-	local immortal_loot={
-		loot1={--初始
-			{key="bundlewrap",weight=4},--捆绑包装纸
-			{key="beeswax",weight=1},--蜂蜡
-			{key="bearger_chest_blueprint",weight=5},--熊皮宝箱蓝图
-		},
-		loot2={--学过熊皮宝箱
-			{key="bundlewrap",weight=3},--捆绑包装纸
-			{key="beeswax",weight=1},--蜂蜡
-			{key="immortal_gem_blueprint",weight=3},--不朽宝石蓝图
-			{key="immortal_essence",weight=1},--不朽精华
-			{key="immortal_fruit",weight=2},--不朽果实
-		},
-		loot3={--学过不朽宝石
-			{key="bundlewrap",weight=3},--捆绑包装纸
-			{key="beeswax",weight=1},--蜂蜡
-			{key="immortal_fruit_seed",weight=1},--不朽种子
-			{key="immortal_essence",weight=1},--不朽精华
-			{key="immortal_fruit",weight=4},--不朽果实
-		},
-	}
 	if reader then
 		--学过熊皮宝箱蓝图
 		if reader.components.builder and reader.components.builder:KnowsRecipe("bearger_chest") then
 			--学过不朽宝石蓝图
 			if reader.components.builder:KnowsRecipe("immortal_gem") then
-				return GetMedalRandomItem(immortal_loot.loot3,inst.medal_destiny_num)
+				return GetMedalRandomItem(immortal_loot.loot3,inst)
 			else
-				return GetMedalRandomItem(immortal_loot.loot2,inst.medal_destiny_num)
+				return GetMedalRandomItem(immortal_loot.loot2,inst)
 			end
 		else--没学过熊皮宝箱蓝图
-			return GetMedalRandomItem(immortal_loot.loot1,inst.medal_destiny_num)
+			return GetMedalRandomItem(immortal_loot.loot1,inst)
 		end
 	end
 end
 
 --植物图鉴献祭品列表
 local plant_item_list={
-	dug_bananabush={chance=5*un_mult,key="cave_banana_tree"},--香蕉--香蕉树
-	blue_cap={chance=1*un_mult,key="mushroom"},--蓝蘑菇--蘑菇怪圈
-	red_cap={chance=1*un_mult,key="mushroom"},--红蘑菇--蘑菇怪圈
-	green_cap={chance=1*un_mult,key="mushroom"},--绿蘑菇--蘑菇怪圈
-	moonbutterflywings={chance=3*un_mult,key="moon_tree"},--月蛾翅膀--月树林
-	driftwood_log={chance=6*un_mult,key="driftwood_tree"},--浮木--浮木树林
-	livinglog={chance=2*un_mult,key="livingtree"},--活木--活木树林
-	pinecone={chance=2*un_mult,key="evergreen_sparse"},--松果--粗壮常青树
-	petals={chance=1*un_mult,key="flower_evil"},--花瓣--恶魔花园
-	petals_evil={chance=1*un_mult,key="flower_evil"},--恶魔花瓣--恶魔花园
-	lightbulb={chance=1*un_mult,key="flower_cave"},--荧光果--希望之光
-	cactus_meat={chance=2*un_mult,key="cactus"},--仙人掌肉--沙漠绿洲
-	wormlight={chance=2*un_mult,key="wormlight_plant"},--发光浆果--蓝莓果园
-	berries={chance=1*un_mult,key="berrybush"},--浆果--农夫果园
-	berries_juicy={chance=1*un_mult,key="berrybush"},--多汁浆果--农夫果园
-	moon_cap={chance=4*un_mult,key="mushtree_moon"},--月亮蘑菇--月亮蘑菇树
-	cutreeds={chance=1*un_mult,key="reeds"},--采下的芦苇--芦苇奇遇
-	foliage={chance=2*un_mult,key="cave_fern"},--蕨叶--蕨叶宴
-	succulent_picked={chance=2*un_mult,key="succulent_plant"},--多肉植物--多肉宴
-	cutlichen={chance=3*un_mult,key="lichen"},--苔藓--洞穴苔藓
+	cave_banana={weight=1*un_mult,key="bananabush"},--香蕉--香蕉丛
+	blue_cap={weight=1*un_mult,key="mushroom"},--蓝蘑菇--蘑菇怪圈
+	red_cap={weight=1*un_mult,key="mushroom"},--红蘑菇--蘑菇怪圈
+	green_cap={weight=1*un_mult,key="mushroom"},--绿蘑菇--蘑菇怪圈
+	moonbutterflywings={weight=3*un_mult,key="moon_tree"},--月蛾翅膀--月树林
+	driftwood_log={weight=6*un_mult,key="driftwood_tree"},--浮木--浮木树林
+	livinglog={weight=2*un_mult,key="livingtree"},--活木--活木树林
+	pinecone={weight=2*un_mult,key="evergreen_sparse"},--松果--粗壮常青树
+	petals={weight=1*un_mult,key="flower_evil"},--花瓣--恶魔花园
+	petals_evil={weight=1*un_mult,key="flower_evil"},--恶魔花瓣--恶魔花园
+	lightbulb={weight=1*un_mult,key="flower_cave"},--荧光果--希望之光
+	cactus_meat={weight=2*un_mult,key="cactus"},--仙人掌肉--沙漠绿洲
+	wormlight={weight=2*un_mult,key="wormlight_plant"},--发光浆果--蓝莓果园
+	berries={weight=1*un_mult,key="berrybush"},--浆果--农夫果园
+	berries_juicy={weight=1*un_mult,key="berrybush"},--多汁浆果--农夫果园
+	moon_cap={weight=4*un_mult,key="mushtree_moon"},--月亮蘑菇--月亮蘑菇树
+	cutreeds={weight=1*un_mult,key="reeds"},--采下的芦苇--芦苇奇遇
+	foliage={weight=2*un_mult,key="cave_fern"},--蕨叶--蕨叶宴
+	succulent_picked={weight=2*un_mult,key="succulent_plant"},--多肉植物--多肉宴
+	cutlichen={weight=3*un_mult,key="lichen"},--苔藓--洞穴苔藓
 
-	carrot_oversized={chance=6*un_mult,key="medal_fruit_tree_carrot"},--巨型胡萝卜--胡萝卜嫁接树
-	corn_oversized={chance=6*un_mult,key="medal_fruit_tree_corn"},--巨型玉米--玉米嫁接树
-	potato_oversized={chance=6*un_mult,key="medal_fruit_tree_potato"},--巨型土豆--土豆嫁接树
-	tomato_oversized={chance=6*un_mult,key="medal_fruit_tree_tomato"},--巨型番茄--番茄嫁接树
+	carrot_oversized={weight=6*un_mult,key="medal_fruit_tree_carrot"},--巨型胡萝卜--胡萝卜嫁接树
+	corn_oversized={weight=6*un_mult,key="medal_fruit_tree_corn"},--巨型玉米--玉米嫁接树
+	potato_oversized={weight=6*un_mult,key="medal_fruit_tree_potato"},--巨型土豆--土豆嫁接树
+	tomato_oversized={weight=6*un_mult,key="medal_fruit_tree_tomato"},--巨型番茄--番茄嫁接树
 
-	asparagus_oversized={chance=4*un_mult,key="medal_fruit_tree_asparagus"},--巨型芦笋--芦笋嫁接树
-	pumpkin_oversized={chance=4*un_mult,key="medal_fruit_tree_pumpkin"},--巨型南瓜--南瓜嫁接树
-	eggplant_oversized={chance=4*un_mult,key="medal_fruit_tree_eggplant"},--巨型茄子--茄子嫁接树
-	watermelon_oversized={chance=4*un_mult,key="medal_fruit_tree_watermelon"},--巨型西瓜--西瓜嫁接树
+	asparagus_oversized={weight=4*un_mult,key="medal_fruit_tree_asparagus"},--巨型芦笋--芦笋嫁接树
+	pumpkin_oversized={weight=4*un_mult,key="medal_fruit_tree_pumpkin"},--巨型南瓜--南瓜嫁接树
+	eggplant_oversized={weight=4*un_mult,key="medal_fruit_tree_eggplant"},--巨型茄子--茄子嫁接树
+	watermelon_oversized={weight=4*un_mult,key="medal_fruit_tree_watermelon"},--巨型西瓜--西瓜嫁接树
 
-	garlic_oversized={chance=2*un_mult,key="medal_fruit_tree_garlic"},--巨型大蒜--大蒜嫁接树
-	onion_oversized={chance=2*un_mult,key="medal_fruit_tree_onion"},--巨型洋葱--洋葱嫁接树
-	dragonfruit_oversized={chance=2*un_mult,key="medal_fruit_tree_dragonfruit"},--巨型火龙果--火龙果嫁接树
-	pomegranate_oversized={chance=2*un_mult,key="medal_fruit_tree_pomegranate"},--巨型石榴--石榴嫁接树
-	pepper_oversized={chance=2*un_mult,key="medal_fruit_tree_pepper"},--巨型辣椒--辣椒嫁接树
-	durian_oversized={chance=2*un_mult,key="medal_fruit_tree_durian"},--巨型榴莲--榴莲嫁接树
+	garlic_oversized={weight=2*un_mult,key="medal_fruit_tree_garlic"},--巨型大蒜--大蒜嫁接树
+	onion_oversized={weight=2*un_mult,key="medal_fruit_tree_onion"},--巨型洋葱--洋葱嫁接树
+	dragonfruit_oversized={weight=2*un_mult,key="medal_fruit_tree_dragonfruit"},--巨型火龙果--火龙果嫁接树
+	pomegranate_oversized={weight=2*un_mult,key="medal_fruit_tree_pomegranate"},--巨型石榴--石榴嫁接树
+	pepper_oversized={weight=2*un_mult,key="medal_fruit_tree_pepper"},--巨型辣椒--辣椒嫁接树
+	durian_oversized={weight=2*un_mult,key="medal_fruit_tree_durian"},--巨型榴莲--榴莲嫁接树
+
+	-- medal_origin_essence={chance=.25,key="medal_origin_small_tree",fx="collapse_small",testfn=function(inst)
+	-- 	local flower = FindEntity(inst, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, nil, {"medal_flower"}, nil, nil)
+	-- 	return flower ~= nil
+	-- end},--本源精华--本源之树
 }
 --植物图鉴索引列表
 local plant_index={
 	{key="mushroom",weight=1},--蘑菇怪圈
-	{key="cave_banana_tree",weight=1},--香蕉林
+	{key="bananabush",weight=1},--香蕉林
 	{key="moon_tree",weight=1},--月树林
 	{key="driftwood_tree",weight=1},--浮木树林
 	{key="livingtree",weight=1},--活木树林
@@ -933,30 +916,53 @@ local plant_index={
 	{key="medal_fruit_tree_eggplant",weight=0},--茄子嫁接树
 	{key="medal_fruit_tree_corn",weight=0},--玉米嫁接树
 	{key="medal_fruit_tree_durian",weight=0},--榴莲嫁接树
+	-- {key="medal_origin_small_tree",weight=0},--本源之树
 }
---未解之谜列表
+
+--特殊植物
+local special_plant_data={
+	medal_origin_small_tree = function(reader)--本源之树
+		local flower = FindEntity(reader, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, nil, {"medal_flower"}, nil, nil)
+		if flower ~= nil then
+			local origin_tree = SpawnPrefab("medal_origin_small_tree_short")
+			if origin_tree then
+				origin_tree.Transform:SetPosition(flower.Transform:GetWorldPosition())
+				if origin_tree.sproutfn then
+					origin_tree:sproutfn()
+				end
+				flower:Remove()
+			end
+		end
+	end,
+}
+
+--植物图鉴列表
 local plant_loot={
 	mushroom={--蘑菇怪圈
-		{randomlist={"red_mushroom","green_mushroom","blue_mushroom"},num=10,radius=4},--蘑菇
+		{randomlist={
+			red_mushroom = 1,--红蘑菇
+			green_mushroom = 1,--绿蘑菇
+			blue_mushroom = 1,--蓝蘑菇
+		},num=10,radius=4},
 	},
-	cave_banana_tree={--香蕉之林
-		--香蕉树
-		{item="cave_banana_tree",num=6,radius=5,angle_offset=0.5,itemfn=function(item,player)
+	bananabush={--香蕉之林
+		--香蕉丛
+		{item="bananabush",num=6,radius=5,angle_offset=0.5,itemfn=function(item,player)
+			if item.components.growable then
+				item.components.growable:SetStage(4)--直接变成最大阶段
+			end
 			item:AddTag("notdevourable")--不可吞噬
 			if item.components.pickable then
 				local oldonpickedfn = item.components.pickable.onpickedfn
 				item.components.pickable.onpickedfn=function(inst,picker)
-					if oldonpickedfn then
-						oldonpickedfn(inst,picker)
-					end
 					local x,y,z=inst.Transform:GetWorldPosition()
 					local ents = TheSim:FindEntities(x, y, z, 12,{"notdevourable"} , { "INLIMBO" })
 					local needtalk=false;--是否要说感叹词
 					-- inst:Remove()
 					if #ents>0 then
 						for i,v in ipairs(ents) do
-							if v.prefab=="cave_banana_tree" then
-								--每棵香蕉树下出一只猴子
+							if v.prefab=="bananabush" then
+								--每棵香蕉丛出一只猴子
 								local monkey=SpawnPrefab("monkey")
 								if monkey then
 									monkey.Transform:SetPosition(v.Transform:GetWorldPosition())
@@ -970,13 +976,29 @@ local plant_loot={
 								if v.components.pickable then
 									v.components.pickable.onpickedfn=oldonpickedfn
 								end
+								v:RemoveTag("notdevourable")
 							end
 						end
 					end
 					if needtalk and picker then
 						MedalSay(picker,STRINGS.UNSOLVEDSPEECH.MONKEY_NEST)
 					end
+					if oldonpickedfn then
+						oldonpickedfn(inst,picker)
+					end
 				end
+			end
+			if item.components.workable then
+				local oldOnfinishFn=item.components.workable.onfinish
+				item.components.workable:SetOnFinishCallback(function(inst,worker)
+					--玩家处于可移植状态，则可获得砧木桩
+					if worker and worker.medal_transplantman then
+						inst.components.lootdropper:SpawnLootPrefab("medaldug_fruit_tree_stump")
+						inst:Remove()
+					elseif oldOnfinishFn then
+						oldOnfinishFn(inst,worker)
+					end
+				end)
 			end
 		end},
 	},
@@ -984,7 +1006,11 @@ local plant_loot={
 		{item ="moon_tree",num=8,radius=4},
 	},
 	driftwood_tree={--浮木树林
-		{randomlist={"driftwood_tall","driftwood_small1","driftwood_small2"},num=6,radius=4},
+		{randomlist={
+			driftwood_tall = 1,
+			driftwood_small1 = 1,
+			driftwood_small2 = 1,
+		},num=6,radius=4},
 	},
 	livingtree={--活木树林
 		{item ="livingtree",num=6,radius=4},
@@ -994,6 +1020,7 @@ local plant_loot={
 	},
 	flower_evil={--恶魔花园
 		{item="flower",num=1,canoverlap=true,itemfn=function(item,player)
+			item:AddTag("notdevourable")--不可吞噬
 			if item.components.pickable then
 				local oldonpickedfn = item.components.pickable.onpickedfn
 				item.components.pickable.onpickedfn=function(inst,picker)
@@ -1023,16 +1050,28 @@ local plant_loot={
 		end},
 	},
 	flower_cave={--希望之光
-		{randomlist={"flower_cave","flower_cave_double","flower_cave_triple","lightflier_flower"},num=9,radius=4},--荧光果
+		{randomlist={
+			flower_cave = 1,--单果荧光果
+			flower_cave_double = 1,--双果荧光果
+			flower_cave_triple = 1,--三果荧光果
+			lightflier_flower = 1,--荧光虫
+		},num=9,radius=4},
 	},
 	cactus={--沙漠绿洲
-		{randomlist={"cactus","oasis_cactus"},num=6,radius=4},--仙人掌
+		{randomlist={
+			cactus=1,--仙人掌
+			oasis_cactus=1,--沙漠仙人掌
+		},num=6,radius=4},
 	},
 	wormlight_plant={--蓝莓果园
 		{item ="wormlight_plant",num=6,radius=4},--发光蓝莓
 	},
 	berrybush={--农夫果园
-		{randomlist={"berrybush","berrybush2","berrybush_juicy"},num=9,radius=4},--浆果
+		{randomlist={
+			berrybush = 1,--浆果丛
+			berrybush2 = 1,--三叶浆果丛
+			berrybush_juicy = 1,--多汁浆果丛
+		},num=9,radius=4},
 	},
 	mushtree_moon={--月亮蘑菇树
 		{item ="mushtree_moon",num=6,radius=4},
@@ -1103,48 +1142,54 @@ local plant_loot={
 
 local book_defs={
 	{
-		hide=true,--隐藏
+		-- hide=true,--隐藏
 		name="closed_book",--无字天书
 		anim="closed_book",
 		uses=TUNING_MEDAL.BOOK_MAXUSES.CLOSED,
-        read_sanity = -TUNING.SANITY_LARGE,
-        peruse_sanity = -TUNING.SANITY_LARGE,
+        read_sanity = -TUNING.SANITY_MEDLARGE,
+        peruse_sanity = -TUNING.SANITY_MEDLARGE,
 		readfn=function(inst,reader)
-			if reader.components.inventory and reader.components.inventory:EquipHasTag("xinhua_dictionary") then
-				--小概率触发奇遇
-				if math.random() < TUNING_MEDAL.CLOSED_BOOK_SPECIAL_RATE then
-					local qiyu_id=math.random(4)--奇遇编号
-					local talkstr=nil--感叹词
-					if qiyu_id==1 then
-						--黄金屋
-						talkstr=STRINGS.CLOSEDBOOKSPEECH.HUANGJINWU
-						--生成黄金
-						for k=1,TUNING_MEDAL.CLOSED_BOOK_GOLDNUGGET_NUM do
-							inst.components.lootdropper:SpawnLootPrefab("goldnugget")
+			-- if reader.components.inventory and reader.components.inventory:EquipHasTag("xinhua_dictionary") then
+			--手持新华字典有小概率触发奇遇
+			if reader:HasTag("medal_canstudy") then
+				--消耗新华字典耐久
+				local dictionary = reader.components.inventory and reader.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)
+				if dictionary and dictionary.prefab=="xinhua_dictionary" and dictionary.components.finiteuses then
+					dictionary.components.finiteuses:Use(1)
+					if math.random() < TUNING_MEDAL.CLOSED_BOOK_SPECIAL_RATE then
+						local qiyu_id=math.random(4)--奇遇编号
+						local talkstr=nil--感叹词
+						if qiyu_id==1 then
+							--黄金屋
+							talkstr=STRINGS.CLOSEDBOOKSPEECH.HUANGJINWU
+							--生成黄金
+							for k=1,TUNING_MEDAL.CLOSED_BOOK_GOLDNUGGET_NUM do
+								inst.components.lootdropper:SpawnLootPrefab("goldnugget")
+							end
+						elseif qiyu_id==2 then
+							--颜如玉
+							talkstr=STRINGS.CLOSEDBOOKSPEECH.YANRUYU
+							local x, y, z = reader.Transform:GetWorldPosition()
+							local pigman = SpawnPrefab("merm")
+							pigman.Transform:SetPosition(x, y, z)
+						elseif qiyu_id==3 then
+							--千钟粟
+							talkstr=STRINGS.CLOSEDBOOKSPEECH.QIANZHONGSU
+							for k=1,TUNING_MEDAL.CLOSED_BOOK_SEEDS_NUM do
+								inst.components.lootdropper:SpawnLootPrefab("seeds")
+							end
+						else
+							--车马簇
+							talkstr=STRINGS.CLOSEDBOOKSPEECH.CHEMACU
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_marble")
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_stone")
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_moonglass")
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_marble")
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_stone")
+							inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_moonglass")
 						end
-					elseif qiyu_id==2 then
-						--颜如玉
-						talkstr=STRINGS.CLOSEDBOOKSPEECH.YANRUYU
-						local x, y, z = reader.Transform:GetWorldPosition()
-						local pigman = SpawnPrefab("merm")
-						pigman.Transform:SetPosition(x, y, z)
-					elseif qiyu_id==3 then
-						--千钟粟
-						talkstr=STRINGS.CLOSEDBOOKSPEECH.QIANZHONGSU
-						for k=1,TUNING_MEDAL.CLOSED_BOOK_SEEDS_NUM do
-							inst.components.lootdropper:SpawnLootPrefab("seeds")
-						end
-					else
-						--车马簇
-						talkstr=STRINGS.CLOSEDBOOKSPEECH.CHEMACU
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_marble")
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_stone")
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_knight_moonglass")
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_marble")
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_stone")
-						inst.components.lootdropper:SpawnLootPrefab("chesspiece_rook_moonglass")
+						MedalSay(reader,talkstr)
 					end
-					MedalSay(reader,talkstr)
 				end
 			end
 			
@@ -1194,9 +1239,7 @@ local book_defs={
 			return GetImmortalItem(inst,reader)
 		end,
 		extrafn = function(inst)--主机额外扩展函数
-			if not inst.medal_destiny_num then
-				inst.medal_destiny_num=math.random()--命运数字
-			end
+			inst:AddComponent("medal_itemdestiny")--宿命
 		end,
 	},
 	{
@@ -1209,6 +1252,7 @@ local book_defs={
 		taglist={
 			"fate_rewriteable",--可改命
 			"medal_predictable",--可被预言
+			"washfunctionalable",--可清洗
 		},
 		readfn=function(inst,reader)
 			local monster=nil
@@ -1219,13 +1263,8 @@ local book_defs={
 				monster = SpawnMonster(reader,monster_code,true,monster_data[monster_code])--生成怪物
 			else
 				local monster_code = doSacrifice(inst,reader,chesspiece_list.land,monster_loot.land)--进行献祭并获取随机怪物ID
-				if monster_code == "medal_spacetime_devourer" then
-					local pt = reader:GetPosition()
-					if TheWorld and TheWorld.components.medal_spacetimestormmanager then
-						if not TheWorld.components.medal_spacetimestormmanager:StartSpacetimestorm(TheWorld.Map:GetNodeIdAtPoint(pt.x, pt.y, pt.z)) then
-							TheWorld.components.medal_spacetimestormmanager:StartSpacetimestorm()
-						end
-					end
+				if monster_data[monster_code] and monster_data[monster_code].special_spawn then--特殊生成物
+					monster_data[monster_code].special_spawn(reader)
 				else
 					monster = SpawnMonster(reader,monster_code,false,monster_data[monster_code])--生成怪物
 					if monster then
@@ -1248,9 +1287,7 @@ local book_defs={
 			end
 		end,
 		extrafn = function(inst)--主机额外扩展函数
-			if not inst.medal_destiny_num then
-				inst.medal_destiny_num=math.random()--命运数字
-			end
+			inst:AddComponent("medal_itemdestiny")--宿命
 		end,
 	},
 	{
@@ -1263,15 +1300,16 @@ local book_defs={
 		taglist={
 			"fate_rewriteable",--可改命
 			"medal_predictable",--可被预言
+			"washfunctionalable",--可清洗
 		},
 		readfn=function(inst,reader)
 			--在船上或者水里，则生成水上奇遇
 			if reader:GetCurrentPlatform() ~= nil or (reader.components.drownable~= nil and reader.components.drownable:IsOverWater()) then
 				local qiyu_id = doSacrifice(inst,reader,unsolved_item_list.water,unsolved_index.water)--进行献祭并获取随机奇遇ID
-				spawnCircleItem(reader,unsolved_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成水上奇遇
+				MedalSpawnCircleItem(reader,unsolved_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成水上奇遇
 			else--否则生成陆地奇遇
 				local qiyu_id = doSacrifice(inst,reader,unsolved_item_list.land,unsolved_index.land)--进行献祭并获取随机奇遇ID
-				spawnCircleItem(reader,unsolved_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成陆地奇遇
+				MedalSpawnCircleItem(reader,unsolved_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成陆地奇遇
 			end
 			return true
 		end,
@@ -1288,9 +1326,7 @@ local book_defs={
 			end
 		end,
 		extrafn = function(inst)--主机额外扩展函数
-			if not inst.medal_destiny_num then
-				inst.medal_destiny_num=math.random()--命运数字
-			end
+			inst:AddComponent("medal_itemdestiny")--宿命
 		end,
 	},
 	{
@@ -1342,7 +1378,7 @@ local book_defs={
 				for i,v in ipairs(ents) do
 					if v.setAutoTrap and not v:HasTag("autoTrap") then
 						v:setAutoTrap()
-						spawnFX("collapse_small",v)
+						SpawnMedalFX("collapse_small",v)
 						--升级荆棘陷阱消耗2点点数，其他消耗1点
 						if v.prefab=="trap_bramble" then
 							autovalue=autovalue-2
@@ -1364,7 +1400,7 @@ local book_defs={
 	},
 	{
 		name="medal_plant_book",--植物图鉴
-		anim="closed_book",
+		anim="medal_plant_book",
 		uses=TUNING_MEDAL.BOOK_MAXUSES.PLANT,
 		radius=TUNING_MEDAL.BOOK_SACRIFICE_RADIUS,--作用范围
         read_sanity = -TUNING.SANITY_HUGE,
@@ -1372,19 +1408,23 @@ local book_defs={
 		taglist={
 			"fate_rewriteable",--可改命
 			"medal_predictable",--可被预言
+			"washfunctionalable",--可清洗
 		},
 		readfn=function(inst,reader)
 			--不能在水里生成奇遇
 			if reader:GetCurrentPlatform() ~= nil or (reader.components.drownable~= nil and reader.components.drownable:IsOverWater()) then
 				return false,"MUSTLAND"
 			end
-			--复活周围的曼德拉草
+			--复活周围的曼德拉草、催长本源之树
 			local x, y, z = reader.Transform:GetWorldPosition()
-			local ents = TheSim:FindEntities(x, y, z, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, {"cookable"}, nil, nil)
+			local ents = TheSim:FindEntities(x, y, z, TUNING_MEDAL.BOOK_SACRIFICE_RADIUS, nil, nil, {"cookable","small_origin_tree"})
 			local count = 0
 			for i, v in ipairs(ents) do
+				--催熟本源之树
+				if v.prefab == "medal_origin_small_tree" and v.DoMedalMagicGrowth and v:DoMedalMagicGrowth() then
+					return true
 				--堆叠的不能复活
-				if v.prefab == "mandrake" and (v.components.stackable == nil or not v.components.stackable:IsStack()) then
+				elseif v.prefab == "mandrake" and (v.components.stackable == nil or not v.components.stackable:IsStack()) then
 					local planted = SpawnPrefab("mandrake_planted")
 					planted.Transform:SetPosition(v.Transform:GetWorldPosition())
 					planted:replant(reader)
@@ -1398,7 +1438,12 @@ local book_defs={
 			--如果复活过曼德拉草了就不能生成奇遇了
 			if count <= 0 then
 				local qiyu_id = doSacrifice(inst,reader,plant_item_list,plant_index)--进行献祭并获取随机奇遇ID
-				spawnCircleItem(reader,plant_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成陆地奇遇
+				local specialfn = special_plant_data[qiyu_id]
+				if specialfn ~= nil then
+					specialfn(reader)
+					return true
+				end
+				MedalSpawnCircleItem(reader,plant_loot[qiyu_id],STRINGS.UNSOLVEDSPEECH[string.upper(qiyu_id)])--生成陆地奇遇
 			end
 			return true
 		end,
@@ -1415,9 +1460,7 @@ local book_defs={
 			end
 		end,
 		extrafn = function(inst)--主机额外扩展函数
-			if not inst.medal_destiny_num then
-				inst.medal_destiny_num=math.random()--命运数字
-			end
+			inst:AddComponent("medal_itemdestiny")--宿命
 		end,
 	},
 }

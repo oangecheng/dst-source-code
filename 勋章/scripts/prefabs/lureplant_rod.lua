@@ -1,8 +1,6 @@
 local assets =
 {
     Asset("ANIM", "anim/lureplant_rod.zip"),
-    Asset("ANIM", "anim/lureplant_rod_skin1.zip"),
-	-- Asset("ANIM", "anim/swap_lureplant_rod.zip"),
     Asset("ANIM", "anim/floating_items.zip"),
 	Asset("ATLAS", "images/lureplant_rod.xml"),
 	Asset("ATLAS_BUILD", "images/lureplant_rod.xml",256),
@@ -61,36 +59,38 @@ local targetList={
 	{num=MAXUSES*20/300,lootkey="rock_avocado_bush"},--石果
 	{num=MAXUSES*50/300,lootkey="medal_fruit_tree_all"},--嫁接树
 }
-
-local function onequip(inst, owner)
-	owner.AnimState:OverrideSymbol("swap_object", GetMedalSkinData(inst,"lureplant_rod"), "swap_lureplant_rod")
-	--设置饥饿速度为1.5倍
-	if owner.components.hunger ~= nil then
-        owner.components.hunger.burnratemodifiers:SetModifier(inst, TUNING_MEDAL.LUREPLANT_ROD.HUNGER_RATE)
-		owner:AddTag("lureplant_rod")--特殊快采动作
-    end
-	
-	AddMedalTag(owner,"fastpicker")--快采标签
-	
-    owner.AnimState:Show("ARM_carry")
-    owner.AnimState:Hide("ARM_normal")
-	--监听玩家采摘事件
-	inst.picksomething = function(self,data)
-		if data then
-			if data.object and inst.target_loot and #inst.target_loot>0 then
-				for k, v in ipairs(inst.target_loot) do
-					--if v.num>0 and table.contains(v.prefablist,data.object.prefab) then
-					if v.num>0 and table.contains(targetMappingLoot[v.lootkey],data.object.prefab) then
-						v.num=v.num-1
-						if inst.components.finiteuses then
-							inst.components.finiteuses:Use(1*TUNING_MEDAL.LUREPLANT_ROD.CONSUME_MULT)
-							SpawnMedalTips(self,1*TUNING_MEDAL.LUREPLANT_ROD.CONSUME_MULT,9)--弹幕提示
+--采摘事件
+local function picksomething(inst,doer,data)
+	if inst and doer and data then
+		if data.object and inst.target_loot and #inst.target_loot>0 then
+			for k, v in ipairs(inst.target_loot) do
+				--if v.num>0 and table.contains(v.prefablist,data.object.prefab) then
+				if v.num>0 and table.contains(targetMappingLoot[v.lootkey],data.object.prefab) then
+					v.num=v.num-1
+					if inst.components.finiteuses then
+						inst.components.finiteuses:Use(1*TUNING_MEDAL.LUREPLANT_ROD.CONSUME_MULT)
+						--天道酬勤
+						if not RewardToiler(doer, 0.05) then
+							SpawnMedalTips(doer,1*TUNING_MEDAL.LUREPLANT_ROD.CONSUME_MULT,9)--弹幕提示
 						end
 					end
 				end
 			end
 		end
 	end
+end
+
+local function onequip(inst, owner)
+	owner.AnimState:OverrideSymbol("swap_object", GetMedalSkinData(inst,"lureplant_rod"), "swap_lureplant_rod")
+	--设置饥饿速度为1.5倍
+	if owner.components.hunger ~= nil then
+        owner.components.hunger.burnratemodifiers:SetModifier(inst, TUNING_MEDAL.LUREPLANT_ROD.HUNGER_RATE)
+    end
+
+	owner:AddTag("rod_fastpicker")--特殊快采动作
+	
+    owner.AnimState:Show("ARM_carry")
+    owner.AnimState:Hide("ARM_normal")
 	
 	owner:ListenForEvent("picksomething", inst.picksomething)--采摘
 	owner:ListenForEvent("medal_picksomething", inst.picksomething)--采摘(多汁浆果)
@@ -103,9 +103,7 @@ local function onunequip(inst, owner)
 	if owner.components.hunger ~= nil then
         owner.components.hunger.burnratemodifiers:RemoveModifier(inst)
     end
-	owner:RemoveTag("lureplant_rod")--快采手杖，用特殊动作
-	
-	RemoveMedalTag(owner,"fastpicker")--快采标签
+	owner:RemoveTag("rod_fastpicker")--快采手杖，用特殊动作
 
     owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
@@ -232,6 +230,10 @@ local function fn()
 	inst.components.finiteuses:SetOnFinished(onfinishedfn)
 
 	inst:AddComponent("medal_skinable")
+
+	inst.picksomething = function(self,data)
+		picksomething(inst, self, data)
+	end
 
 	inst.target_loot=deepcopy(targetList)--这里必须拷贝，不然直接影响原表了
 	inst.OnSave = onsave

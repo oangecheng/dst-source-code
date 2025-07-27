@@ -4,7 +4,7 @@ local assets =
 }
 
 local function SetRadius(inst, radius)
-	local scale = radius/3 or 1
+	local scale = radius and radius/3 or 1
 	inst.AnimState:SetScale(scale, scale)
 end
 

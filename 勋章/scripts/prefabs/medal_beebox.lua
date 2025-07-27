@@ -33,11 +33,15 @@ local levels =
 local FLOWER_MUST_TAG = {"medal_flower"}--不好意思，必须是虫木花
 --可增长蜂王浆
 local function CanStartGrowing(inst)
-    return not inst:HasTag("burnt") and--不能是被烧毁的
+    if not inst:HasTag("burnt") and--不能是被烧毁的
         inst.components.harvestable and--有可收获组件
         not TheWorld.state.iswinter and--非冬天
-        (inst.components.childspawner and inst.components.childspawner:NumChildren() > 0) and--育王蜂数量不为0
-        FindEntity(inst, FLOWER_TEST_RADIUS, nil, FLOWER_MUST_TAG)--周围有虫木花
+        (inst.components.childspawner and inst.components.childspawner:NumChildren() > 0) then--育王蜂数量不为0
+            --周围至少有6朵虫木花
+			local x, y, z = inst.Transform:GetWorldPosition()
+			local ents = TheSim:FindEntities(x, y, z, FLOWER_TEST_RADIUS, FLOWER_MUST_TAG)
+			return ents~=nil and #ents>=6
+    end
 end
 --蜂箱停止工作
 local function Stop(inst)
@@ -160,20 +164,6 @@ local function OnSave(inst, data)
         data.burnt = true
     end
 end
---离开加载范围
-local function onsleep(inst)
-    if CanStartGrowing(inst) then--离开加载范围的时候就要尝试自动增长蜂王浆了
-        inst.components.harvestable:SetGrowTime(TUNING.BEEBOX_HONEY_TIME)
-        inst.components.harvestable:StartGrowing()
-    end
-end
---进入加载范围
-local function stopsleep(inst)
-    if not inst:HasTag("burnt") and inst.components.harvestable ~= nil then
-        inst.components.harvestable:SetGrowTime(nil)
-        inst.components.harvestable:PauseGrowing()
-    end
-end
 
 local function OnLoad(inst, data)
     --print(inst, "OnLoad")
@@ -202,13 +192,29 @@ local function onignite(inst)
 		SpawnPrefab("livingroot_chest_extinguish_fx").Transform:SetPosition(inst.Transform:GetWorldPosition())
 	end)
 end
+--尝试自动增长蜂王浆
+local function TryStartSleepGrowing(inst)
+    if CanStartGrowing(inst) then
+        inst.components.harvestable:SetGrowTime(TUNING.BEEBOX_HONEY_TIME)
+        inst.components.harvestable:StartGrowing()
+    elseif inst.components.harvestable then
+        inst.components.harvestable:PauseGrowing()
+    end
+end
+
 --预置物唤醒
 local function OnEntityWake(inst)
-	inst.SoundEmitter:PlaySound("dontstarve/bee/bee_box_LP", "loop")
+	--停止自动增长蜂王浆
+    if not inst:HasTag("burnt") and inst.components.harvestable ~= nil then
+        inst.components.harvestable:SetGrowTime(nil)
+        inst.components.harvestable:PauseGrowing()
+    end
+    inst.SoundEmitter:PlaySound("dontstarve/bee/bee_box_LP", "loop")
 end
 --预置物休眠
 local function OnEntitySleep(inst)
-	inst.SoundEmitter:KillSound("loop")
+	TryStartSleepGrowing(inst)
+    inst.SoundEmitter:KillSound("loop")
 end
 
 local function GetStatus(inst)
@@ -219,6 +225,13 @@ local function GetStatus(inst)
 			)
 		or nil
 end
+
+local function AsleepHoneyGrowth(inst)
+    if inst:IsAsleep() then
+        TryStartSleepGrowing(inst)
+    end
+end
+
 --季节更替
 local function SeasonalSpawnChanges(inst, season)
 	if inst.components.childspawner then
@@ -292,15 +305,13 @@ local function MakeBeebox(name)
 			inst.components.childspawner:StartSpawning()--非冬季的白天蜜蜂开始出巢活动
 		end
 
+        inst:WatchWorldState("iswinter", AsleepHoneyGrowth)
         inst:WatchWorldState("iscaveday", OnIsCaveDay)
         inst:ListenForEvent("enterlight", OnEnterLight)--处于光照范围
         inst:ListenForEvent("enterdark", OnEnterDark)--陷入黑暗
 
         inst:AddComponent("inspectable")
         inst.components.inspectable.getstatus = GetStatus
-
-        inst:ListenForEvent("entitysleep", onsleep)
-        inst:ListenForEvent("entitywake", stopsleep)
 
         updatelevel(inst)
 

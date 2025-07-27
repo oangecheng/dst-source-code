@@ -89,7 +89,7 @@ local function MakePreparedFood(data)
 
         inst.AnimState:PlayAnimation("idle")
 		--设置场景贴图
-        inst.AnimState:OverrideSymbol("swap_food", IsNativeCookingProduct(data.basename) and (food_symbol_build or "cook_pot_food") or data.basename, data.basename or data.name)
+        inst.AnimState:OverrideSymbol("swap_food", data.overridebuild or (IsNativeCookingProduct(data.basename) and (food_symbol_build or "cook_pot_food")) or data.basename, data.basename or data.name)
 
         inst:AddTag("preparedfood")
         if data.tags ~= nil then
@@ -178,4 +178,23 @@ for k, v in pairs(require("medal_spicedfoods").spicedfoods) do
     table.insert(prefs, MakePreparedFood(v))
 end
 
-return unpack(prefs)
+-- return unpack(prefs)
+
+local allprefab = {}
+local function RegModPrefab(data)
+    data.search_asset_first_path = MODS_ROOT .. MedalAPI.modname .. "/" -- 资源优先搜索路径
+    RegisterSinglePrefab(data)
+    PREFABDEFINITIONS[data.name] = data
+    MedalAPI.Prefabs[data.name] = data
+    table.insert(allprefab, data.name) -- 注册到mod环境里 
+    Prefabs[data.name] = data -- 注册到全局环境
+end
+for k, v in ipairs(prefs) do RegModPrefab(v) end
+local pref = Prefab("MOD_food_" .. MedalAPI.modname, nil, MedalAPI.Assets,
+                    allprefab, true)
+pref.search_asset_first_path = MODS_ROOT .. MedalAPI.modname .. "/"
+RegisterSinglePrefab(pref)
+TheSim:LoadPrefabs({pref.name})
+table.insert(ModManager.loadedprefabs, pref.name)
+
+return

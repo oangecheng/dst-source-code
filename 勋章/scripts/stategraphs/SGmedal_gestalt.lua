@@ -42,16 +42,11 @@ end
 local function DoSpecialAttack(inst, target)
 	if target.components.health and not target.components.health:IsDead() and not target:HasTag("playerghost") then
         --有黑暗血糖
-        if target.components.debuffable and target.components.debuffable:HasDebuff("buff_medal_suckingblood") then
+        if target.medal_dark_ningxue then
             --时之伤还是会加
             target.components.health:DoDeltaMedalDelayDamage(TUNING_MEDAL.MEDAL_GESTALT_DELAY_DAMAGE)
-            --暗影盾
-            local fx=SpawnPrefab("medal_shield_player")
-			if fx then fx.entity:SetParent(target.entity) end
             --抵消buff时长
-            target.components.debuffable:AddDebuff("buff_medal_suckingblood", "buff_medal_suckingblood",{extend_durationfn=function(timer_left)
-                return math.max(0,timer_left - TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GESTALT_CONSUME)
-            end})
+            ConsumeMedalBuff(target,"buff_medal_suckingblood",TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GESTALT_CONSUME)
         else
             inst.components.combat:DoAttack(target)
             --时之伤

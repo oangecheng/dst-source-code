@@ -3,7 +3,6 @@ require "prefabutil"
 local assets =
 {
 	Asset("ANIM", "anim/medal_livingroot_chest.zip"),
-	Asset("ANIM", "anim/medal_livingroot_chest_skin1.zip"),
     Asset("ANIM", "anim/ui_chest_3x3.zip"),
 	Asset("ATLAS", "images/medal_livingroot_chest.xml"),
 	Asset("IMAGE", "images/medal_livingroot_chest.tex"),
@@ -15,14 +14,13 @@ local prefabs =
     "collapse_small",
 }
 
---没有生命时保鲜效率
-local function deathPreserverRate(inst, item)
-	return 2
-end
-
---有生命时保鲜效率(减缓小动物死亡速度)
-local function livingPreserverRate(inst, item)
-	return (item ~= nil and (item:HasTag("fish") or item.components.health~=nil)) and 0.1 or nil
+--保鲜效率
+local function PerishRateFn(inst, item)
+	--有生命时可减缓小动物死亡
+	if inst.isalive then
+		return (item ~= nil and (item:HasTag("fish") or item.components.health~=nil)) and 0.5 or nil
+	end
+	return 2--没生命则加速腐化
 end
 
 --获取箱子形状等级
@@ -34,12 +32,9 @@ local function getChesterState(inst)
 			return 3
 		elseif inst.fertilizerNum>=TUNING_MEDAL.LIVINGROOT_CHEST_SMALL_NEED then
 			return 2
-		else
-			return 1
 		end
-	else
-		return 1
 	end
+	return 1
 end
 
 --设置标签
@@ -53,16 +48,6 @@ local function setChestTag(inst)
 	if inst:HasTag("wildfirepriority") then
 		inst:RemoveTag("wildfirepriority")
 	end
-	--如果没有生命，则添加可复苏标签
-	--[[
-	if inst.isalive~=nil and not inst.isalive then
-		inst:AddTag("notalive")
-	end
-	--如果有生命，并且肥料数量没溢出，则添加可施肥标签
-	if inst.fertilizerNum and inst.fertilizerNum<TUNING_MEDAL.LIVINGROOT_CHEST_BIG_NEED and inst.isalive then
-		inst:AddTag("needfertilize")
-	end
-	]]
 	--有生命
 	if inst.isalive then
 		inst:AddTag("wildfirepriority")--优先自燃
@@ -72,16 +57,6 @@ local function setChestTag(inst)
 		end
 	else--如果没有生命，则添加可复苏标签
 		inst:AddTag("notalive")
-	end
-	
-	--设置存储器函数
-	if inst.components.preserver then
-		--活树根宝箱可延缓生物死亡，否则加速死亡和腐烂
-		if inst.isalive then
-			inst.components.preserver:SetPerishRateMultiplier(livingPreserverRate)
-		else
-			inst.components.preserver:SetPerishRateMultiplier(deathPreserverRate)
-		end
 	end
 end
 
@@ -107,6 +82,10 @@ local function setChesterState(inst)
 	end
 	--设置箱子外观动画
 	inst.AnimState:PushAnimation("idle"..stateNum, not inst:HasTag("notalive"))
+	--更新不朽状态标签
+	if inst.components.medal_immortal ~= nil then
+		inst.components.medal_immortal:UpdateTag()
+	end
 end
 
 --打开箱子
@@ -317,7 +296,7 @@ end
 local function OnSave(inst, data)
     data.fertilizerNum = inst.fertilizerNum
 	data.isalive = inst.isalive
-	data.spacechangename = inst.spacechangename:value()
+	data.spacechangename = inst:HasTag("isspacechest")--inst.spacechangename:value()
 end
 --预加载
 local function OnPreLoad(inst, data)
@@ -344,8 +323,9 @@ end
 
 --添加时空锚点
 local function addSpacePos(inst)
-	if inst.spacechangename and not inst.spacechangename:value() then
-		inst.spacechangename:set(true)
+	if not inst:HasTag("isspacechest") then
+		inst:AddTag("isspacechest")--时空宝箱标签
+		-- inst:RemoveTag("addspaceposable")
 		TheWorld:PushEvent("ms_medal_registerhyperspacechest", inst)--注册
 		return true
 	end
@@ -353,11 +333,24 @@ end
 
 --移除时空锚点
 local function removeSpacePos(inst)
-	if inst.spacechangename and inst.spacechangename:value() then
-		inst.spacechangename:set(false)
+	if inst:HasTag("isspacechest") then
+		inst:RemoveTag("isspacechest")
 		inst:PushEvent("removespacepos",inst)--注销
 		return true
 	end
+end
+
+--名字展示
+local function displaynamefn(inst)
+	if inst:HasTag("isspacechest") then
+		return subfmt(STRINGS.NAMES.HYPERSPACE_CHEST, { chest = STRINGS.NAMES[string.upper(inst.prefab)] })
+	end
+	return STRINGS.NAMES.MEDAL_LIVINGROOT_CHEST
+end
+
+--不朽前置条件
+local function preimmortalfn(inst)
+	return getChesterState(inst) >= 4--只有满级树根宝箱可以不朽
 end
 
 local function fn()
@@ -380,26 +373,15 @@ local function fn()
     inst:AddTag("chest")
 	inst:AddTag("notalive")--没有生命
 	inst:AddTag("_writeable")
-	inst:AddTag("addspaceposable")--可添加时空锚点
+	-- inst:AddTag("addspaceposable")--可添加时空锚点
 	inst:AddTag("medal_skinable")--可换皮肤
 	
 	inst.fertilizerNum = 0--肥料数量
 	inst.isalive=false--是否有生命
 	
 	inst.rootcheststate = net_tinybyte(inst.GUID, "rootcheststate", "rootcheststatedirty")--容器形状，网络变量
-	inst.spacechangename = net_bool(inst.GUID, "spacechangename", "spacechangenamedirty")
-	inst:ListenForEvent("spacechangenamedirty", function(inst)
-		if inst.spacechangename:value() then
-			--加上超时空前缀
-			inst.displaynamefn = function(aaa)
-				return subfmt(STRINGS.NAMES["HYPERSPACE_CHEST"], { chest = STRINGS.NAMES[string.upper(inst.prefab)] })
-			end
-			inst:RemoveTag("addspaceposable")
-		else
-			inst.displaynamefn = nil
-			inst:AddTag("addspaceposable")
-		end
-	end)
+
+	inst.displaynamefn = displaynamefn
 
     MakeSnowCoveredPristine(inst)
 
@@ -421,9 +403,7 @@ local function fn()
 	inst:AddComponent("writeable")--可书写组件
 
     inst:AddComponent("container")
-    -- inst.components.container:WidgetSetup("medal_livingroot_chest")--默认容器大小
     inst.components.container:WidgetSetup("livingroot_chest1")--默认容器大小
-	-- inst.replica.container:WidgetSetup("livingroot_chest1")
     inst.components.container.onopenfn = onopen
     inst.components.container.onclosefn = onclose
 	--给容器的classified添加target，防止升级导致崩溃
@@ -444,7 +424,7 @@ local function fn()
 	
 	--存储器组件
 	inst:AddComponent("preserver")
-	inst.components.preserver:SetPerishRateMultiplier(deathPreserverRate)
+	inst.components.preserver:SetPerishRateMultiplier(PerishRateFn)
 	
     inst:AddComponent("lootdropper")
     inst:AddComponent("workable")
@@ -470,6 +450,11 @@ local function fn()
 	inst.AddSpacePos=addSpacePos
 	inst.RemoveSpacePos=removeSpacePos
 	inst:AddComponent("medal_skinable")
+
+	inst:AddComponent("medal_immortal")--不朽组件
+    inst.components.medal_immortal:SetMaxLevel(2)--最大不朽等级
+	inst.components.medal_immortal:SetConsumeMult(5)--不朽宝石消耗倍率
+	inst.components.medal_immortal:SetPreImmortalFn(preimmortalfn)--不朽前置条件
 	
 	--兼容智能木牌
 	if TUNING.SMART_SIGN_DRAW_ENABLE then

@@ -35,55 +35,12 @@ end
 local ammo_defs={}
 
 -------------------------------------方尖弹-------------------------------------------------
---移除任务(目标,是否清除剩余时长)
-local function removeBleedingTask(target,clean_up)
-	if clean_up then
-		target.sanityrock_duration=nil--清除流血的剩余时长,时间到了或者目标死了才有必要清，否则延长流血时间
-	end
-	--延时任务
-	if target.medal_slingshot_bleeding_task1 ~= nil then
-		target.medal_slingshot_bleeding_task1:Cancel()
-		target.medal_slingshot_bleeding_task1 = nil
-	end
-	--周期任务
-	if target.medal_slingshot_bleeding_task2 ~= nil then
-		target.medal_slingshot_bleeding_task2:Cancel()
-		target.medal_slingshot_bleeding_task2 = nil
-	end
-end
---扣血
-local function OnTick(inst, target)
-    if target.components.health ~= nil and
-        not target.components.health:IsDead() and
-        not target:HasTag("playerghost") then
-        if target.sanityrock_duration then
-			target.sanityrock_duration=math.max(target.sanityrock_duration-1,0)
-			-- print("流血时长:"..target.sanityrock_duration)
-		end
-		target.components.health:DoDelta(-TUNING_MEDAL.MEDALSLINGSHOTAMMO_SANITYROCK_TICK_DAMAGE, nil, "medalslingshotammo_sanityrock",nil,nil,true)--无视防御
-    else
-        removeBleedingTask(target,true)
-    end
-end
-
 ammo_defs.medalslingshotammo_sanityrock={
 	switch = true,
 	symbol = "sanityrock",
 	onhit = function(inst, attacker, target)
 		ImpactFx(inst, attacker, target)
-		if target ~= nil and target:IsValid() and target.components.health ~= nil then
-			removeBleedingTask(target)
-			if not target.components.health:IsDead() then
-				--流血时长=剩余时长+math.ceil(15-剩余时长/4)
-				target.sanityrock_duration=target.sanityrock_duration and (target.sanityrock_duration+math.ceil(TUNING_MEDAL.MEDALSLINGSHOTAMMO_SANITYROCK_DURATION-target.sanityrock_duration/4)) or TUNING_MEDAL.MEDALSLINGSHOTAMMO_SANITYROCK_DURATION
-				--设置周期任务
-				target.medal_slingshot_bleeding_task2 = target:DoPeriodicTask(1, OnTick, nil, target)
-				--设置延时任务
-				target.medal_slingshot_bleeding_task1 = target:DoTaskInTime(target.sanityrock_duration, function(i)
-					removeBleedingTask(i,true)
-				end)
-			end
-		end
+		target:AddDebuff("buff_medal_bleed", "buff_medal_bleed",{extend_duration=TUNING_MEDAL.MEDAL_BUFF_BLEED_DURATION, max_duration_mult=4,has_origin = HasOriginMedal(attacker,"senior_childishness")})
 		inst:Remove()
 	end,
 	damage = TUNING_MEDAL.MEDALSLINGSHOTAMMO_SANITYROCK_DAMAGE,
@@ -99,8 +56,9 @@ ammo_defs.medalslingshotammo_sandspike={
 		if target ~= nil and target:IsValid() then
 			local spike
 			local pt = target:GetPosition()
+			--佩戴时空勋章攻击无视地形生成时空之刃
 			if attacker and attacker:HasTag("spacetime_medal") then
-				spike="medal_spike_short"
+				spike = HasOriginMedal(attacker,"senior_childishness") and "medal_spike_med" or "medal_spike_short"--本源童真提升时空之刃尺寸
 			elseif pt and TheWorld.Map:GetTileAtPoint(pt.x, 0, pt.z) == GROUND.DESERT_DIRT and target.components.locomotor~=nil then
 				spike="sandspike"
 			end
@@ -109,16 +67,22 @@ ammo_defs.medalslingshotammo_sandspike={
 				local sandspike = SpawnPrefab(spike)
 				if sandspike ~= nil then
 					sandspike.Transform:SetPosition(pt.x, 0, pt.z)
+					sandspike.fromplayer = true--是玩家召唤的
 				end
 			end
 		end
-		inst:Remove() 
+		inst:Remove()
 	end,
 	damage = TUNING_MEDAL.MEDALSLINGSHOTAMMO_SANDSPIKE_DAMAGE,
 	hit_sound = "dontstarve/characters/walter/slingshot/gold",
 }
 
 -------------------------------------落水弹-------------------------------------------------
+local can_extinguish_list={
+	stafflight = true,--矮星
+	staffcoldlight = true,--冷星
+	emberlight = true,--火女火球
+}
 ammo_defs.medalslingshotammo_water={
 	switch = true,
 	-- impactfx = "waterballoon_splash",
@@ -138,7 +102,7 @@ ammo_defs.medalslingshotammo_water={
 			local waterproofness = target.components.inventory and math.min(target.components.inventory:GetWaterproofness(),1) or 0
 			--打湿目标
 			if target.components.moisture then
-				target.components.moisture:DoDelta(TUNING_MEDAL.MEDALSLINGSHOTAMMO_WATER_MOISTURE * (1 - waterproofness))
+				target.components.moisture:DoDelta(TUNING_MEDAL.MEDALSLINGSHOTAMMO_WATER_MOISTURE[HasOriginMedal(attacker,"senior_childishness") and 2 or 1] * (1 - waterproofness))
 			end
 			--吸引仇恨
 			if not no_aggro(attacker, target) then
@@ -154,7 +118,7 @@ ammo_defs.medalslingshotammo_water={
 			end
 		end
 		--矮星照样灭
-		if (target.prefab=="stafflight" or target.prefab=="staffcoldlight") and target.components.hauntable and target.components.hauntable.onhaunt then
+		if can_extinguish_list[target.prefab] and target.components.hauntable and target.components.hauntable.onhaunt then
 			target.components.hauntable.onhaunt(target)
 		end
 
@@ -189,7 +153,10 @@ ammo_defs.medalslingshotammo_devoursoul={
 	onhit = function(inst, attacker, target)
 		ImpactFx(inst, attacker, target)
 		if target ~= nil and target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() and not target:HasTag("playerghost") then
-			local damage = math.min(target.components.health.maxhealth*TUNING_MEDAL.MEDALSLINGSHOTAMMO_DEVOURSOUL_DAMAGE_MULT,target.components.health.currenthealth-1,TUNING_MEDAL.MEDALSLINGSHOTAMMO_DEVOURSOUL_DAMAGE_MAX)
+			local idx = HasOriginMedal(attacker,"senior_childishness") and 2 or 1--本源增强
+			local max_damage = TUNING_MEDAL.MEDALSLINGSHOTAMMO_DEVOURSOUL_DAMAGE_MAX[idx]--伤害上限
+			local damame_mult = TUNING_MEDAL.MEDALSLINGSHOTAMMO_DEVOURSOUL_DAMAGE_MULT[idx]--伤害比例
+			local damage = math.min( target.components.health.maxhealth * damame_mult, target.components.health.currenthealth - 1, max_damage)
 			target.components.health:DoDelta(-damage, nil, "medalslingshotammo_devoursoul",nil,nil,true)--无视防御
 		end
 		--吸引仇恨
@@ -210,12 +177,7 @@ ammo_defs.medalslingshotammo_taunt={
 	onhit = function(inst, attacker, target)
 		ImpactFx(inst, attacker, target)
 		--给目标添加debuff
-		if target ~= nil and target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() then
-			if target.components.debuffable == nil then
-				target:AddComponent("debuffable")
-			end
-			target.components.debuffable:AddDebuff("buff_medal_weak", "buff_medal_weak")
-		end
+		target:AddDebuff("buff_medal_weak", "buff_medal_weak",{has_origin = HasOriginMedal(attacker,"senior_childishness")})
 		--吸引仇恨
 		if not no_aggro(attacker, target) and target.components.combat ~= nil then
 			target.components.combat:SuggestTarget(attacker)
@@ -266,11 +228,12 @@ ammo_defs.medalslingshotammo_spines={
 	symbol = "spines",
 	onhit = function(inst, attacker, target)
 		ImpactFx(inst, attacker, target)
+		local idx = HasOriginMedal(attacker,"senior_childishness") and 2 or 1--本源增强
 		--PVP模式可以伤害到玩家
 		if TheNet:GetPVPEnabled() then
-		    do_bomb(inst, attacker, target, NO_TAGS_PVP, TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE)
+		    do_bomb(inst, attacker, target, NO_TAGS_PVP, TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE[idx])
 		else
-		    do_bomb(inst, attacker, target, NO_TAGS_PLAYER, TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE)
+		    do_bomb(inst, attacker, target, NO_TAGS_PLAYER, TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE[idx])
 		end
 		
 		inst:Remove()
@@ -279,7 +242,7 @@ ammo_defs.medalslingshotammo_spines={
 	hit_sound = "dontstarve/characters/walter/slingshot/slow",
 	extrafn = function(inst)
 		inst:AddComponent("combat")
-		inst.components.combat:SetDefaultDamage(TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE)
+		inst.components.combat:SetDefaultDamage(TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_DAMAGE[1])
 		inst.components.combat:SetRange(TUNING_MEDAL.MEDALSLINGSHOTAMMO_SPINES_AOE_RANGE)--范围
 		inst.components.combat:SetKeepTargetFunction(function(i) return false end)
 	end,
@@ -292,22 +255,27 @@ ammo_defs.mandrakeberry={
 	no_inv_item = true,
 	onhit = function(inst, attacker, target)
 		ImpactFx(inst, attacker, target)
+		local mult = HasOriginMedal(attacker,"senior_childishness") and 2 or 1--本源增强
 		--添加睡眠值
 		if target.components.grogginess ~= nil then 
-			target.components.grogginess:AddGrogginess(2, 15)
+			target.components.grogginess:AddGrogginess(2 * mult, 15)
 		elseif target.components.sleeper ~= nil then
-			target.components.sleeper:AddSleepiness(2, 15)
+			target.components.sleeper:AddSleepiness(2 * mult, 15)
 		end
-		--概率掉落蔓草种子
-		if math.random()<TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.MANDRAKE_LESS then
-			if inst.components.lootdropper then
-				inst.components.lootdropper:SpawnLootPrefab("mandrake_seeds")
-			end
+
+		local mandark_chance = TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.MANDRAKE_LESS
+		local weed_chance = TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_LESS + mandark_chance
+		local prefabname = nil
+		local rand = math.random()
+		--蔓草种子
+		if rand<mandark_chance then
+			prefabname = "mandrake_seeds"
 		--杂草种子
-		elseif math.random()<TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_LESS then
-			if inst.components.lootdropper then
-				inst.components.lootdropper:SpawnLootPrefab("medal_weed_seeds")
-			end
+		elseif rand<weed_chance then
+			prefabname = "medal_weed_seeds"
+		end
+		if prefabname ~= nil and inst.components.lootdropper then
+			inst.components.lootdropper:SpawnLootPrefab(prefabname)
 		end
 		inst:Remove()
 	end,

@@ -4,8 +4,6 @@ local assets =
 {
     Asset("ANIM", "anim/dragonfly_chest.zip"),
 	Asset("ANIM", "anim/medal_krampus_chest.zip"),
-	Asset("ANIM", "anim/medal_krampus_chest_skin1.zip"),
-	Asset("ANIM", "anim/medal_krampus_chest_skin2.zip"),
     Asset("ANIM", "anim/ui_chester_shadow_3x4.zip"),
 	Asset("ATLAS", "minimap/medal_krampus_chest_item.xml" ),
 }
@@ -13,8 +11,6 @@ local assets =
 local assets_item =
 {
     Asset("ANIM", "anim/medal_krampus_chest_item.zip"),
-    Asset("ANIM", "anim/medal_krampus_chest_item_skin1.zip"),
-    Asset("ANIM", "anim/medal_krampus_chest_item_skin2.zip"),
 	Asset("ATLAS", "images/medal_krampus_chest_item.xml"),
 	Asset("IMAGE", "images/medal_krampus_chest_item.tex"),
 	Asset("ATLAS_BUILD", "images/medal_krampus_chest_item.xml",256),
@@ -50,12 +46,7 @@ local function inheritSkin(inst,newitem)
 	--设定皮肤
 	if inst.components.medal_skinable and inst.components.medal_skinable.skinid>0 then
 		if newitem.components.medal_skinable then
-			-- local skinid=inst.components.medal_skinable.skinid
 			newitem.components.medal_skinable:SetSkin(inst.components.medal_skinable.skinid)
-			-- local skin_info=newitem.components.medal_skinable:GetSkinData(skinid)
-			-- if skin_info and skin_info.reskin_fn then
-			-- 	skin_info.reskin_fn(newitem)
-			-- end
 		end
 	end
 end
@@ -73,10 +64,8 @@ local function transferEverything(inst,obj)
 		end
 	end
 	--同步不朽之力
-	if inst:HasTag("keepfresh") then
-		if obj.setImmortal then
-			obj.setImmortal(obj)
-		end
+	if inst.components.medal_immortal ~= nil then
+		inst.components.medal_immortal:SyncImmortal(obj)
 	end
 end
 --锤了
@@ -91,53 +80,6 @@ local function onbuilt(inst)
     inst.AnimState:PlayAnimation("place")
     inst.AnimState:PushAnimation("closed", false)
     inst.SoundEmitter:PlaySound("dontstarve/common/dragonfly_chest_craft")
-end
-
---物品保鲜效率
-local function itemPreserverRate(inst, item)
-	return (item ~= nil and not (item:HasTag("fish") or item.components.health~=nil)) and 0 or nil
-end
-
---赋予不朽之力
-local function setImmortal(inst)
-	inst:AddTag("keepfresh")
-	if inst.components.preserver==nil then
-		inst:AddComponent("preserver")
-	end
-	inst.components.preserver:SetPerishRateMultiplier(function(inst, item)
-		return (item ~= nil and not (item:HasTag("fish") or item.components.health~=nil)) and 0 or nil
-	end)
-	inst.immortalchangename:set(true)--修改名字
-end
-
---名字加上不朽前缀
-local function setNewName(inst)
-	inst.immortalchangename = net_bool(inst.GUID, "immortalchangename", "immortalchangenamedirty")
-	inst:ListenForEvent("immortalchangenamedirty", function(inst)
-		if inst:HasTag("keepfresh") then
-			if inst.immortalchangename:value() then
-				--加上不朽前缀
-				inst.displaynamefn = function(aaa)
-					return subfmt(STRINGS.NAMES["IMMORTAL_BACKPACK"], { backpack = STRINGS.NAMES[string.upper(inst.prefab)] })
-				end
-			end
-		end
-	end)
-end
-
---保存函数
-local function onsave(inst,data)
-	if inst:HasTag("keepfresh") then
-		data.immortal=true
-	end
-end
---加载函数
-local function onload(inst,data)
-	if data~=nil and data.immortal then
-		if inst.setImmortal then
-			inst.setImmortal(inst)
-		end
-	end
 end
 
 local function fn()
@@ -157,10 +99,7 @@ local function fn()
 
     inst:AddTag("structure")
     inst:AddTag("chest")
-    inst:AddTag("canbeimmortal")--可以被赋予不朽之力
 	inst:AddTag("medal_skinable")--可换皮肤
-	
-	setNewName(inst)
 
     MakeSnowCoveredPristine(inst)
 
@@ -169,10 +108,6 @@ local function fn()
     if not TheWorld.ismastersim then
 		return inst
     end
-	
-	--赋予不朽之力
-	inst.setImmortal=setImmortal
-	-- inst.no_consume_essences=true--不消耗不朽精华 
 
     inst:AddComponent("inspectable")
     inst:AddComponent("container")
@@ -180,9 +115,6 @@ local function fn()
     -- inst.components.container:WidgetSetup("dragonflychest")
     inst.components.container.onopenfn = onopen
     inst.components.container.onclosefn = onclose
-	
-	-- inst:AddComponent("preserver")
-	-- inst.components.preserver:SetPerishRateMultiplier(itemPreserverRate)--保鲜
 
     inst:AddComponent("lootdropper")
     inst:AddComponent("workable")
@@ -195,9 +127,11 @@ local function fn()
     inst:ListenForEvent("onbuilt", onbuilt)
 
 	inst:AddComponent("medal_skinable")
-	
-	inst.OnSave = onsave
-	inst.OnLoad = onload
+
+	inst:AddComponent("medal_immortal")--不朽组件
+	inst.components.medal_immortal:SetMaxLevel(2)
+
+    inst.transferEverything = transferEverything
 	
     MakeSnowCovered(inst)
 	--兼容智能木牌
@@ -244,22 +178,18 @@ local function itemfn()
     inst.AnimState:PlayAnimation("closed",false)
 
     inst:AddTag("portableitem")
-	inst:AddTag("canbeimmortal")--可以被赋予不朽之力
 	inst:AddTag("medal_skinable")--可换皮肤
-	
-	setNewName(inst)
+    inst:AddTag("nosteal")--不可偷
 
     MakeInventoryFloatable(inst, "med")
+
+    -- inst.overridedeployplacername = "medal_krampus_chest_placer"
 
     inst.entity:SetPristine()
 
     if not TheWorld.ismastersim then
         return inst
     end
-	
-	--赋予不朽之力
-	inst.setImmortal=setImmortal
-	-- inst.no_consume_essences=true--不消耗不朽精华 
 
     inst:AddComponent("inspectable")
 
@@ -283,18 +213,17 @@ local function itemfn()
     inst.components.hauntable:SetHauntValue(TUNING.HAUNT_TINY)
 
 	inst:AddComponent("medal_skinable")
-	
-	inst.OnSave = onsave
-	inst.OnLoad = onload
 
-    -- MakeMediumBurnable(inst)
-    -- MakeSmallPropagator(inst)
+	inst:AddComponent("medal_immortal")--不朽组件
+	inst.components.medal_immortal:SetMaxLevel(2)
+
+    inst.transferEverything = transferEverything
+
+    SetAutoOpenContainer(inst)
 
     return inst
 end
 
 return Prefab("medal_krampus_chest", fn, assets,prefabs),
     MakePlacer("medal_krampus_chest_item_placer", "dragonfly_chest", "medal_krampus_chest", "closed"),
-    MakePlacer("medal_krampus_chest_item_skin1_placer", "dragonfly_chest", "medal_krampus_chest_skin1", "closed"),
-    MakePlacer("medal_krampus_chest_item_skin2_placer", "dragonfly_chest", "medal_krampus_chest_skin2", "closed"),
     Prefab("medal_krampus_chest_item", itemfn, assets_item, prefabs_item)

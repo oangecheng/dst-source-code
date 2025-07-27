@@ -14,28 +14,40 @@ local function MakeBuff(defs)
         inst:ListenForEvent("death", function()
             inst.components.debuff:Stop()
         end, target)
+        --自定义buff时长
+        if data and data.add_duration and data.add_duration > 0 and data.add_duration ~= defs.duration then
+            inst.components.timer:StopTimer("buffover")
+            inst.components.timer:StartTimer("buffover", data.add_duration)
+        end
+
 		--获得buff提示
 		if defs.priority then
 			target:PushEvent("foodbuffattached", { buff = "ANNOUNCE_ATTACH_"..string.upper(defs.name), priority = defs.priority })
 		end
         if defs.onattachedfn ~= nil then
-            defs.onattachedfn(inst, target,followsymbol, followoffset, data)
+            defs.onattachedfn(inst, target, data)
         end
     end
 
     --延长buff函数
 	local function OnExtended(inst, target,followsymbol, followoffset, data)
         local extend_duration = defs.duration
-        local timer_left=inst.components.timer:GetTimeLeft("buffover")--获取定时器剩余时间
+        local timer_left=inst.components.timer:GetTimeLeft("buffover")--获取定时器剩余时间dd
 		if data and timer_left then
-			--延长时间而不是直接用原来的固定时间替换
-            if data.extend_duration then
-                extend_duration = data.extend_duration+timer_left/2
+			--增加时长(无视上限)
+            if data.add_duration and data.add_duration > 0 then
+                extend_duration = timer_left + data.add_duration
+            --延长时间而不是直接用原来的固定时间替换
+            elseif data.extend_duration then
+                local max_duration_mult = data.max_duration_mult or 2--最大时长倍数，默认2倍
+                extend_duration = data.extend_duration + math.ceil(timer_left * (1 - 1 / max_duration_mult))
+            --消耗时间
+            elseif data.consume_duration then
+                extend_duration = math.max(0, timer_left - data.consume_duration)
             --或者自定义一个计算函数？是增是减随便咯
             elseif data.extend_durationfn then
                 extend_duration = data.extend_durationfn(timer_left)
             end
-			-- print("剩余:"..extend_duration)
 		end
 		inst.components.timer:StopTimer("buffover")
         inst.components.timer:StartTimer("buffover", extend_duration)
@@ -46,7 +58,7 @@ local function MakeBuff(defs)
                 target:PushEvent("foodbuffattached", { buff = "ANNOUNCE_ATTACH_"..string.upper(defs.name), priority = defs.priority })
             end
             if defs.onextendedfn ~= nil then
-                defs.onextendedfn(inst, target,followsymbol, followoffset, data)
+                defs.onextendedfn(inst, target, data)
             end
         end
     end

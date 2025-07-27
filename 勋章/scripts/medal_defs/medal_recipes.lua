@@ -21,13 +21,17 @@
 	placer,--建筑类科技放置时显示的贴图、占位等
 	filter,--制作栏分类
 	description,--覆盖原来的配方描述
-	canbuild,--制作物品是否满足条件的回调函数,支持参数(recipe, self.inst, pt, rotation),return 结果,原因
+	canbuild,--判断制作物品是否满足条件的自定义方法,支持参数(recipe, self.inst, pt, rotation),return 结果,原因
 	sg_state,--自定义制作物品的动作(比如吹气球就可以调用吹的动作)
 	no_deconstruction,--填true则不可分解(也可以用function)
 	require_special_event,--特殊活动(比如冬季盛宴限定之类的)
 	dropitem,--制作后直接掉落物品
 	actionstr,--把"制作"改成其他的文字
 	manufactured,--填true则表示是用制作站制作的，而不是用builder组件来制作(比如万圣节的药水台就是用这个)
+	hint_msg,--未解锁时的提示文字索引，例如为xx，调用的字符串即为STRINGS.UI.CRAFTING.XX
+	more_data={
+		station_tag=xx,
+	},--recipe.lua里新增的扩展字段如果modframework的more_data_keys里没有,都可以直接往里面配,省得修改框架了
 
 	--勋章自定义
 	needHidden,--简易模式隐藏
@@ -72,7 +76,40 @@ local function MedalIngredient(ingredienttype,amount)
 	return Ingredient(ingredienttype,amount,atlas)
 end
 
+--扩展字段key,把扩展字段的key写到这里就不需要写到more_data里去了
+local MoreDataKeys = {
+	"min_spacing",
+	"nounlock",
+	"numtogive",
+	"builder_tag",
+	"testfn",
+	"product",
+	"build_mode",
+	"build_distance",
 
+	"placer",
+	"filter",
+	"description",
+	"canbuild",
+	"sg_state",
+	"no_deconstruction",
+	"require_special_event",
+	"dropitem",
+	"actionstr",
+	"manufactured",
+}
+
+---------------------------------------------------------新制作栏-----------------------------------------------------------------
+local RecipeFilters = {"MEDAL",
+	{
+		needshow = TUNING.MEDAL_RECIPE_FILTER_SWITCH,--开关
+		name = "MEDAL",
+		atlas = "images/medal_page_icon.xml",
+		image = "medal_page_icon.tex",
+	},
+}
+
+---------------------------------------------------------新配方-----------------------------------------------------------------
 local Recipes = {
 	--------------------------------------------------------------------
 	------------------------------原生配方------------------------------
@@ -88,11 +125,118 @@ local Recipes = {
 			},
         },
         level = TECH.NONE,
-		builder_tag = "livinglogbuilder",
 		noatlas = true,
 		noimage = true,
-		filters={"CHARACTER"},
+		filters = {"CHARACTER"},
+		more_data = {builder_tag="livinglogbuilder", sg_state="form_log", actionstr="GROW", allowautopick = true, no_deconstruction=true}
     },
+
+	------------------------------原生不可建建筑------------------------------
+	--尘蛾窝
+	{
+        name = "dustmothden_copy",
+		product = "dustmothden",
+        ingredients = {
+            {
+				MedalIngredient("medal_dustmothden_base", 1),Ingredient("moonrocknugget", 4), Ingredient("thulecite", 4)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_dustmothden_copy_placer", 
+		no_deconstruction = true,
+		-- builder_tag = "spacetime_medal",
+		min_spacing = 2,
+		filters = {"MEDAL","STRUCTURES"},
+		atlas = "minimap/minimap_data.xml",
+		image = "dustmothden.png",
+    },
+	--远古窑
+	{
+        name = "archive_cookpot_copy",
+		product = "archive_cookpot",
+        ingredients = {
+            {
+				Ingredient("moonrocknugget", 6), Ingredient("thulecite", 4), Ingredient("charcoal", 6), Ingredient("twigs", 6)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_archive_cookpot_copy_placer", 
+		no_deconstruction = true,
+		min_spacing = 2,
+		filters = {"MEDAL","COOKING"},
+		atlas = "minimap/minimap_data.xml",
+		image = "cookpot_archive.png",
+    },
+	--正向方尖碑
+	{
+        name = "insanityrock_copy",
+		product = "insanityrock",
+        ingredients = {
+            {
+				MedalIngredient("sanityrock_fragment", 1), Ingredient("marble", 2), Ingredient("nightmarefuel", 2)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_insanityrock_copy_placer", 
+		no_deconstruction = true,
+		-- builder_tag = "spacetime_medal",
+		filters = {"MEDAL","STRUCTURES","DECOR"},
+		atlas = "minimap/minimap_data.xml",
+		image = "obelisk.png",
+    },
+	--反向方尖碑
+	{
+        name = "sanityrock_copy",
+		product = "sanityrock",
+        ingredients = {
+            {
+				MedalIngredient("sanityrock_fragment", 1), Ingredient("nightmarefuel", 2), Ingredient("marble", 2)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_sanityrock_copy_placer", 
+		no_deconstruction = true,
+		-- builder_tag = "spacetime_medal",
+		filters = {"MEDAL","STRUCTURES","DECOR"},
+		atlas = "minimap/minimap_data.xml",
+		image = "obelisk.png",
+    },
+	--隐士晾肉架
+	{
+        name = "meatrack_hermit_copy",
+		product = "meatrack_hermit",
+        ingredients = {
+            {
+				Ingredient("moon_tree_blossom", 2),Ingredient("driftwood_log", 2), Ingredient("rope", 2)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_meatrack_hermit_copy_placer", 
+		no_deconstruction = true,
+		-- builder_tag = "spacetime_medal",
+		filters = {"MEDAL","STRUCTURES","COOKING"},
+		atlas = "minimap/minimap_data.xml",
+		image = "meatrack_hermit.png",
+    },
+	--隐士蜂箱
+	{
+        name = "beebox_hermit_copy",
+		product = "beebox_hermit",
+        ingredients = {
+            {
+				Ingredient("ash", 4),Ingredient("twigs", 1),Ingredient("cookiecuttershell", 2),Ingredient("honeycomb", 1),Ingredient("bee", 4)
+			},
+        },
+        level = TECH.LOST,
+		placer = "medal_beebox_hermit_copy_placer", 
+		no_deconstruction = true,
+		-- builder_tag = "spacetime_medal",
+		filters = {"MEDAL","STRUCTURES","GARDENING"},
+		atlas = "minimap/minimap_data.xml",
+		image = "beebox_hermitcrab.png",
+    },
+
+
 	------------------------------非原生气球------------------------------
 	--[[
 	--沉默气球
@@ -137,7 +281,7 @@ local Recipes = {
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
 		image = "medal_box.tex",
-		filters={"CONTAINERS"},
+		filters = {"MEDAL","CONTAINERS","MEDAL"},
     },
 	--调料盒
     {
@@ -152,25 +296,22 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
 		builder_tag = "seasoningchef",
-		filters={"COOKING","CONTAINERS"},
+		filters = {"MEDAL","COOKING","CONTAINERS"},
     },
 	------------------------------大厨勋章------------------------------
-    --烹调勋章
+    --烹饪勋章
     {
         name = "cook_certificate",
         ingredients = {
             {
-            	Ingredient("cookbook", 1),MedalIngredient("toil_money", 6),
+            	Ingredient("cookbook", 1),Ingredient("meatballs", 1),Ingredient("charcoal", 10),
             },
-    		--简易配方
-			{
-				Ingredient("cookbook", 1),MedalIngredient("toil_money", 3),
-			},
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
-	--黑曜石锅
+	--红晶锅
 	{
 	    name = "medal_cookpot",
 	    ingredients = {
@@ -181,7 +322,7 @@ local Recipes = {
         level = TECH.LOST,
 		placer = "medal_cookpot_placer",
 		min_spacing = 2,
-		filters={"COOKING"},
+		filters = {"MEDAL","COOKING"},
 	},
 	------------------------------专属调料------------------------------
 	--果冻粉
@@ -196,6 +337,7 @@ local Recipes = {
         nounlock = true,
 		-- numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--荧光粉
     {
@@ -209,6 +351,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 1,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--月树花粉
     {
@@ -222,6 +365,7 @@ local Recipes = {
         nounlock = true,
 		-- numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--仙人掌花粉
     {
@@ -235,6 +379,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--血糖
     {
@@ -248,6 +393,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--灵魂佐料
     {
@@ -261,6 +407,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 1,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--土豆淀粉
     {
@@ -274,6 +421,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--秘制酱料
     {
@@ -287,6 +435,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 5,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--叶肉酱
     {
@@ -300,6 +449,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 2,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--曼德拉果酱
     {
@@ -313,6 +463,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 1,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--山力叶酱
     {
@@ -326,6 +477,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 1,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	--凋零蜂王浆酱
     {
@@ -339,6 +491,7 @@ local Recipes = {
         nounlock = true,
 		numtogive = 1,
 		builder_tag = "seasoningchef",
+		filters = {"MEDAL"},
     },
 	------------------------------智慧勋章------------------------------
 	--蒙昧勋章
@@ -354,6 +507,7 @@ local Recipes = {
 	    },
 	    level = TECH.CARTOGRAPHY_TWO,
 	    nounlock = true,
+		filters = {"MEDAL"},
 	},
 	--不朽精华
     {
@@ -368,7 +522,7 @@ local Recipes = {
         },
         level = TECH.SCIENCE_TWO,
         -- nounlock = true,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--血汗钱
     {
@@ -379,8 +533,8 @@ local Recipes = {
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
-        nounlock = true,
-		filters = {"REFINE"},
+        -- nounlock = true,
+		filters = {"MEDAL","REFINE"},
     },
 	--血汗钱
     {
@@ -392,8 +546,8 @@ local Recipes = {
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
-        nounlock = true,
-		filters = {"REFINE"},
+        -- nounlock = true,
+		filters = {"MEDAL","REFINE"},
     },
 	--新华字典
 	{
@@ -408,7 +562,7 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
-		filters = {"CHARACTER"},
+		filters = {"MEDAL","CHARACTER"},
     },
 	------------------------------巧手勋章------------------------------
 	--巧手考验勋章
@@ -416,14 +570,12 @@ local Recipes = {
         name = "handy_test_certificate",
         ingredients = {
             {
-				MedalIngredient("toil_money", 6),
-			},
-			{
-				MedalIngredient("toil_money", 3),
+				Ingredient("goldnugget", 10),Ingredient("wagpunk_bits", 2),
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
 	--催雨弹
 	{
@@ -435,7 +587,7 @@ local Recipes = {
 	    },
 	    level = TECH.SCIENCE_TWO,
 		builder_tag="has_handy_medal",
-		filters = {"RAIN"},
+		filters = {"MEDAL","RAIN"},
 	},
 	--放晴弹
 	{
@@ -447,7 +599,7 @@ local Recipes = {
 	    },
 	    level = TECH.SCIENCE_TWO,
 		builder_tag="has_handy_medal",
-		filters = {"RAIN"},
+		filters = {"MEDAL","RAIN"},
 	},
 	--时空弹
 	{
@@ -459,19 +611,19 @@ local Recipes = {
 	    },
 	    level = TECH.SCIENCE_TWO,
 		builder_tag="has_handy_medal",
-		filters = {"RAIN"},
+		filters = {"MEDAL","RAIN"},
 	},
 	--手摇深井泵改造装置
 	{
         name = "medal_waterpump_item",
         ingredients = {
             {
-				Ingredient("cane", 1),Ingredient("gears", 2),Ingredient("transistor", 2),
+				Ingredient("cane", 1),Ingredient("gears", 2),Ingredient("transistor", 2),Ingredient("wagpunk_bits", 2),
 			},
         },
         level = TECH.SCIENCE_TWO,
 		builder_tag = "has_handy_medal",
-		filters = {"TOOLS","GARDENING"},
+		filters = {"MEDAL","TOOLS","GARDENING"},
     },
 	--藏宝图
 	{
@@ -485,21 +637,21 @@ local Recipes = {
 			},
 	    },
 	    level = TECH.SCIENCE_TWO,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
 	},
 	--遗失藏宝图
-	{
-	    name = "medal_loss_treasure_map",
-	    ingredients = {
-	        {
-				MedalIngredient("medal_loss_treasure_map_scraps", 5),
-				Ingredient("sewing_tape", 1),
-			},
-	    },
-	    level = TECH.SCIENCE_TWO,
-		no_deconstruction = true,
-		filters = {"REFINE"},
-	},
+	-- {
+	--     name = "medal_loss_treasure_map",
+	--     ingredients = {
+	--         {
+	-- 			MedalIngredient("medal_loss_treasure_map_scraps", 5),
+	-- 			Ingredient("sewing_tape", 1),
+	-- 		},
+	--     },
+	--     level = TECH.SCIENCE_TWO,
+	-- 	no_deconstruction = true,
+	-- 	filters = {"MEDAL","REFINE"},
+	-- },
 	--宝藏探测仪
 	{
 	    name = "medal_resonator_item",
@@ -510,7 +662,7 @@ local Recipes = {
 	    },
 	    level = TECH.SCIENCE_TWO,
 		builder_tag = "has_handy_medal",
-		filters = {"TOOLS"},
+		filters = {"MEDAL","TOOLS"},
 	},
 	--缪斯雕像1
 	{
@@ -524,7 +676,7 @@ local Recipes = {
 		placer = "medal_statue_marble_muse1_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--缪斯雕像2
 	{
@@ -538,7 +690,7 @@ local Recipes = {
 		placer = "medal_statue_marble_muse2_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--瓷瓶雕像
 	{
@@ -552,7 +704,7 @@ local Recipes = {
 		placer = "medal_statue_marble_urn_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--士卒雕像
 	{
@@ -566,7 +718,7 @@ local Recipes = {
 		placer = "medal_statue_marble_pawn_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--丘比特雕像
 	{
@@ -580,7 +732,7 @@ local Recipes = {
 		placer = "medal_statue_marble_harp_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--格罗姆雕像
 	{
@@ -594,7 +746,7 @@ local Recipes = {
 		placer = "medal_statue_marble_glommer_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--老麦雕像
 	{
@@ -608,7 +760,7 @@ local Recipes = {
 		placer = "medal_statue_marble_maxwell_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 2.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--鸽子雕像
 	{
@@ -622,7 +774,7 @@ local Recipes = {
 		placer = "medal_statue_marble_gugugu_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--咸鱼雕像
 	{
@@ -636,7 +788,7 @@ local Recipes = {
 		placer = "medal_statue_marble_saltfish_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--猫猫雕像
 	{
@@ -650,7 +802,7 @@ local Recipes = {
 		placer = "medal_statue_marble_stupidcat_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--大黑蛋雕像
 	{
@@ -664,7 +816,7 @@ local Recipes = {
 		placer = "medal_statue_marble_blackegg_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--百变雕像
 	{
@@ -678,7 +830,7 @@ local Recipes = {
 		placer = "medal_statue_marble_changeable_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
     },
 	--大理石盆栽
 	{
@@ -692,7 +844,21 @@ local Recipes = {
 		placer = "medal_statue_marble_potting_placer",
 		builder_tag="has_handy_medal",
 		min_spacing = 1.5,
-		filters = {"DECOR"},
+		filters = {"MEDAL","DECOR"},
+    },
+	--混沌拳击袋
+	{
+        name = "punchingbag_chaos",
+        ingredients = {
+            {
+				Ingredient("cutgrass", 3),Ingredient("boards", 1),MedalIngredient("toil_money", 1),
+			},
+        },
+        level = TECH.NONE,
+		placer = "punchingbag_chaos_placer",
+		builder_tag="has_handy_medal",
+		min_spacing = 1.5,
+		filters = {"MEDAL","DECOR","STRUCTURES"},
     },
 	------------------------------伐木勋章------------------------------
 	--初级伐木勋章
@@ -708,6 +874,7 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
 	------------------------------矿工勋章------------------------------
 	--初级矿工勋章
@@ -723,6 +890,38 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
+    },
+	------------------------------虫木勋章------------------------------
+	--食人花手杖
+	{
+        name = "lureplant_rod",
+        ingredients = {
+            {
+				Ingredient("lureplantbulb", 1), Ingredient("nightmarefuel", 5),Ingredient("livinglog", 2),
+			},
+			{
+				Ingredient("lureplantbulb", 1), Ingredient("nightmarefuel", 3),Ingredient("livinglog", 1),
+			},
+        },
+        level = TECH.MAGIC_THREE,
+		builder_tag = "has_plant_medal",
+		filters = {"MEDAL","MAGIC","TOOLS"},
+    },
+	--肥料包(鸟粪版)
+	{
+        name = "medal_compostwrap",
+		product = "compostwrap",
+        ingredients = {
+            {
+				Ingredient("guano", 4), Ingredient("spoiled_food", 2), Ingredient("nitre", 1)
+			},
+        },
+		level = TECH.NONE,
+		builder_tag = "has_plant_medal",
+		noatlas = true,
+		noimage = true,
+		filters = {"MEDAL","CHARACTER"},
     },
 	------------------------------植物勋章------------------------------
 	--月光铲
@@ -736,6 +935,7 @@ local Recipes = {
         level = TECH.CELESTIAL_THREE,
         nounlock = true,
 		builder_tag = "has_transplant_medal",
+		filters = {"MEDAL"},
     },
 	--月光锤
 	{
@@ -748,6 +948,7 @@ local Recipes = {
         level = TECH.CELESTIAL_THREE,
         nounlock = true,
 		builder_tag = "has_transplant_medal",
+		filters = {"MEDAL"},
     },
 	--月光网
 	{
@@ -760,6 +961,7 @@ local Recipes = {
         level = TECH.CELESTIAL_THREE,
         nounlock = true,
 		builder_tag = "has_transplant_medal",
+		filters = {"MEDAL"},
     },
 	--月光药水
 	{
@@ -773,6 +975,20 @@ local Recipes = {
 		numtogive = 2,
         nounlock = true,
 		builder_tag = "has_transplant_medal",
+		filters = {"MEDAL"},
+    },
+	--月光法杖
+	{
+        name = "medal_moonlight_staff",
+        ingredients = {
+			{	
+				MedalIngredient("medal_moonglass_potion", 1),Ingredient("purebrilliance", 2),Ingredient("moonrocknugget", 3),Ingredient("goldnugget", 5),
+			},
+        },
+        level = TECH.CELESTIAL_THREE,
+        nounlock = true,
+		builder_tag = "has_transplant_medal",
+		filters = {"MEDAL"},
     },
 	--玻璃钓竿
 	{
@@ -785,6 +1001,7 @@ local Recipes = {
         },
 		level = TECH.CELESTIAL_THREE,
 		nounlock = true,
+		filters = {"MEDAL"},
     },
 	--活木树苗
 	{
@@ -799,21 +1016,21 @@ local Recipes = {
         },
         level = TECH.MAGIC_THREE,
 		builder_tag = "plantkin",
-		filters = {"MAGIC","GARDENING","CHARACTER"},
+		filters = {"MEDAL","MAGIC","GARDENING","CHARACTER"},
     },
 	------------------------------新增书籍------------------------------
 	--无字天书
-	-- {
-    --     name = "closed_book",
-    --     ingredients = {
-    --         {
-	-- 			Ingredient("papyrus", 2),
-	-- 		},
-    --     },
-    --     level = TECH.CARTOGRAPHY_TWO,
-    --     nounlock = true,
-	-- 	filters = {"CHARACTER"},
-    -- },
+	{
+        name = "closed_book",
+        ingredients = {
+            {
+				Ingredient("papyrus", 2),
+			},
+        },
+        level = TECH.CARTOGRAPHY_TWO,
+        nounlock = true,
+		filters = {"MEDAL","CHARACTER"},
+    },
 	--不朽之谜
 		{
 		name = "immortal_book",
@@ -824,7 +1041,7 @@ local Recipes = {
 		},
 		level = TECH.NONE,
 		builder_tag = "is_bee_king",
-		filters = {"CHARACTER"},
+		filters = {"MEDAL","CHARACTER"},
 	},
     
 	--陷阱重置册
@@ -837,7 +1054,7 @@ local Recipes = {
         },
         level = TECH.NONE,
 		builder_tag = "wisdombuilder",
-		filters = {"CHARACTER"},
+		filters = {"MEDAL","CHARACTER"},
     },
 	------------------------------正义勋章------------------------------
 	--逮捕勋章
@@ -853,6 +1070,7 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
 	--怪物精华
     {
@@ -866,7 +1084,7 @@ local Recipes = {
 			},
         },
         level = TECH.LOST,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	------------------------------钓鱼勋章------------------------------
 	--钓鱼勋章
@@ -874,14 +1092,12 @@ local Recipes = {
         name = "smallfishing_certificate",
         ingredients = {
             {
-            	MedalIngredient("toil_money", 4),
-            },
-            {
-            	MedalIngredient("toil_money", 2),
+            	Ingredient("papyrus", 4), Ingredient("froglegs", 2), Ingredient("fishingrod", 1),
             },
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
 	------------------------------时空勋章------------------------------
 	--时空宝石
@@ -895,10 +1111,7 @@ local Recipes = {
 		level = TECH.NONE,
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		-- canbuild = function(inst,builder)--佩戴时空勋章才能制作(测试用)
-		-- 	return builder and builder.components.inventory and builder.components.inventory:EquipMedalWithName("space_time_certificate"),"NOSPACETIMEMEDAL"
-		-- end,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--预言水晶球
 	{
@@ -911,7 +1124,7 @@ local Recipes = {
 		level = TECH.NONE,
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		filters = {"TOOLS","MAGIC"},
+		filters = {"MEDAL","TOOLS","MAGIC"},
     },
 	--改命药水
 	{
@@ -925,7 +1138,7 @@ local Recipes = {
 		numtogive = 10,
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--时空符文
 	{
@@ -939,7 +1152,7 @@ local Recipes = {
 		numtogive = 10,
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--琥珀灵石
 	{
@@ -952,25 +1165,7 @@ local Recipes = {
 		level = TECH.NONE,
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		filters = {"REFINE","GARDENING"},
-    },
-	--尘蛾窝
-	{
-        name = "dustmothden_copy",
-		product = "dustmothden",
-        ingredients = {
-            {
-				MedalIngredient("medal_dustmothden_base", 1),Ingredient("moonrocknugget", 4), Ingredient("thulecite", 4)
-			},
-        },
-        level = TECH.NONE,
-		placer = "dustmothden_placer", 
-		no_deconstruction = true,
-		builder_tag = "spacetime_medal",
-		min_spacing = 1.5,
-		filters = {"STRUCTURES"},
-		atlas = "minimap/minimap_data.xml",
-		image = "dustmothden.png",
+		filters = {"MEDAL","REFINE","GARDENING"},
     },
 	--时空尘蛾窝
 	{
@@ -984,8 +1179,8 @@ local Recipes = {
 		placer = "medal_dustmothden_placer", 
 		no_deconstruction = true,
 		builder_tag = "spacetime_medal",
-		min_spacing = 1.5,
-		filters = {"STRUCTURES"},
+		min_spacing = 2,
+		filters = {"MEDAL","STRUCTURES"},
     },
 	------------------------------其他勋章------------------------------
 	--友善勋章
@@ -993,29 +1188,25 @@ local Recipes = {
         name = "friendly_certificate",
         ingredients = {
             {
-				MedalIngredient("toil_money", 6),
-			},
-			{
-				MedalIngredient("toil_money", 3),
+				Ingredient("flowerhat", 1),Ingredient("monsterlasagna", 1),
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
 		builder_tag = "monster",
+		filters = {"MEDAL"},
     },
 	--女武神的检验
 	{
         name = "valkyrie_examine_certificate",
         ingredients = {
             {
-				MedalIngredient("toil_money", 6),
-			},
-			{
-				MedalIngredient("toil_money", 3),
+				Ingredient("hambat", 1),Ingredient("armorwood", 1),Ingredient("footballhat", 1),Ingredient("healingsalve", 3),
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
+		filters = {"MEDAL"},
     },
 	------------------------------其他道具------------------------------
 	--熊皮宝箱
@@ -1033,7 +1224,7 @@ local Recipes = {
 		placer = "bearger_chest_placer", 
 		no_deconstruction = true,
 		min_spacing = 1.5,
-		filters = {"STRUCTURES","CONTAINERS"},
+		filters = {"MEDAL","STRUCTURES","CONTAINERS"},
     },
 	--童心箱
 	{
@@ -1047,23 +1238,8 @@ local Recipes = {
 		placer = "medal_childishness_chest_placer",
 		builder_tag = "has_childishness",
 		min_spacing = 1.5,
-		filters = {"STRUCTURES","CONTAINERS"},
+		filters = {"MEDAL","STRUCTURES","CONTAINERS"},
 	},
-	--食人花手杖
-	{
-        name = "lureplant_rod",
-        ingredients = {
-            {
-				Ingredient("lureplantbulb", 1), Ingredient("nightmarefuel", 5),Ingredient("livinglog", 2),
-			},
-			{
-				Ingredient("lureplantbulb", 1), Ingredient("nightmarefuel", 3),Ingredient("livinglog", 1),
-			},
-        },
-        level = TECH.MAGIC_THREE,
-		builder_tag = "has_plant_medal",
-		filters = {"MAGIC","TOOLS"},
-    },
 	--大理石斧
 	{
         name = "marbleaxe",
@@ -1073,7 +1249,7 @@ local Recipes = {
 			},
         },
         level = TECH.SCIENCE_TWO,
-		filters = {"TOOLS"},
+		filters = {"MEDAL","TOOLS"},
     },
 	--大理石镐
 	{
@@ -1084,19 +1260,19 @@ local Recipes = {
 			},
         },
         level = TECH.SCIENCE_TWO,
-		filters = {"TOOLS"},
+		filters = {"MEDAL","TOOLS"},
     },
 	--不朽宝石
 	{
         name = "immortal_gem",
         ingredients = {
             {
-				MedalIngredient("immortal_fruit", 5),Ingredient("opalpreciousgem", 1),
+				MedalIngredient("immortal_fruit", 9),Ingredient("opalpreciousgem", 1),
 			},
         },
         level = TECH.LOST,
 		no_deconstruction = true,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--蝙蝠陷阱
 	{
@@ -1107,7 +1283,7 @@ local Recipes = {
 			},
         },
         level = TECH.LOST,
-		filters = {"WEAPONS"},
+		filters = {"MEDAL","WEAPONS"},
     },
 	--羊角帽
 	{
@@ -1121,18 +1297,18 @@ local Recipes = {
 			},
         },
         level = TECH.LOST,
-		filters = {"CLOTHING","WINTER"},
+		filters = {"MEDAL","CLOTHING","WINTER"},
     },
 	--格罗姆精华
     {
         name = "medal_glommer_essence",
-        ingredients = {
+		ingredients = {
             {
-				Ingredient("glommerwings", 1),Ingredient("glommerflower", 1),Ingredient("glommerfuel", 2),
+				Ingredient("glommerfuel", 4),
 			},
         },
         level = TECH.MAGIC_THREE,
-		filters = {"MAGIC","REFINE"},
+		filters = {"MEDAL","MAGIC","REFINE"},
     },
 	--格罗姆精华
     {
@@ -1140,11 +1316,11 @@ local Recipes = {
 		product = "medal_glommer_essence",
         ingredients = {
             {
-				Ingredient("glommerfuel", 4),
+				Ingredient("glommerwings", 1),Ingredient("glommerflower", 1),Ingredient("glommerfuel", 2),
 			},
         },
         level = TECH.MAGIC_THREE,
-		filters = {"MAGIC","REFINE"},
+		filters = {"MEDAL","MAGIC","REFINE"},
     },
 	--淘气铃铛
 	{
@@ -1157,7 +1333,21 @@ local Recipes = {
         level = TECH.MAGIC_THREE,
 		-- builder_tag = "naughtymedal",
 		no_deconstruction = true,
-		filters = {"MAGIC"},
+		filters = {"MEDAL","MAGIC"},
+    },
+	--特制鱼食
+    {
+        name = "medal_chum",
+		ingredients = {
+            {
+				Ingredient("chum", 4),MedalIngredient("medal_glommer_essence", 3),
+			},
+        },
+        level = TECH.NONE,
+		numtogive = 2,
+		builder_tag = "has_largefishing_medal",
+		no_deconstruction = true,
+		filters = {"MEDAL","FISHING"},
     },
 	--黑曜石火坑
 	{
@@ -1173,7 +1363,7 @@ local Recipes = {
         level = TECH.LOST,
 		placer = "medal_firepit_obsidian_placer",
 		min_spacing = 2,
-		filters = {"LIGHT","COOKING"},
+		filters = {"MEDAL","LIGHT","COOKING"},
     },
 	--蓝曜石火坑
 	{
@@ -1189,7 +1379,7 @@ local Recipes = {
         level = TECH.LOST,
 		placer = "medal_coldfirepit_obsidian_placer",
 		min_spacing = 2,
-		filters = {"LIGHT"},
+		filters = {"MEDAL","LIGHT"},
     },
 	--船上钓鱼池
 	{
@@ -1209,7 +1399,7 @@ local Recipes = {
 		testfn=function(pt)
 		   return TheWorld.Map:GetPlatformAtPoint(pt.x, 0, pt.z,  -3) ~= nil or TheWorld.Map:IsDockAtPoint(pt.x, 0, pt.z)
 		end,
-		filters = {"FISHING","SEAFARING"},
+		filters = {"MEDAL","FISHING","SEAFARING"},
     },
 	--触手尖刺
     {
@@ -1228,7 +1418,7 @@ local Recipes = {
 		builder_tag = "tentaclemedal",
 		noatlas = true,
 		noimage = true,
-		filters = {"WEAPONS","MAGIC"},
+		filters = {"MEDAL","WEAPONS","MAGIC"},
     },
 	--活性触手尖刺
 	{
@@ -1243,7 +1433,7 @@ local Recipes = {
         },
         level = TECH.MAGIC_THREE,
 		builder_tag = "tentaclemedal",
-		filters = {"WEAPONS","MAGIC"},
+		filters = {"MEDAL","WEAPONS","MAGIC"},
     },
 	--树根宝箱
 	{
@@ -1259,7 +1449,7 @@ local Recipes = {
         level = TECH.MAGIC_THREE,
 		placer = "medal_livingroot_chest_placer",
 		min_spacing = 1.5,
-		filters = {"STRUCTURES","MAGIC","CONTAINERS"},
+		filters = {"MEDAL","STRUCTURES","MAGIC","CONTAINERS"},
     },
 	--空瓶子
     {
@@ -1278,7 +1468,7 @@ local Recipes = {
 		builder_tag = "has_bathfire_medal",
 		noatlas = true,
 		noimage = true,
-		filters = {"REFINE"},
+		filters = {"MEDAL","REFINE"},
     },
 	--高效耕地机
 	{
@@ -1292,31 +1482,31 @@ local Recipes = {
 			},
         },
         level = TECH.SCIENCE_TWO,
-		filters = {"GARDENING"},
+		filters = {"MEDAL","GARDENING"},
     },
-	--黑曜石甲
+	--红晶甲
 	{
         name = "armor_medal_obsidian",
         ingredients = {
             {
-				MedalIngredient("medal_obsidian", 3),Ingredient("sewing_tape", 1),
+				MedalIngredient("medal_obsidian", 9),Ingredient("sewing_tape", 3),Ingredient("redgem", 1),
 			},
         },
         level = TECH.LOST,
-		filters = {"ARMOUR"},
+		filters = {"MEDAL","ARMOUR"},
     },
-	--蓝曜石甲
+	--蓝晶甲
 	{
         name = "armor_blue_crystal",
         ingredients = {
             {
-				MedalIngredient("medal_blue_obsidian", 3),Ingredient("sewing_tape", 1),
+				MedalIngredient("medal_blue_obsidian", 9),Ingredient("sewing_tape", 3),Ingredient("bluegem", 1),
 			},
         },
         level = TECH.LOST,
-		filters = {"ARMOUR"},
+		filters = {"MEDAL","ARMOUR"},
     },
-	--蓝曜石制冰机
+	--蓝晶制冰机
 	{
         name = "medal_ice_machine",
         ingredients = {
@@ -1327,7 +1517,7 @@ local Recipes = {
         level = TECH.LOST,
 		placer = "medal_ice_machine_placer",
 		min_spacing = 1.5,
-		filters = {"COOKING","CONTAINERS"},
+		filters = {"MEDAL","COOKING","CONTAINERS"},
     },
 	--育王蜂箱
 	{
@@ -1341,8 +1531,34 @@ local Recipes = {
 		builder_tag = "is_bee_king",
 		placer = "medal_beebox_placer",
 		-- min_spacing = 1.5,
-		filters = {"GARDENING"},
+		filters = {"MEDAL","GARDENING"},
     },
+	--暗影魔法工具
+	{
+        name = "medal_shadow_tool",
+        ingredients = {
+            {
+				-- MedalIngredient("medal_shadow_magic_stone", 1),
+				Ingredient("dreadstone", 2), Ingredient("horrorfuel", 3), Ingredient("nightmarefuel", 6)
+			},
+        },
+        level = TECH.NONE,
+		builder_tag = "has_shadowmagic_medal",
+		image = "medal_shadow_tool.tex",
+		filters = {"MEDAL","TOOLS"},
+    },
+	--本源精华
+    -- {
+    --     name = "medal_origin_essence",
+    --     ingredients = {
+    --         {
+	-- 			MedalIngredient("medal_dustmeringue", 3), MedalIngredient("spice_withered_royal_jelly", 3), MedalIngredient("spice_rage_blood_sugar", 3),
+	-- 		},
+    --     },
+    --     level = TECH.NONE,
+	-- 	builder_tag = "has_shadowmagic_medal",
+	-- 	filters = {"MEDAL","REFINE"},
+    -- },
 	------------------------------专属弹药------------------------------
 	--方尖弹
     {
@@ -1356,21 +1572,21 @@ local Recipes = {
 		numtogive = 10,
 		builder_tag = "senior_childishness",
 		no_deconstruction = true,
-		filters = {"CHARACTER","WEAPONS"},
+		filters = {"MEDAL","CHARACTER","WEAPONS"},
     },
 	--沙刺弹
 	{
 	    name = "medalslingshotammo_sandspike",
 	    ingredients = {
 	        {
-				Ingredient("townportaltalisman", 2),
+				Ingredient("townportaltalisman", 2),Ingredient("rocks", 5),
 			},
 	    },
 	    level = TECH.NONE,
 		numtogive = 5,
 		builder_tag = "senior_childishness",
 		no_deconstruction = true,
-		filters = {"CHARACTER","WEAPONS"},
+		filters = {"MEDAL","CHARACTER","WEAPONS"},
 	},
 	--落水弹
 	{
@@ -1384,7 +1600,7 @@ local Recipes = {
 		numtogive = 5,
 		builder_tag = "senior_childishness",
 		no_deconstruction = true,
-		filters = {"CHARACTER","WEAPONS"},
+		filters = {"MEDAL","CHARACTER","WEAPONS"},
 	},
 	--痰蛋弹
 	{
@@ -1398,7 +1614,7 @@ local Recipes = {
 		numtogive = 5,
 		builder_tag = "senior_childishness",
 		no_deconstruction = true,
-		filters = {"CHARACTER","WEAPONS"},
+		filters = {"MEDAL","CHARACTER","WEAPONS"},
 	},
 	--尖刺弹
 	{
@@ -1412,7 +1628,7 @@ local Recipes = {
 		numtogive = 10,
 		builder_tag = "senior_childishness",
 		no_deconstruction = true,
-		filters = {"CHARACTER","WEAPONS"},
+		filters = {"MEDAL","CHARACTER","WEAPONS"},
 	},
 	--弹药盒
 	{
@@ -1424,7 +1640,7 @@ local Recipes = {
 	    },
 	    level = TECH.NONE,
 		builder_tag = "senior_childishness",
-		filters = {"CHARACTER","CONTAINERS"},
+		filters = {"MEDAL","CHARACTER","CONTAINERS"},
 	},
 	------------------------------传承勋章------------------------------
 	--羽绒服
@@ -1440,7 +1656,7 @@ local Recipes = {
         },
         level = TECH.SCIENCE_TWO,
 		builder_tag = "traditionalbearer1",
-		filters = {"CLOTHING","WINTER"},
+		filters = {"MEDAL","CLOTHING","WINTER"},
     },
 	--蓝晶帽
 	{
@@ -1455,19 +1671,20 @@ local Recipes = {
         },
         level = TECH.SCIENCE_TWO,
 		builder_tag = "traditionalbearer1",
-		filters = {"CLOTHING","SUMMER"},
+		filters = {"MEDAL","CLOTHING","SUMMER"},
     },
 	--复眼勋章
 	{
         name = "ommateum_certificate",
         ingredients = {
             {
-				MedalIngredient("blank_certificate", 1),Ingredient("deerclops_eyeball", 1),Ingredient("yellowmooneye", 1),
+				MedalIngredient("blank_certificate", 1),Ingredient("deerclops_eyeball", 1),Ingredient("yellowmooneye", 1),Ingredient("wormlight", 4),
 			},
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
 		builder_tag = "traditionalbearer2",
+		filters = {"MEDAL"},
     },
 	--速度勋章
 	{
@@ -1483,6 +1700,7 @@ local Recipes = {
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
 		builder_tag = "traditionalbearer2",
+		filters = {"MEDAL"},
     },
 	--空间勋章
 	{
@@ -1499,6 +1717,7 @@ local Recipes = {
         nounlock = true,
 		builder_tag = "traditionalbearer3",
 		no_deconstruction = true,
+		filters = {"MEDAL"},
     },
 	--智能陷阱制作手册
 	{
@@ -1510,7 +1729,46 @@ local Recipes = {
         },
         level = TECH.NONE,
 		builder_tag = "traditionalbearer3",
-		filters = {"CHARACTER"},
+		filters = {"MEDAL","CHARACTER"},
+    },
+	--未解之谜
+	{
+        name = "unsolved_book",
+        ingredients = {
+            {
+				MedalIngredient("medal_inherit_page", 3),Ingredient("sewing_tape", 3),
+			},
+        },
+        level = TECH.NONE,
+		builder_tag = "traditionalbearer3",
+		no_deconstruction = true,
+		filters = {"MEDAL","CHARACTER"},
+    },
+	--怪物图鉴
+	{
+        name = "monster_book",
+        ingredients = {
+            {
+				MedalIngredient("medal_inherit_page", 3),Ingredient("sewing_tape", 3),
+			},
+        },
+        level = TECH.NONE,
+		builder_tag = "traditionalbearer3",
+		no_deconstruction = true,
+		filters = {"MEDAL","CHARACTER"},
+    },
+	--植物图鉴
+	{
+        name = "medal_plant_book",
+        ingredients = {
+            {
+				MedalIngredient("medal_inherit_page", 3),Ingredient("sewing_tape", 3),
+			},
+        },
+        level = TECH.NONE,
+		builder_tag = "traditionalbearer3",
+		no_deconstruction = true,
+		filters = {"MEDAL","CHARACTER"},
     },
 	--方尖锏
 	{
@@ -1523,7 +1781,10 @@ local Recipes = {
         level = TECH.MAGIC_THREE,
 		builder_tag = "traditionalbearer3",
 		no_deconstruction = true,
-		filters = {"WEAPONS","MAGIC"},
+		filters = {"MEDAL","WEAPONS","MAGIC"},
+		-- canbuild = function(recipe,builder)--传承勋章解锁配方后才能制作
+		-- 	return builder and builder.components.inventory and builder.components.inventory:EquipMedalWithName("space_time_certificate"),"INHERITMEDALNORECIPE"
+		-- end,
     },
 	--踏水勋章
 	{
@@ -1539,6 +1800,7 @@ local Recipes = {
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
 		builder_tag = "traditionalbearer3",
+		filters = {"MEDAL"},
     },
 	-- 皮肤法杖
     {
@@ -1550,10 +1812,11 @@ local Recipes = {
         },
         level = TECH.CARTOGRAPHY_TWO,
         nounlock = true,
-		filters = {"DECOR","TOOLS"},
+		filters = {"MEDAL","DECOR","TOOLS"},
     },
 }
---分解配方
+
+---------------------------------------------------------解构专用配方-----------------------------------------------------------------
 local DeconstructRecipes = {
 	--手摇深井泵
 	{
@@ -1561,6 +1824,7 @@ local DeconstructRecipes = {
         ingredients = {
             Ingredient("cane", 1),
 			Ingredient("gears", 2),
+			Ingredient("wagpunk_bits", 2),
 			Ingredient("transistor", 2),
 			Ingredient("boards", 2),
 			Ingredient("oceanfish_small_9_inv", 1)
@@ -1590,6 +1854,8 @@ local DeconstructRecipes = {
 }
 
 return {
+	MoreDataKeys = MoreDataKeys,
+	RecipeFilters = RecipeFilters,
 	Recipes = Recipes,
 	DeconstructRecipes = DeconstructRecipes,
 }

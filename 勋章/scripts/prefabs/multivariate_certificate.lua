@@ -1,32 +1,5 @@
 require "prefabutil"
 
-local assets =
-{
-    Asset("ANIM", "anim/multivariate_certificate.zip"),
-	Asset("ATLAS", "images/multivariate_certificate.xml"),
-	Asset("ATLAS", "images/medium_multivariate_certificate.xml"),
-	Asset("ATLAS", "images/large_multivariate_certificate.xml"),
-	Asset("ATLAS_BUILD", "images/multivariate_certificate.xml",256),
-	Asset("ATLAS_BUILD", "images/medium_multivariate_certificate.xml",256),
-	Asset("ATLAS_BUILD", "images/large_multivariate_certificate.xml",256),
-}
---初始化融合勋章栏
-local function medal_list_init(num)
-	local medal_list={}--镶嵌位
-	local slotnum = num or 3--格子数
-	for i=1,slotnum do
-		medal_list[i]={item=nil}
-	end
-	return medal_list
-end
---读取容器内道具
-local function getMedalList(inst)
-	local items=nil
-	if inst.components.container then
-		items=inst.components.container:FindItems(function(canshu) return true end)
-	end
-	return items
-end
 --执行勋章列表的装备函数
 local function doMedalListOnEquipFn(inst,item,owner)
 	if item and item.components.equippable then
@@ -56,57 +29,32 @@ local function doMedalListOnUnequipFn(inst,item,owner)
 		end
 	end
 end
---移除标签
-local function removeTagfromList(inst,tagdata)
-	if inst:HasTag(tagdata) then
-		inst:RemoveTag(tagdata)
-	end
-	for i,v in ipairs(inst.tag_list) do
-		if tagdata == v then
-			table.remove(inst.tag_list,i)
-			break
-		end
-	end
-end
---添加标签
-local function addTagToList(inst,tagdata)
-	inst:AddTag(tagdata)
-	table.insert(inst.tag_list,tagdata)
-end
 --取出道具
 local function itemloseFn(inst,data)
-	if data~=nil then
-		if inst.medal_list[data.slot].item ~=nil then
-			--移除勋章组标签
-			if inst.medal_list[data.slot].item.grouptag~=nil then 
-				removeTagfromList(inst,inst.medal_list[data.slot].item.grouptag)
-			else
-				removeTagfromList(inst,inst.medal_list[data.slot].item.prefab)
-			end
-		end
+	if data ~= nil and data.prev_item ~= nil then
+		--移除勋章组标签
+		inst:RemoveTag(data.prev_item.grouptag or data.prev_item.prefab)
 		if inst.components.equippable:IsEquipped() then
-			local owner=inst.components.inventoryitem.owner
+			local owner=inst.components.inventoryitem:GetGrandOwner()
 			if owner ~= nil then
-				doMedalListOnUnequipFn(inst,inst.medal_list[data.slot].item,owner)
+				doMedalListOnUnequipFn(inst, data.prev_item, owner)
+				--更新装备栏状态
+				owner:PushEvent("equip", {item = inst, eslot = EQUIPSLOTS.MEDAL or EQUIPSLOTS.NECK or EQUIPSLOTS.BODY})
 			end
 		end
-		inst.medal_list[data.slot].item=nil
 	end
 end
 --存入道具
 local function gotnewitemFn(inst,data)
-	if data~= nil then
-		inst.medal_list[data.slot].item=data.item
+	if data ~= nil and data.item ~= nil then
 		--添加勋章组标签
-		if data.item.grouptag~=nil then
-			addTagToList(inst,data.item.grouptag)
-		else
-			addTagToList(inst,data.item.prefab)
-		end
+		inst:AddTag(data.item.grouptag or data.item.prefab)
 		if inst.components.equippable:IsEquipped() then
-			local owner=inst.components.inventoryitem.owner
+			local owner = inst.components.inventoryitem:GetGrandOwner()
 			if owner ~= nil then
-				doMedalListOnEquipFn(inst,inst.medal_list[data.slot].item,owner)
+				doMedalListOnEquipFn(inst, data.item, owner)
+				--更新装备栏状态
+				owner:PushEvent("equip", { item = inst, eslot = EQUIPSLOTS.MEDAL or EQUIPSLOTS.NECK or EQUIPSLOTS.BODY })
 			end
 		end
 	end
@@ -128,61 +76,30 @@ end
 --装备
 local function onequipfn(inst,owner)
 	inst.components.container:Open(owner)
-	local items=nil
-	local itemSlot=1
-	inst.medal_list=medal_list_init(inst.slotnum)--初始化镶嵌位
-	items=getMedalList(inst)
-	
+	if inst.prefab == "origin_certificate" then
+		owner:AddTag("has_origin_medal")
+	end
+	local items = inst.components.container and inst.components.container:GetAllItems()
 	if items~=nil then
-		--第一次装备的时候挂个延迟，免得加载后部分数据不能及时生效
-		if not inst.isfirstequip then
-			inst:DoTaskInTime(0.3, function()
-				for i, v in ipairs(items) do
-					itemSlot=inst.components.container:GetItemSlot(v)
-					inst.medal_list[itemSlot].item=v
-					doMedalListOnEquipFn(inst,v,owner)
-				end
-			end)
-			inst.isfirstequip=true
-		else
-			for i, v in ipairs(items) do
-				itemSlot=inst.components.container:GetItemSlot(v)
-				inst.medal_list[itemSlot].item=v
-				doMedalListOnEquipFn(inst,v,owner)
-			end
+		for i, v in ipairs(items) do
+			doMedalListOnEquipFn(inst,v,owner)
 		end
 	end
 end
 --卸下
 local function onunequipfn(inst,owner)
+	local items = inst.components.container and inst.components.container:GetAllItems()
+	if items ~= nil then
+		for i, v in ipairs(items) do
+			doMedalListOnUnequipFn(inst,v,owner)
+		end
+	end
+	--tag移除时间要晚于其他勋章卸下时间
+	if inst.prefab == "origin_certificate" then
+		owner:RemoveTag("has_origin_medal")
+	end
+	
 	inst.components.container:Close()
-	if #inst.medal_list >0 then
-		for i, v in ipairs(inst.medal_list) do
-			if v.item~=nil then
-				doMedalListOnUnequipFn(inst,v.item,owner)
-			end
-		end
-	end
-end
---保存
-local function onsavefn(inst,data)
-	data.tagsList={}
-	if #inst.tag_list>0 then
-		for i, v in ipairs(inst.tag_list) do
-			table.insert(data.tagsList, v)
-		end
-	end
-end
-
---加载
-local function onloadfn(inst,data)
-	inst.tag_list={}
-	if data~=nil and data.tagsList~=nil then
-		for i, v in ipairs(data.tagsList) do
-			table.insert(inst.tag_list, v)
-			inst:AddTag(v)
-		end
-	end
 end
 
 --显示融合勋章内勋章
@@ -191,17 +108,16 @@ local function getMedalInfo(inst)
 		local numslots=inst.components.container:GetNumSlots()
 		local medalstr=""
 		if numslots and numslots>0 then
-			local medalcount=0
+			local medalcount = 0
+			local colnum = numslots == 4 and 2 or 3--每行显示数量
 			for i=1,numslots do--遍历格子
-				local medal=inst.components.container:GetItemInSlot(i)--获取对应格子上的勋章
-				if medal then
-					local prefabname=medal:GetDisplayName() or medal.prefab--获取勋章名字
-					if medalcount>0 and medalcount%3==0 then
-						medalstr=medalstr.."\n"
-					end
-					medalstr=medalstr..prefabname.."|"
-					medalcount=medalcount+1
+				local medal = inst.components.container:GetItemInSlot(i)--获取对应格子上的勋章
+				local prefabname = medal and (medal:GetDisplayName() or medal.prefab) or "*"--获取勋章名字
+				if medalcount > 0 and medalcount % colnum == 0 then
+					medalstr = medalstr.."\n"
 				end
+				medalstr = medalstr..prefabname.."|"
+				medalcount = medalcount + 1
 			end
 		end
 		return medalstr~="" and string.sub(medalstr,1,-2) or STRINGS.MEDAL_INFO.BLANK
@@ -209,7 +125,14 @@ local function getMedalInfo(inst)
 end
 
 --定义融合勋章(预制物名,格子数量)
-local function MakeMultivariateMedal(name,slotnum)
+local function MakeMultivariateMedal(name,anim)
+	local assets =
+	{
+		Asset("ANIM", "anim/multivariate_certificate.zip"),
+		Asset("ATLAS", "images/"..name..".xml"),
+		Asset("ATLAS_BUILD", "images/"..name..".xml",256),
+	}
+	
 	local function fn()
 	    local inst = CreateEntity()
 	
@@ -219,14 +142,10 @@ local function MakeMultivariateMedal(name,slotnum)
 	    inst.entity:AddNetwork()
 		
 		MakeInventoryPhysics(inst)
-	    
-		inst.tag_list={}--Tag列表，标记相同勋章用
-		inst.medal_list=medal_list_init(slotnum)--初始化镶嵌位
-		inst.slotnum=slotnum--记录格子数量
 		
 	    inst.AnimState:SetBank("multivariate_certificate")
 	    inst.AnimState:SetBuild("multivariate_certificate")
-	    inst.AnimState:PlayAnimation(name)
+	    inst.AnimState:PlayAnimation(anim or name)
 		
 		inst:AddTag("medal")
 		inst:AddTag("showmedalinfo")--显示详细信息
@@ -270,7 +189,8 @@ local function MakeMultivariateMedal(name,slotnum)
 	return Prefab(name, fn, assets)
 end
 
-return MakeMultivariateMedal("multivariate_certificate",3),
-	MakeMultivariateMedal("medium_multivariate_certificate",4),
-	MakeMultivariateMedal("large_multivariate_certificate",6)
+return MakeMultivariateMedal("multivariate_certificate"),
+	MakeMultivariateMedal("medium_multivariate_certificate"),
+	MakeMultivariateMedal("large_multivariate_certificate"),
+	MakeMultivariateMedal("origin_certificate","large_multivariate_certificate")
 

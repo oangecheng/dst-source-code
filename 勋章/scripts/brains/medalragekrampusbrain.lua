@@ -74,40 +74,10 @@ local function EmptyChest(inst)
             or nil
     end
 end
---黑名单物品
-local BLACKLIST={
-	fossil_stalker=true,--化石碎片
-	endtable=true,--茶几
-	table_winters_feast=true,--冬季盛宴桌子
-	lureplant=true,--食人花
-	homesign=true,--木牌
-	arrowsign_post=true,--方向牌
-	-- tentacle=true,--触手
-}
---嘲讽需要检查的标签
-local taunt_must_tags={"_combat","_health","trap","structure","burnt","explosive"}
 
---需要开始嘲讽
-local function shouldTaunt(inst)
-	local black_num=0--黑名单物品数量
-	local x,y,z = inst.Transform:GetWorldPosition()
-	local ents=TheSim:FindEntities(x, y, z, 5 ,nil , {"INLIMBO", "NOCLICK", "catchable", "notdevourable"},taunt_must_tags)
-	if #ents>0 then
-		for i,v in ipairs(ents) do
-			--是火药直接嘲讽
-			if v.prefab=="gunpowder" then
-				return true
-			end
-			if v:HasTag("wall") or BLACKLIST[v.prefab] or (v:HasTag("tree") and v:HasTag("burnt")) then
-				black_num=black_num+1
-			end
-			
-		end
-	end
-	if black_num>=6 then
-		return true
-	end
-	return false
+--需要开始吞噬
+local function shouldDevour(inst)
+	return inst.devour_cd > 0 and not (inst.components.timer:TimerExists("devour_cd") or inst.sg:HasStateTag("busy"))--不处于CD中
 end
 
 --定义暴怒坎普斯大脑
@@ -160,9 +130,9 @@ function MedalRageKrampusBrain:OnStart()
 		-- WhileNode(function() return self.inst.components.hauntable ~= nil and self.inst.components.hauntable.panic or self.inst.components.health.takingfiredamage end, "Panic", Panic(self.inst)),
 		--如果被鬼作祟了或者身上着火了，就跳袋子逃跑
 		WhileNode(function() return self.inst.components.hauntable ~= nil and self.inst.components.hauntable.panic or self.inst.components.health.takingfiredamage end, "Panic", ActionNode(function() self.inst.sg:GoToState("exit") return SUCCESS end)),
-        --需要嘲讽就进行嘲讽
-		WhileNode( function() return shouldTaunt(self.inst) end, "taunting",
-            ActionNode(function() self.inst.sg:GoToState("taunt") end)),
+        --需要吞噬就进行吞噬
+		WhileNode( function() return shouldDevour(self.inst) end, "devouring",
+            ActionNode(function() self.inst.sg:GoToState("devour") end)),
 		--追击敌人
 		ChaseAndAttack(self.inst, CHASE_TIME,CHASE_DIST, nil, nil, nil, OceanChaseWaryDistance),
         --如果身上的物品数量大于等于贪婪度 并且自己没有处于繁忙的状态，就跳袋子逃跑

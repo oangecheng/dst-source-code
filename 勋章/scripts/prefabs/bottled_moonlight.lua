@@ -28,11 +28,7 @@ local function onEatenfFn(inst, eater)
 		end
 	end
 	--添加移植者buff
-	if eater.components.debuffable ~= nil and eater.components.debuffable:IsEnabled() and
-        not (eater.components.health ~= nil and eater.components.health:IsDead()) and
-        not eater:HasTag("playerghost") then
-        eater.components.debuffable:AddDebuff("buff_medal_transplantable", "buff_medal_transplantable")
-    end
+    eater:AddDebuff("buff_medal_transplantable", "buff_medal_transplantable")
 	--如果玩家已经绑定了相同的wormlight，则重新开始计时;如果是不同的wormlight，则取消原来的
 	if eater.wormlight ~= nil then
         if eater.wormlight.prefab == "bottled_moonlight_light" then

@@ -87,7 +87,7 @@ local function MakeBomb(def)
             return inst
         end
 
-        inst.ignitefn = def.ignitefn--燃放回调
+        inst.ignitefn = def.ignitefn--燃放时调用的自定义方法
     
         inst:AddComponent("tradable")
     
@@ -120,7 +120,7 @@ local bomb_defs={
         name="medal_rain_bomb",--催雨弹
         image="medal_rain_bomb",
         build="medal_rain_bomb",
-        ignitefn=function(inst)--燃放回调函数
+        ignitefn=function(inst)--燃放时调用
             TheWorld:PushEvent("ms_forceprecipitation", true)
         end,
     },
@@ -128,7 +128,7 @@ local bomb_defs={
         name="medal_clear_up_bomb",--放晴弹
         image="medal_clear_up_bomb",
         build="medal_clear_up_bomb",
-        ignitefn=function(inst)--燃放回调函数
+        ignitefn=function(inst)
             TheWorld:PushEvent("ms_forceprecipitation", false)
         end,
     },
@@ -136,7 +136,7 @@ local bomb_defs={
         name="medal_spacetime_bomb",--时空弹
         image="medal_spacetime_bomb",
         build="medal_spacetime_bomb",
-        ignitefn=function(inst)--燃放回调函数
+        ignitefn=function(inst)
             local pt=inst:GetPosition()
             if TheWorld and TheWorld.net.components.medal_spacetimestorms ~= nil and TheWorld.net.components.medal_spacetimestorms:IsPointInSpacetimestorm(pt) then
                 TheWorld.components.medal_spacetimestormmanager:StopCurrentSpacetimestorm()

@@ -31,28 +31,33 @@ local function speechFood(inst, data)
 end
 --返还新勋章(勋章,新勋章名,对新勋章执行的函数)
 local function returnNewMedal(inst,newmedalname,medalfn)
-	--获取拥有者
-	local owner=inst.components.inventoryitem and inst.components.inventoryitem:GetGrandOwner()
-	local newmedal=SpawnPrefab(newmedalname)--新勋章
+	local newmedal = SpawnPrefab(newmedalname)--新勋章
 	if newmedal then
-		if medalfn then
+		if medalfn then--执行回调
 			medalfn(inst,newmedal)
 		end
-		--有拥有者则直接给拥有者
+		local owner = inst.components.inventoryitem and inst.components.inventoryitem:GetGrandOwner()--获取拥有者
 		if owner then
-			if owner.components.inventory then
-				owner.components.inventory:GiveItem(newmedal)
+			local isequipped = inst.components.equippable and inst.components.equippable:IsEquipped()--是否处于装备状态
+			local oldmedal = inst.components.inventoryitem:RemoveFromOwner() or inst--从原位置移除
+			--物归原主
+			if oldmedal.prevcontainer ~= nil and oldmedal.prevcontainer.inst.components.container:CanTakeItemInSlot(newmedal, oldmedal.prevslot) then
+				oldmedal.prevcontainer.inst.components.container:GiveItem(newmedal, oldmedal.prevslot)
+			elseif owner.components.inventory then
+				if isequipped and newmedal.components.equippable then
+					owner.components.inventory:Equip(newmedal)
+				else
+					owner.components.inventory:GiveItem(newmedal, oldmedal.prevslot)
+				end
 			elseif owner.components.container then
 				owner.components.container:GiveItem(newmedal)
 			end
-		else--否则原地掉落
-			if inst.components.lootdropper==nil then
-				inst:AddComponent("lootdropper")
-			end
-			inst.components.lootdropper:FlingItem(newmedal)
+		else--否则放在原地
+			local x, y, z = inst.Transform:GetWorldPosition()
+			newmedal.Transform:SetPosition(x, y, z)
 		end
-		inst:Remove()
 	end
+	inst:Remove()
 end
 --主客同步料理列表(食谱显示用)
 local function setFoodList(inst,owner)
@@ -66,10 +71,79 @@ local function setFoodList(inst,owner)
 		end
 	end
 end
+-------------------------------------------------记录攻击者,确保非亲手击杀的目标也能计数-------------------------------------------------
+--当目标死亡或被击败时进行事件推送
+local function OnMedalDeath(inst,data)
+	if inst.medal_killer_list == nil then
+		return
+	end
+	--克劳斯需要二阶段死了才算
+	if inst.prefab~="klaus" or (inst.IsUnchained ~= nil and inst:IsUnchained()) then
+		--遍历推送列表
+		for k, v in pairs(inst.medal_killer_list) do
+			local medal = data and data.afflicter and data.afflicter.components.inventory ~= nil and data.afflicter.components.inventory:EquipMedalWithName(k) or nil
+			--若击杀者没有佩戴对应勋章组的勋章,并且有标记的攻击者,则进行推送
+			if medal == nil and v ~= nil then
+				v:PushEvent("medal_killed",{victim=inst,prefab=k})
+				inst.medal_killer_list[k] = nil
+			end
+		end
+		if inst.RemoveMedalDeathListener then
+			inst:RemoveMedalDeathListener()--推送后移除监听，防止多次触发
+		end
+	end
+end
+--移除监听
+local function RemoveMedalDeathListener(inst)
+	inst:RemoveEventCallback("death", OnMedalDeath)--死亡
+	inst:RemoveEventCallback("minhealth", OnMedalDeath)--被打败
+	inst.medal_killer_list = nil--清空击杀列表
+	inst.RemoveMedalDeathListener = nil
+end
+--设定勋章击杀事件(怪物,玩家,勋章)
+local function setMedalKillFn(inst,player,medal)
+	if player == nil or medal == nil then
+		return
+	end
+	local key = medal.prefab
+	if inst.medal_killer_list == nil then
+		inst.medal_killer_list = {}--初始化推送列表
+	end
+	if inst.RemoveMedalDeathListener == nil then
+		inst.RemoveMedalDeathListener = RemoveMedalDeathListener--移除监听
+		--监听目标死亡
+		inst:ListenForEvent("death",OnMedalDeath)
+		inst:ListenForEvent("minhealth",OnMedalDeath)
+	end
+	
+	if inst.medal_killer_list[key] == nil or inst.medal_killer_list[key].player ~= player then
+		inst.medal_killer_list[key] = player--添加推送列表
+	end
+end
+--攻击目标(玩家,怪物,勋章)
+local function MedalHitOther(player,target,medal)
+	if target.medal_killer_list ~= nil 
+		and target.medal_killer_list[medal.prefab] ~= nil 
+		and target.medal_killer_list[medal.prefab] == player then
+		return
+	end
+	--直接砍死了，那就直接算击杀
+	if (target.components.health and target.components.health:IsDead()) or target.defeated then
+		if target.prefab == "klaus" and target.IsUnchained ~= nil and not target:IsUnchained() then return end--克劳斯需要二阶段死了才算
+		if target["medal_kill_sign_"..medal.prefab] ~= nil then return end
+		target["medal_kill_sign_"..medal.prefab] = true--添加标记防多次触发
+		if medal.medalKilled then
+			medal.medalKilled(player,{victim=target,prefab=medal.prefab})
+		end
+	else--揍了一拳，标记！
+		setMedalKillFn(target,player,medal)
+	end
+end
 
+-------------------------------------------------勋章定义-------------------------------------------------
 local medal_defs ={}--勋章列表
 
--------------------------------------------------烹调勋章-------------------------------------------------
+-------------------------------------------------烹饪勋章-------------------------------------------------
 medal_defs.cook_certificate={
 	name="cook_certificate",
 	animname="cook_certificate",
@@ -104,7 +178,9 @@ medal_defs.cook_certificate={
 					inst.components.finiteuses:Use(fuelnum)
 					inst.foodlist[#inst.foodlist+1]=foodname
 					setFoodList(inst,harvester)--同步料理列表
-					SpawnMedalTips(harvester,fuelnum,10)--弹幕提示
+					if not RewardToiler(harvester,0.1) then--天道酬勤
+						SpawnMedalTips(harvester,fuelnum,10)--弹幕提示
+					end
 				end
 			end
 		end
@@ -200,18 +276,28 @@ medal_defs.chef_certificate={
 	onequipfn=function(inst,owner)
 		chef_onequipfn(inst,owner,false)
 		setFoodList(inst,owner)--同步料理列表
+		if inst.builditemfn then
+			owner:ListenForEvent("builditem", inst.builditemfn)
+		end
 	end,
 	--卸下勋章函数
 	onunequipfn=function(inst,owner)
 		chef_onunequipfn(inst,owner,false)
+		if inst.builditemfn then
+			owner:RemoveEventCallback("builditem", inst.builditemfn)
+		end
 	end,
 	extrafn=function(inst)--额外扩展函数
 		inst.foodlist={}--料理列表
+		inst.spiceconsume = 0--调味料理消耗
+		--收获料理
 		inst.HarvestFoodFn=function(inst,foodname,harvester,cookpotname)
 			local fuelnum=nil--消耗耐久
-			if inst.needspicefood then
-				if cookpotname=="portablespicer" then
-					fuelnum=TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME
+			--调味料理
+			if cookpotname=="portablespicer" then
+				if inst.spiceconsume < TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME_MAX then
+					fuelnum = TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME
+					inst.spiceconsume = inst.spiceconsume + fuelnum
 				end
 			elseif foodname and IsNativeCookingProduct(foodname,true) and not table.contains(inst.foodlist,foodname) then
 				fuelnum=TUNING_MEDAL.CHEF_MEDAL.CONSUME
@@ -225,20 +311,20 @@ medal_defs.chef_certificate={
 			end
 			RewardToiler(harvester)--天道酬勤
 		end
-		inst:ListenForEvent("percentusedchange",function(inst,data)
-			if not inst.needspicefood and data and data.percent then
-				--耐久低于一定比例
-				if data.percent <= TUNING_MEDAL.CHEF_MEDAL.SPICE_RATIO then
-					inst.needspicefood=true--需要调味料理
-				end
+		--制作调料
+		inst.builditemfn = function(self,data)
+			if inst.spiceconsume ~= nil and inst.spiceconsume >= TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME_MAX then
+				return
 			end
-		end)
+			if inst.components.finiteuses == nil then return end
+			if data and data.item and data.item:HasTag("spice") then
+				inst.spiceconsume = inst.spiceconsume + TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME
+				inst.components.finiteuses:Use(TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME)
+				SpawnMedalTips(self,TUNING_MEDAL.CHEF_MEDAL.SPICE_CONSUME,10)--弹幕提示
+			end
+		end
 		inst.getMedalInfo = function(inst)--显示当前收集进度
-			if inst.needspicefood then
-				return STRINGS.MEDAL_INFO.NEEDSPICE
-			elseif inst.foodlist then
-				return STRINGS.MEDAL_INFO.FOODLOG2..#inst.foodlist
-			end
+			return STRINGS.MEDAL_INFO.FOODLOG2..#inst.foodlist.."\n"..STRINGS.MEDAL_INFO.FOODLOG3..inst.spiceconsume
 		end
 	end,
 	onsavefn=function(inst,data)--扩展存储函数
@@ -246,9 +332,9 @@ medal_defs.chef_certificate={
 		if inst.foodlist and #inst.foodlist>0 then
 			data.foodlist=shallowcopy(inst.foodlist)
 		end
-		--需要调味料理
-		if inst.needspicefood then
-			data.needspicefood=true
+		--调料消耗耐久
+		if inst.spiceconsume > 0 then
+			data.spiceconsume = inst.spiceconsume
 		end
 	end,
 	onloadfn=function(inst,data)--扩展加载函数
@@ -256,9 +342,9 @@ medal_defs.chef_certificate={
 		if data and data.foodlist and #data.foodlist>0 then
 			inst.foodlist=shallowcopy(data.foodlist)
 		end
-		--需要调味料理
-		if data and data.needspicefood then
-			inst.needspicefood=true
+		--调料消耗耐久
+		if data and data.spiceconsume then
+			inst.spiceconsume = data.spiceconsume
 		end
 	end,
 }
@@ -285,10 +371,12 @@ medal_defs.headchef_certificate={
 	end,
 	extrafn=function(inst)--额外扩展函数
 		inst.HarvestFoodFn=function(inst,foodname,harvester,cookpotname)
+			--在红晶锅收获大厨料理可获得红晶锅蓝图
 			if cookpotname and cookpotname=="medal_cookpot" and foodname and IsNativeCookingProduct(foodname,true) then
-				if harvester and harvester.components.builder and not harvester.components.builder:KnowsRecipe("medal_cookpot") and harvester.components.inventory then
+				if harvester and not harvester.learned_medal_cookpot and harvester.components.builder and not harvester.components.builder:KnowsRecipe("medal_cookpot") and harvester.components.inventory then
 					local blueprint=SpawnPrefab("medal_cookpot_blueprint")
 					if blueprint then
+						harvester.learned_medal_cookpot = true--标记一下防止多拿蓝图刷纸
 						harvester.components.inventory:GiveItem(blueprint)
 					end
 				end
@@ -369,17 +457,22 @@ medal_defs.wisdom_certificate={
 				owner.temporary_wisdom=true--临时智慧
 			end
 		end
-		----原本会读书的角色减少消耗
-		if not(owner.medal_t_com and owner.medal_t_com["reader"]) then
-			owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()*0.8)
+		--原本不会读书的角色增加消耗(包括小鱼妹)
+		if IsMedalTempCom(owner,"reader") or owner.temporary_nomalreader then
+			owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()*(HasOriginMedal(owner) and 1 or 1.5))
+		else--原本会读书的角色减少消耗
+			owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()*(HasOriginMedal(owner) and 0.5 or 0.8))
 		end
+
 		owner:PushEvent("refreshcrafting")--更新制作栏
 	end,
 	onunequipfn=function(inst,owner)
 		--精神消耗还原
 		if owner.components.reader then
-			if not(owner.medal_t_com and owner.medal_t_com["reader"]) then
-				owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()/0.8)
+			if IsMedalTempCom(owner,"reader") or owner.temporary_nomalreader then
+				owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()/(HasOriginMedal(owner) and 1 or 1.5))
+			else
+				owner.components.reader:SetSanityPenaltyMultiplier(owner.components.reader:GetSanityPenaltyMultiplier()/(HasOriginMedal(owner) and 0.5 or 0.8))
 			end
 		end
 		RemoveMedalComponent(owner,"reader")--移除读者组件
@@ -403,6 +496,41 @@ medal_defs.wisdom_certificate={
 	end,
 }
 -------------------------------------------------巧手考验勋章-------------------------------------------------
+--主客同步建造列表(制作栏显示用)
+local function setBuildList(inst,owner)
+	if inst.buildlist then
+		if owner and owner.medal_build_list then
+			local buildstr = inst:HasTag("usesdepleted") and "" or json.encode(inst.buildlist)--耐久没了的时候要把数据清掉
+			owner.medal_build_list:set(buildstr)
+		end
+	end
+end
+--巧手考验勋章消耗耐久(勋章,事件数据,玩家,基础扣除点数)
+local function handyTestCount(inst,data,player,basenum)
+	local MEDAL_MULT = TUNING_MEDAL.HANDY_TEST.CONSUME_MULT
+	if data and data.item then-- and data.item.OnBuiltFn==nil then
+		--消耗耐久
+		if inst.components.finiteuses and inst.buildlist then
+			local consume = 0
+			if inst.buildlist[data.item.prefab] == nil then
+				consume = 5*MEDAL_MULT--第一次做消耗更多
+				inst.buildlist[data.item.prefab] = consume
+			elseif inst.buildlist[data.item.prefab]<TUNING_MEDAL.HANDY_TEST.SINGLE_MAX then
+				consume = basenum*MEDAL_MULT--之后没达到上限就每次都扣
+				inst.buildlist[data.item.prefab] = inst.buildlist[data.item.prefab] + consume
+			end
+			if consume>0 then
+				inst.components.finiteuses:Use(consume)
+				setBuildList(inst,player)--同步建造列表
+				--天道酬勤
+				if not RewardToiler(player,0.04) then
+					SpawnMedalTips(player,consume,3)--弹幕提示
+				end
+			end
+		end
+	end
+end
+
 medal_defs.handy_test_certificate={
 	name="handy_test_certificate",
 	animname="handy_test_certificate",
@@ -416,31 +544,36 @@ medal_defs.handy_test_certificate={
 	onequipfn=function(inst,owner)
 		owner:ListenForEvent("builditem", inst.builditemfn)
 		owner:ListenForEvent("buildstructure", inst.buildstructurefn)
+		setBuildList(inst,owner)--同步建造列表
 	end,
 	onunequipfn=function(inst,owner)
 		owner:RemoveEventCallback("builditem", inst.builditemfn)
 		owner:RemoveEventCallback("buildstructure", inst.buildstructurefn)
+		if owner and owner.medal_build_list then
+			owner.medal_build_list:set("")
+		end
 	end,
 	extrafn=function(inst)
+		inst.buildlist={}--建造列表
 		--监听玩家制作物品
 		inst.builditemfn = function(self,data)
-			if data and data.item and not data.item.OnBuiltFn then
-				--消耗耐久
-				if inst.components.finiteuses then
-					inst.components.finiteuses:Use(1*TUNING_MEDAL.HANDY_TEST.CONSUME_MULT)
-					SpawnMedalTips(self,1*TUNING_MEDAL.HANDY_TEST.CONSUME_MULT,3)--弹幕提示
-				end
-			end
+			handyTestCount(inst,data,self,1)
 		end
 		--监听玩家制作建筑
 		inst.buildstructurefn = function(self,data)
-			if data and data.item and not data.item.OnBuiltFn then
-				--消耗耐久
-				if inst.components.finiteuses then
-					inst.components.finiteuses:Use(2*TUNING_MEDAL.HANDY_TEST.CONSUME_MULT)
-					SpawnMedalTips(self,2*TUNING_MEDAL.HANDY_TEST.CONSUME_MULT,3)--弹幕提示
-				end
-			end
+			handyTestCount(inst,data,self,2)
+		end
+	end,
+	onsavefn=function(inst,data)--扩展存储函数
+		--建造列表
+		if inst.buildlist then
+			data.buildlist=shallowcopy(inst.buildlist)
+		end
+	end,
+	onloadfn=function(inst,data)--扩展加载函数
+		--建造列表
+		if data and data.buildlist then
+			inst.buildlist=shallowcopy(data.buildlist)
 		end
 	end,
 }
@@ -461,25 +594,24 @@ medal_defs.handy_certificate={
 	isfinal=true,--是最终勋章
 	onequipfn=function(inst,owner)
 		AddMedalTag(owner,"handyperson")--女工科技
-		AddMedalTag(owner,"fastbuilder")--快速建造
-		owner:AddTag("has_handy_medal")--拥有巧手勋章，制作专属道具
-		--消除饱食度对制作物品的影响(薇诺娜饿了会做得更慢)
-		if owner:HasTag("hungrybuilder") then
-			owner:RemoveTag("hungrybuilder")
-			owner.is_hungrybuilder=true
+		if not owner:HasTag("portableengineer") then
+			AddMedalTag(owner,"basicengineer")--女工科技
 		end
+		owner:AddTag("has_handy_medal")--拥有巧手勋章，制作专属道具
 		owner:PushEvent("refreshcrafting")--更新制作栏
 		owner:ListenForEvent("builditem", handy_build)
 		owner:ListenForEvent("buildstructure", handy_build)
 	end,
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"handyperson")--女工科技
-		RemoveMedalTag(owner,"fastbuilder")--快速建造
-		owner:RemoveTag("has_handy_medal")
-		if owner.is_hungrybuilder then
-			owner:AddTag("hungrybuilder")
-			owner.is_hungrybuilder=nil
+		if owner:HasTag("portableengineer") then
+			if owner.medal_tag and owner.medal_tag["basicengineer"] and not owner:HasTag("basicengineer") then
+				owner.medal_tag["basicengineer"] = nil
+			end
+		else
+			RemoveMedalTag(owner,"basicengineer")--女工科技
 		end
+		owner:RemoveTag("has_handy_medal")
 		owner:PushEvent("refreshcrafting")--更新制作栏
 		owner:RemoveEventCallback("builditem", handy_build)
 		owner:RemoveEventCallback("buildstructure", handy_build)
@@ -711,10 +843,6 @@ medal_defs.plant_certificate={
 		--采摘列表
 		if data and data.picklist and #data.picklist>0 then
 			inst.picklist=shallowcopy(data.picklist)
-			--根据采摘列表设置耐久(不同难度切换耐久同步)
-			-- if inst.components.finiteuses then
-			-- 	inst.components.finiteuses:SetUses(#inst.picklist+TUNING_MEDAL.PLANT_MEDAL.MAXUSES-15)
-			-- end
 		end
 	end,
 }
@@ -744,6 +872,9 @@ medal_defs.transplant_certificate={
 		if not inst:HasTag("blank_certificate") then
 			inst:AddTag("canstrokemedal")--可被抚摸
 		end
+		if HasOriginMedal(owner) then
+			inst:AddTag("bramble_resistant")--免收尖刺伤害
+		end
 	end,
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"plantkin")--植物人
@@ -758,6 +889,7 @@ medal_defs.transplant_certificate={
 		if not inst:HasTag("blank_certificate") then
 			inst:RemoveTag("canstrokemedal")--可被抚摸
 		end
+		inst:RemoveTag("bramble_resistant")--免收尖刺伤害
 	end,
 	extrafn=function(inst)--额外扩展函数
 		inst:AddComponent("deployable")
@@ -803,8 +935,12 @@ medal_defs.transplant_certificate={
 -------------------------------------------------丰收勋章-------------------------------------------------
 local function picksomething(player,data)
 	--采摘田里的农作物或嫁接树
-	if data and data.object and (data.object:HasTag("farm_plant") or data.object:HasTag("medal_fruit_tree")) then
-		RewardToiler(player)--天道酬勤
+	if data and data.object then
+		if data.object:HasTag("medal_fruit_tree") then
+			RewardToiler(player)--天道酬勤
+		elseif data.object:HasTag("farm_plant") then
+			RewardToiler(player,0.01)--天道酬勤
+		end
 	end
 end
 medal_defs.harvest_certificate={
@@ -816,12 +952,12 @@ medal_defs.harvest_certificate={
 	},
 	isfinal=true,--是最终勋章
 	onequipfn=function(inst,owner)
-		AddMedalTag(owner,"fastpicker")--快采标签
+		owner:AddTag("medal_fastpicker")--特殊快采动作
 		owner.quickpickmedal=true--快采勋章
 		owner:ListenForEvent("picksomething", picksomething)--采摘
 	end,
 	onunequipfn=function(inst,owner)
-		RemoveMedalTag(owner,"fastpicker")--快采标签
+		owner:RemoveTag("medal_fastpicker")
 		owner.quickpickmedal=nil--快采勋章
 		owner:RemoveEventCallback("picksomething", picksomething)
 	end,
@@ -850,7 +986,10 @@ local function finishedchop(inst,player,data)
 				--消耗耐久
 				if inst.components.finiteuses then
 					inst.components.finiteuses:Use(consume)
-					SpawnMedalTips(player,consume,1)--弹幕提示
+					--天道酬勤
+					if not RewardToiler(player, 0.01) then
+						SpawnMedalTips(player,consume,1)--弹幕提示
+					end
 				end
 			end
 		end
@@ -874,10 +1013,7 @@ medal_defs.smallchop_certificate={
 		owner.small_chop=true
 		owner:PushEvent("changechopmedal")
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
-			inst.finishedwork=function(player,data)
-				finishedchop(inst,player,data)
-			end
+		if inst.finishedwork ~= nil then
 			owner:ListenForEvent("finishedwork", inst.finishedwork)
 		end
 	end,
@@ -885,8 +1021,13 @@ medal_defs.smallchop_certificate={
 		owner.small_chop=nil
 		owner:PushEvent("changechopmedal")
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
+		if inst.finishedwork ~= nil then
 			owner:RemoveEventCallback("finishedwork", inst.finishedwork)
+		end
+	end,
+	extrafn=function(inst)
+		inst.finishedwork=function(player,data)
+			finishedchop(inst,player,data)
 		end
 	end,
 }
@@ -912,10 +1053,7 @@ medal_defs.mediumchop_certificate={
 			owner.components.workmultiplier:AddMultiplier(ACTIONS.CHOP,2,inst)--砍树效率翻倍
 		end
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
-			inst.finishedwork=function(player,data)
-				finishedchop(inst,player,data)
-			end
+		if inst.finishedwork ~= nil then
 			owner:ListenForEvent("finishedwork", inst.finishedwork)
 		end
 	end,
@@ -927,8 +1065,13 @@ medal_defs.mediumchop_certificate={
 			owner.components.workmultiplier:RemoveMultiplier(ACTIONS.CHOP,inst)
 		end
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
+		if inst.finishedwork ~= nil then
 			owner:RemoveEventCallback("finishedwork", inst.finishedwork)
+		end
+	end,
+	extrafn=function(inst)
+		inst.finishedwork=function(player,data)
+			finishedchop(inst,player,data)
 		end
 	end,
 }
@@ -953,10 +1096,11 @@ medal_defs.largechop_certificate={
 		owner:PushEvent("changechopmedal")
 		AddMedalTag(owner,"woodcutter")--伐木工标签
 		if owner.components.workmultiplier then 
+			local added = HasOriginMedal(owner) and 1 or 0--本源勋章额外增加效率
 			if owner.prefab=="woodie" then
-				owner.components.workmultiplier:AddMultiplier(ACTIONS.CHOP,3,inst)--砍树效率翻倍
+				owner.components.workmultiplier:AddMultiplier(ACTIONS.CHOP,3 + added,inst)--砍树效率翻倍
 			else
-				owner.components.workmultiplier:AddMultiplier(ACTIONS.CHOP,2,inst)--砍树效率翻倍
+				owner.components.workmultiplier:AddMultiplier(ACTIONS.CHOP,2 + added,inst)--砍树效率翻倍
 			end
 		end
 		owner:ListenForEvent("finishedwork", largechop_finishwork)
@@ -1004,7 +1148,10 @@ local function finishedmine(inst,player,data)
 				--消耗耐久
 				if inst.components.finiteuses then
 					inst.components.finiteuses:Use(consume)
-					SpawnMedalTips(player,consume,2)--弹幕提示
+					--天道酬勤
+					if not RewardToiler(player, 0.01) then
+						SpawnMedalTips(player,consume,2)--弹幕提示
+					end
 				end
 			end
 		end
@@ -1029,10 +1176,7 @@ medal_defs.smallminer_certificate={
 		owner.small_mine=true
 		owner:PushEvent("changeminermedal")
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
-			inst.finishedwork=function(player,data)
-				finishedmine(inst,player,data)
-			end
+		if inst.finishedwork ~= nil then
 			owner:ListenForEvent("finishedwork", inst.finishedwork)
 		end
 	end,
@@ -1040,8 +1184,13 @@ medal_defs.smallminer_certificate={
 		owner.small_mine=nil
 		owner:PushEvent("changeminermedal")
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
+		if inst.finishedwork ~= nil then
 			owner:RemoveEventCallback("finishedwork", inst.finishedwork)
+		end
+	end,
+	extrafn=function(inst)
+		inst.finishedwork=function(player,data)
+			finishedmine(inst,player,data)
 		end
 	end,
 }
@@ -1067,10 +1216,7 @@ medal_defs.mediumminer_certificate={
 			owner.components.workmultiplier:AddMultiplier(ACTIONS.MINE,1.5,inst)--挖矿效率翻倍
 		end
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
-			inst.finishedwork=function(player,data)
-				finishedmine(inst,player,data)
-			end
+		if inst.finishedwork ~= nil then
 			owner:ListenForEvent("finishedwork", inst.finishedwork)
 		end
 	end,
@@ -1081,8 +1227,13 @@ medal_defs.mediumminer_certificate={
 			owner.components.workmultiplier:RemoveMultiplier(ACTIONS.MINE,inst)
 		end
 		--复制的勋章不需要监听
-		if not inst:HasTag("blank_certificate") then
+		if inst.finishedwork ~= nil then
 			owner:RemoveEventCallback("finishedwork", inst.finishedwork)
+		end
+	end,
+	extrafn=function(inst)
+		inst.finishedwork=function(player,data)
+			finishedmine(inst,player,data)
 		end
 	end,
 }
@@ -1105,8 +1256,9 @@ medal_defs.largeminer_certificate={
 	onequipfn=function(inst,owner)
 		owner.large_mine=true
 		owner:PushEvent("changeminermedal")
-		if owner.components.workmultiplier then 
-			owner.components.workmultiplier:AddMultiplier(ACTIONS.MINE,3,inst)--挖矿效率翻倍
+		if owner.components.workmultiplier then
+			local added = HasOriginMedal(owner) and 1 or 0--本源勋章额外增加效率
+			owner.components.workmultiplier:AddMultiplier(ACTIONS.MINE,3 + added,inst)--挖矿效率翻倍
 		end
 		owner:ListenForEvent("finishedwork", largeminer_finishwork)
 	end,
@@ -1147,7 +1299,7 @@ medal_defs.friendly_certificate={
 			owner.friendlymonster=nil
 		end
 		owner:RemoveEventCallback("onhitother", inst.losefriendfn)
-		owner:RemoveEventCallback("gainfriendship", inst.losefriendfn)
+		owner:RemoveEventCallback("gainfriendship", inst.gainfriendshipfn)
 	end,
 	extrafn=function(inst)
 		--友善勋章监听函数
@@ -1202,12 +1354,12 @@ medal_defs.inherit_certificate={
 	"addfunctional",--可放入融合勋章
 	"copyfunctional",--可印刻
 	"washfunctionalable",--能力可被擦除
-	"upgradablemedal",--可融合升级
 	},
 	isfinal=true,--是最终勋章
 	upgradable=true,--可升级
 	maxlevel=TUNING_MEDAL.INHERIT_MEDAL.MAX_LEVEL,--最高等级
 	onequipfn=function(inst,owner)
+		-- print(inst.medal_level)
 		if inst.medal_level then
 			for i=1,inst.medal_level do
 				owner:AddTag("traditionalbearer"..i)
@@ -1226,42 +1378,110 @@ medal_defs.ommateum_certificate={
 	animname="ommateum_certificate",
 	taglist={
 	"addfunctional",--可放入融合勋章
-	"copyfunctional",--可印刻
+	-- "copyfunctional",--可印刻
 	"washfunctionalable",--能力可被擦除
-	-- "goggles",--可防沙尘暴
 	},
 	isfinal=true,--是最终勋章
+	fuellevel=TUNING_MEDAL.OMMATEUM_MEDAL.PERISHTIME,--耐久
+	deletefn=function(inst)--耐久用完执行的函数
+		
+	end,
+	medal_repair_common = TUNING_MEDAL.OMMATEUM_MEDAL.REPAIR_LOOT,--补充耐久
 	onequipfn=function(inst,owner)
-		owner.medalnightvision:set(true)
-		if owner.components.hunger ~= nil then
-			owner.components.hunger.burnratemodifiers:SetModifier("ommateum_certificate", TUNING_MEDAL.OMMATEUM_MEDAL.HUNGER_RATE)
+		if owner.medalnightvision then
+			owner.medalnightvision:set(true)
 		end
+		--开始消耗耐久
+		if inst.components.fueled then
+			inst.components.fueled:StartConsuming()
+		end
+		if inst.medal_losehealth_task then
+			inst.medal_losehealth_task:Cancel()
+			inst.medal_losehealth_task = nil
+		end
+		--耐久为空时每秒扣血
+		inst.medal_losehealth_task = inst:DoPeriodicTask(1,function()
+			if inst.components.fueled then
+				if HasOriginMedal(owner) then--本源降低消耗速度
+					inst.components.fueled.rate_modifiers:SetModifier("origin_medal", .25)
+				end
+				--在任何风暴中加速消耗
+				if owner and owner.components.stormwatcher ~= nil and owner.components.stormwatcher:GetCurrentStorm() > 0 then
+					inst.components.fueled.rate_modifiers:SetModifier("storm", 2)
+					inst.components.fueled:StartConsuming()
+				--在夜晚或洞穴中正常消耗
+				elseif TheWorld.state.isnight then
+					inst.components.fueled.rate_modifiers:RemoveModifier("storm")
+					inst.components.fueled:StartConsuming()
+				else--否则停止消耗
+					inst.components.fueled.rate_modifiers:RemoveModifier("storm")
+					inst.components.fueled:StopConsuming()
+				end
+			end
+			if inst.components.fueled == nil or inst.components.fueled:IsEmpty() then
+				if owner.components.health and not owner.components.health:IsDead() then
+					inst.damage_count = inst.damage_count and inst.damage_count + 1 or 1--扣血次数累计
+					owner.components.health:DoDelta(-math.ceil(inst.damage_count/5)*TUNING_MEDAL.OMMATEUM_MEDAL.DAMAGE_MULT)--扣血量=math.ceil(累计扣血次数/5)*难度倍率
+				else
+					inst.damage_count=nil--清空扣血计数
+				end
+			elseif inst.damage_count ~= nil then
+				inst.damage_count=nil--清空扣血计数
+			end
+		end)
 	end,
 	onunequipfn=function(inst,owner)
-		owner.medalnightvision:set(false)
-		if owner.components.hunger ~= nil then
-			owner.components.hunger.burnratemodifiers:RemoveModifier("ommateum_certificate")
+		if owner.medalnightvision then
+			owner.medalnightvision:set(false)
+		end
+		--停止消耗耐久
+		if inst.components.fueled then
+			inst.components.fueled.rate_modifiers:RemoveModifier("origin_medal")
+			inst.components.fueled.rate_modifiers:RemoveModifier("storm")
+			inst.components.fueled:StopConsuming()
+		end
+		--取消扣血任务
+		if inst.medal_losehealth_task then
+			inst.medal_losehealth_task:Cancel()
+			inst.medal_losehealth_task=nil
+		end
+	end,
+	extrafn=function(inst)
+		--补充耐久前
+		inst.medal_before_repairfn=function(inst,item,num)
+			if inst.components.fueled ~= nil then
+				--夜莓增加耐久上限
+				if item ~= nil and item.prefab == "ancientfruit_nightvision" and inst.components.fueled.maxfuel < TUNING_MEDAL.OMMATEUM_MEDAL.MAX_PERISHTIME then
+					inst.components.fueled.maxfuel = math.min(inst.components.fueled.maxfuel + TUNING_MEDAL.OMMATEUM_MEDAL.ADD_PERISHTIME * (num or 1) , TUNING_MEDAL.OMMATEUM_MEDAL.MAX_PERISHTIME)
+				end
+			end
+		end
+		--补充耐久
+		inst.medal_onrepairfn=function(inst,item,num)
+			if inst.isequipped and inst.components.fueled ~= nil then
+				--处于装备中则开始掉耐久
+				inst.components.fueled:StartConsuming()
+			end
+		end
+	end,
+	onsavefn=function(inst,data)--扩展存储函数
+		if inst.components.fueled ~= nil then
+			data.maxfuel = inst.components.fueled.maxfuel
+			data.currentfuel = inst.components.fueled.currentfuel
+		end
+	end,
+	onloadfn=function(inst,data)--扩展加载函数
+		if data and inst.components.fueled ~= nil then
+			if data.maxfuel then
+				inst.components.fueled.maxfuel = data.maxfuel
+			end
+			if data.currentfuel then
+				inst.components.fueled.currentfuel = data.currentfuel
+			end
 		end
 	end,
 }
 -------------------------------------------------逮捕勋章-------------------------------------------------
-local function setJustIceKillFn(inst)
-	--监听目标死亡
-	inst:ListenForEvent("death",function(inst,data)
-		--克劳斯需要二阶段死了才算
-		if inst.prefab~="klaus" or inst:IsUnchained() then
-			--如果是有正义感的玩家杀死的，则给这个玩家推事件
-			if data and data.afflicter and data.afflicter.isjustice then
-				data.afflicter:PushEvent("justicekilled",{victim=inst})
-			--否则给绑定的玩家推
-			elseif inst.justiceplayer then
-				inst.justiceplayer:PushEvent("justicekilled",{victim=inst})
-				inst.justiceplayer=nil
-			end
-		end
-	end)
-end
-
 medal_defs.arrest_certificate={
 	name="arrest_certificate",
 	animname="arrest_certificate",
@@ -1279,19 +1499,17 @@ medal_defs.arrest_certificate={
 		end)
 	end,
 	onequipfn=function(inst,owner)
-		owner.isjustice=true--玩家是正义的
-		owner:ListenForEvent("justicekilled", inst.arrestKilled)
-		owner:ListenForEvent("onhitother", inst.justiceHit)
+		owner:ListenForEvent("medal_killed", inst.medalKilled)
+		owner:ListenForEvent("onhitother", inst.onMedalHitOther)
 	end,
 	onunequipfn=function(inst,owner)
-		owner.isjustice=nil
-		owner:RemoveEventCallback("justicekilled", inst.arrestKilled)
-		owner:RemoveEventCallback("onhitother", inst.justiceHit)
+		owner:RemoveEventCallback("medal_killed", inst.medalKilled)
+		owner:RemoveEventCallback("onhitother", inst.onMedalHitOther)
 	end,
 	extrafn=function(inst)
 		--逮捕勋章监听函数
-		inst.arrestKilled = function(self,data)
-			if data ~= nil and data.victim then
+		inst.medalKilled = function(self,data)
+			if data ~= nil and data.prefab == inst.prefab and data.victim then
 				--小偷
 				if data.victim.prefab=="krampus" or data.victim.prefab=="medal_naughty_krampus" then
 					if inst.components.finiteuses then
@@ -1302,21 +1520,10 @@ medal_defs.arrest_certificate={
 			end
 		end
 		--给目标绑定正义攻击者
-		inst.justiceHit = function(self,data)
-			--攻击目标在列表里，并且攻击目标绑定的玩家不是佩戴者，则进行相关处理
-			if data ~= nil and data.target and (data.target.prefab=="krampus" or data.target.prefab=="medal_naughty_krampus") and data.target.justiceplayer~=self then
-				--直接砍死了，那就直接算击杀
-				if data.target.components.health and data.target.components.health:IsDead() then
-					if inst.arrestKilled then
-						inst.arrestKilled(self,{victim=data.target})
-					end
-				else
-					--目标没绑定玩家，给它添加推送事件
-					if data.target.justiceplayer==nil then
-						setJustIceKillFn(data.target)
-					end
-					data.target.justiceplayer=self--和佩戴者进行绑定
-				end
+		inst.onMedalHitOther = function(self,data)
+			--攻击目标符合要求,且攻击目标绑定的玩家不是佩戴者则继续
+			if data ~= nil and data.target and (data.target.prefab=="krampus" or data.target.prefab=="medal_naughty_krampus") then
+				MedalHitOther(self,data.target,inst)
 			end
 		end
 	end
@@ -1324,14 +1531,99 @@ medal_defs.arrest_certificate={
 -------------------------------------------------正义勋章-------------------------------------------------
 --目标正义值消耗表
 local justice_targetlist={
-	krampus=5,--坎普斯
-	medal_naughty_krampus=5,--复仇坎普斯
-	klaus=50,--克劳斯
-	bat=1,--蝙蝠
-	lightninggoat=5,--闪电羊
-	tentacle=5,--触手
-	tentacle_pillar=5,--巨型触手
-	medal_rage_krampus=50,--暗夜坎普斯
+	krampus = {--坎普斯
+		consume = 5,
+		fn = function(inst,player,victim)
+			local chance = TUNING_MEDAL.LOST_BAG_DROP_RATE*(player:HasTag("naughtymedal") and 2 or 1)--掉包果概率(装备淘气勋章出包果的概率翻倍)
+			--记录荣誉
+			if inst.medal_honor then
+				inst.medal_honor[1]=inst.medal_honor[1]+1
+			end
+			--保底掉落
+			if GuaranteedRandom(player,chance,"krampus") then
+				if victim.components.lootdropper then
+					victim.components.lootdropper:SpawnLootPrefab("medal_gift_fruit")
+				end
+				if inst.medal_honor then
+					inst.medal_honor[6]=inst.medal_honor[6]+1
+				end
+			end
+		end,
+	},
+	medal_naughty_krampus = {--复仇坎普斯
+		consume = 5,
+		fn = function(inst,player,victim)
+			local chance=TUNING_MEDAL.LOST_BAG_DROP_RATE*(player:HasTag("naughtymedal") and 2 or 1)--掉包裹概率(装备淘气勋章出包裹的概率翻倍)
+			--记录荣誉
+			if inst.medal_honor then
+				inst.medal_honor[5]=inst.medal_honor[5]+1
+			end
+			--保底掉落
+			if GuaranteedRandom(player,chance,"medal_naughty_krampus") then
+				DropLossBundle(victim,player)
+				if inst.medal_honor then
+					inst.medal_honor[3]=inst.medal_honor[3]+1
+				end
+			else
+				local calltimes = victim.call_times or 0
+				RewardToiler(player,math.min(calltimes*0.002+0.05,0.2))--天道酬勤
+			end
+		end,
+	},
+	klaus = {--克劳斯
+		consume = 50,
+		fn = function(inst,player,victim)
+			DropLossBundle(victim,player,3)
+			if inst.medal_honor then
+				inst.medal_honor[2]=inst.medal_honor[2]+1
+				inst.medal_honor[3]=inst.medal_honor[3]+3
+			end
+		end,
+	},
+	bat = {--蝙蝠
+		consume = 1,
+		testfn = function(inst,player,victim)
+			return player.components.builder and not player.components.builder:KnowsRecipe("trap_bat")
+		end,
+		fn = function(inst,player,victim)
+			if GuaranteedRandom(player, TUNING_MEDAL.TRAP_BAT_BLUEPRINT_RATE, "bat") then
+				victim.components.lootdropper:SpawnLootPrefab("trap_bat_blueprint")
+			end
+		end,
+	},
+	lightninggoat = {--闪电羊
+		consume = 5,
+		testfn = function(inst,player,victim)
+			return player.components.builder and not player.components.builder:KnowsRecipe("medal_goathat")
+		end,
+		fn = function(inst,player,victim)
+			if math.random() < (victim.charged and TUNING_MEDAL.GOATHAT_BULEPRINT_CHANCE_CHARGED or TUNING_MEDAL.GOATHAT_BULEPRINT_CHANCE_NOMAL) then
+				victim.components.lootdropper:SpawnLootPrefab("medal_goathat_blueprint")
+			end
+		end,
+	},
+	tentacle = {--触手
+		consume = 5,
+		fn = function(inst,player,victim)
+			if GuaranteedRandom(player, TUNING_MEDAL.TENTACLE_MEDAL.DROP_CHANCE, "tentacle") then
+				victim.components.lootdropper:SpawnLootPrefab("tentacle_certificate")
+			end
+		end,
+	},
+	tentacle_pillar = {--巨型触手
+		consume = 5,
+		fn = function(inst,player,victim)
+			if math.random() < TUNING_MEDAL.TENTACLE_MEDAL.DROP_CHANCE*2 then
+				victim.components.lootdropper:SpawnLootPrefab("tentacle_certificate")
+			end
+		end,
+	},
+	medal_rage_krampus = {--暗夜坎普斯
+		consume = 50,
+		fn = function(inst,player,victim)
+			victim.components.lootdropper:SpawnLootPrefab("medal_treasure_map")
+		end,
+	},
 }
 --正义勋章
 medal_defs.justice_certificate={
@@ -1359,22 +1651,18 @@ medal_defs.justice_certificate={
 	end,
 	isfinal=true,--是最终勋章
 	onequipfn=function(inst,owner)
-		owner.isjustice=true--玩家是正义的
 		owner:AddTag("addjustice")--可增加正义值
-		-- owner:ListenForEvent("killed", inst.justiceKilled)
-		owner:ListenForEvent("justicekilled", inst.justiceKilled)
-		owner:ListenForEvent("onhitother", inst.justiceHit)
+		owner:ListenForEvent("medal_killed", inst.medalKilled)
+		owner:ListenForEvent("onhitother", inst.onMedalHitOther)
 	end,
 	onunequipfn=function(inst,owner)
-		owner.isjustice=nil
 		owner:RemoveTag("addjustice")
-		-- owner:RemoveEventCallback("killed", inst.justiceKilled)
-		owner:RemoveEventCallback("justicekilled", inst.justiceKilled)
-		owner:RemoveEventCallback("onhitother", inst.justiceHit)
+		owner:RemoveEventCallback("medal_killed", inst.medalKilled)
+		owner:RemoveEventCallback("onhitother", inst.onMedalHitOther)
 	end,
 	extrafn=function(inst)--额外扩展函数
-		inst.medal_honor={0,0,0,0,0,0}--荣誉:1坎普斯数量,2克劳斯数量,3遗失包裹数量,4怪物精华数量,5淘气坎普斯数量,6遗失藏宝图数量
-		inst.addusefn=function(inst,consumables,usenum)--补充耐久回调函数(正义勋章,消耗材料,消耗数量)
+		inst.medal_honor={0,0,0,0,0,0}--荣誉:1坎普斯数量,2克劳斯数量,3遗失包裹数量,4怪物精华数量,5淘气坎普斯数量,6包果数量
+		inst.medal_before_repairfn=function(inst,consumables,usenum)--补充耐久时执行(正义勋章,消耗材料,消耗数量)
 			if consumables and consumables.prefab=="medal_monster_essence" then
 				--记录怪物精华数量
 				if inst.medal_honor then
@@ -1392,159 +1680,97 @@ medal_defs.justice_certificate={
 		end
 		inst.getMedalInfo = function(inst)--显示正义勋章荣誉
 			if inst.medal_honor then
-				local medalstr=STRINGS.NAMES.KRAMPUS.."*"..inst.medal_honor[1]..","--坎普斯
+				local medalstr=STRINGS.MEDAL_INFO.JUSTICE_VALUE..(inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0).."\n"--正义值
+				medalstr=medalstr..STRINGS.MEDAL_INFO.HONOR
+				medalstr=medalstr..STRINGS.NAMES.KRAMPUS.."*"..inst.medal_honor[1]..","--坎普斯
 				medalstr=medalstr..STRINGS.NAMES.KLAUS.."*"..inst.medal_honor[2]..","--克劳斯
 				medalstr=medalstr..STRINGS.NAMES.MEDAL_NAUGHTY_KRAMPUS.."*"..inst.medal_honor[5].."\n"--淘气坎普斯
-				medalstr=medalstr..STRINGS.NAMES.MEDAL_LOSS_TREASURE_MAP.."*"..inst.medal_honor[6]..","--遗失藏宝图
+				medalstr=medalstr..STRINGS.NAMES.MEDAL_GIFT_FRUIT.."*"..inst.medal_honor[6]..","--包果
 				medalstr=medalstr..STRINGS.MEDAL_INFO.LOSSPACK.."*"..inst.medal_honor[3]..","--遗失包裹
 				medalstr=medalstr..STRINGS.NAMES.MEDAL_MONSTER_ESSENCE.."*"..inst.medal_honor[4]--怪物精华
-				return STRINGS.MEDAL_INFO.HONOR..medalstr
+				return medalstr
 			end
 		end
 		--正义勋章监听函数
-		inst.justiceKilled = function(self,data)
-			if data ~= nil and data.victim and not data.victim.medal_kill then
+		inst.medalKilled = function(self,data)
+			if data ~= nil and data.prefab == inst.prefab and data.victim then-- and not data.victim.medal_kill then
+				--克劳斯要第二形态才算
+				if data.victim.prefab == "klaus" and data.victim.IsUnchained ~= nil and not data.victim:IsUnchained() then return end
+				local has_origin = HasOriginMedal(self)--是否有本源勋章
 				local justice_value= inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0--正义值
+				local justice_data = justice_targetlist[data.victim.prefab]
+				local addjustice = true--是否增加正义值
+				--暗影挑战券召唤的生物
+				if data.victim:HasTag("norewardtoiler") then
+					addjustice = false
+					local gift_value = data.victim.gift_value or 1--包果价值
+					local justice_consume = gift_value*TUNING_MEDAL.JUSTICE_MEDAL.GIFT_VALUE_MULT--正义值消耗
+					if has_origin then--本源减耗
+						justice_consume = math.ceil(justice_consume * TUNING_MEDAL.JUSTICE_MEDAL.ORIGIN_MULT)
+					end
+					--正义值要充足
+					if justice_value >= justice_consume then
+						local seedNum = gift_value==2 and math.random()<.25 and 1 or math.floor(gift_value/4)--种子数量
+						local fruitNum = gift_value%4--果实数量
+						if data.victim.components.lootdropper then
+							--掉落包果和包果种子
+							for i = 1, seedNum do
+								data.victim.components.lootdropper:SpawnLootPrefab("medal_gift_fruit_seed")
+							end
+							for i = 1, fruitNum do
+								data.victim.components.lootdropper:SpawnLootPrefab("medal_gift_fruit")
+							end
+						end
+						inst.components.finiteuses:Use(justice_consume)--消耗正义值
+					elseif has_origin then
+						addjustice = true
+					end
+					-- data.victim.medal_kill=true--对受害者进行标记，防止多次生成掉落物
 				--目标列表内的生物
-				if justice_targetlist[data.victim.prefab] then
-					--正义值要充足(克劳斯要第二形态才算)
-					if justice_value>=justice_targetlist[data.victim.prefab] and (data.victim.prefab~="klaus" or data.victim:IsUnchained()) then
-						local noconsume=nil--不消耗正义值
-						
-						--复仇坎普斯有概率掉包裹
-						if data.victim.prefab=="medal_naughty_krampus" then
-							local chance=TUNING_MEDAL.LOST_BAG_DROP_RATE*(self:HasTag("naughtymedal") and 2 or 1)--掉包裹概率(装备淘气勋章出包裹的概率翻倍)
-							--记录荣誉
-							if inst.medal_honor then
-								inst.medal_honor[5]=inst.medal_honor[5]+1
-							end
-							if math.random() < chance then
-								DropLossBundle(data.victim,self)
-								self.medal_bundle_loss_count=0
-								if inst.medal_honor then
-									inst.medal_honor[3]=inst.medal_honor[3]+1
-								end
-							--保底掉落
-							elseif self.medal_bundle_loss_count and self.medal_bundle_loss_count>=math.ceil(1/chance*1.5)-1 then
-								DropLossBundle(data.victim,self)
-								self.medal_bundle_loss_count=0
-								if inst.medal_honor then
-									inst.medal_honor[3]=inst.medal_honor[3]+1
-								end
-								SpawnMedalTips(self,1,14)--弹幕提示
-							else--保底计数+1
-								local calltimes = data.victim.call_times or 0
-								local chance = math.min(calltimes*0.002+0.1,0.25)
-								RewardToiler(self,chance)--天道酬勤
-								self.medal_bundle_loss_count=self.medal_bundle_loss_count and self.medal_bundle_loss_count+1 or 1
-							end
-							-- print(self.medal_bundle_loss_count.."次没出,第"..math.ceil(1/chance*1.5).."次必出")
-						--坎普斯有概率掉遗失藏宝图
-						elseif data.victim.prefab=="krampus" then
-							local chance=TUNING_MEDAL.LOST_BAG_DROP_RATE*(self:HasTag("naughtymedal") and 2 or 1)--掉藏宝图概率(装备淘气勋章出藏宝图的概率翻倍)
-							--记录荣誉
-							if inst.medal_honor then
-								inst.medal_honor[1]=inst.medal_honor[1]+1
-							end
-							if math.random() < chance then
-								if data.victim.components.lootdropper then
-									data.victim.components.lootdropper:SpawnLootPrefab("medal_loss_treasure_map")
-								end
-								self.medal_loss_map_count=0
-								if inst.medal_honor then
-									inst.medal_honor[6]=inst.medal_honor[6]+1
-								end
-							--保底掉落
-							elseif self.medal_loss_map_count and self.medal_loss_map_count>=math.ceil(1/chance*1.5)-1 then
-								if data.victim.components.lootdropper then
-									data.victim.components.lootdropper:SpawnLootPrefab("medal_loss_treasure_map")
-								end
-								self.medal_loss_map_count=0
-								if inst.medal_honor then
-									inst.medal_honor[6]=inst.medal_honor[6]+1
-								end
-								SpawnMedalTips(self,1,14)--弹幕提示
-							else--保底计数+1
-								self.medal_loss_map_count=self.medal_loss_map_count and self.medal_loss_map_count+1 or 1
-							end
-						--克劳斯必掉3个包裹
-						elseif data.victim.prefab=="klaus" then
-							DropLossBundle(data.victim,self,3)
-							if inst.medal_honor then
-								inst.medal_honor[2]=inst.medal_honor[2]+1
-								inst.medal_honor[3]=inst.medal_honor[3]+3
-							end
-						--暗夜坎普斯掉赃物袋或藏宝图
-						elseif data.victim.prefab=="medal_rage_krampus" then
-							data.victim.components.lootdropper:SpawnLootPrefab("medal_treasure_map")
-						--打蝙蝠概率掉蓝图
-						elseif data.victim.prefab=="bat" then
-							if self.components.builder and not self.components.builder:KnowsRecipe("trap_bat") then
-								if math.random() < TUNING_MEDAL.TRAP_BAT_BLUEPRINT_RATE then
-									data.victim.components.lootdropper:SpawnLootPrefab("trap_bat_blueprint")
-								end
-							else
-								noconsume=true--不消耗正义值
-							end
-						--电羊
-						elseif data.victim.prefab=="lightninggoat" then
-							if self.components.builder and not self.components.builder:KnowsRecipe("medal_goathat") then
-								if math.random() < (data.victim.charged and TUNING_MEDAL.GOATHAT_BULEPRINT_CHANCE_CHARGED or TUNING_MEDAL.GOATHAT_BULEPRINT_CHANCE_NOMAL) then
-									data.victim.components.lootdropper:SpawnLootPrefab("medal_goathat_blueprint")
-								end
-							else
-								noconsume=true--不消耗正义值
-							end
-						--触手
-						elseif data.victim.prefab=="tentacle" then
-							if math.random() < TUNING_MEDAL.TENTACLE_MEDAL.DROP_CHANCE then
-								data.victim.components.lootdropper:SpawnLootPrefab("tentacle_certificate")
-							end
-						--巨型触手
-						elseif data.victim.prefab=="tentacle_pillar" then
-							if math.random() < TUNING_MEDAL.TENTACLE_MEDAL.DROP_CHANCE*2 then
-								data.victim.components.lootdropper:SpawnLootPrefab("tentacle_certificate")
-							end
-						end
-						if not noconsume then
-							inst.components.finiteuses:Use(justice_targetlist[data.victim.prefab])--消耗正义值
-						end
-						data.victim.medal_kill=true--对受害者进行标记，防止多次生成掉落物
+				elseif justice_data ~= nil and (justice_data.testfn == nil or justice_data.testfn(inst,self,data.victim)) then
+					addjustice = false
+					local justice_consume = justice_data.consume
+					if has_origin then--本源减耗
+						justice_consume = math.ceil(justice_consume * TUNING_MEDAL.JUSTICE_MEDAL.ORIGIN_MULT)
 					end
+					--正义值要充足
+					if justice_data.fn ~= nil and justice_value >= justice_consume then
+						justice_data.fn(inst,self,data.victim)
+						if justice_consume > 0 then
+							inst.components.finiteuses:Use(justice_consume)--消耗正义值
+						end
+						-- data.victim.medal_kill=true--对受害者进行标记，防止多次生成掉落物
+					elseif has_origin then
+						addjustice = true
+					end
+				end
 				--其他怪物
-				elseif data.victim:HasTag("monster") and data.victim.components.health then
-					if inst.components.finiteuses:GetPercent()<1 then
-						--正义值增值=math.floor(目标血量上限/250)+1
-						local need_add=math.floor(data.victim.components.health:GetMaxWithPenalty()/250)+1
-						SpawnMedalTips(self,need_add,13)--弹幕提示
-						inst.components.finiteuses:SetUses(math.min(justice_value+need_add,inst.components.finiteuses.total))
-					end
+				if addjustice and data.victim:HasOneOfTags({"epic","monster"}) and data.victim.components.health and inst.components.finiteuses:GetPercent()<1 then
+					--正义值增值=math.floor(目标血量上限/250)+1
+					local need_add = math.floor(data.victim.components.health:GetMaxWithPenalty() / 250) + 1
+					SpawnMedalTips(self, need_add, 13)--弹幕提示
+					inst.components.finiteuses:Repair(need_add)
 				end
 			end
 		end
 		--给目标绑定正义勋章攻击者
-		inst.justiceHit = function(self,data)
-			--攻击目标是怪物或者在目标列表里，并且攻击目标绑定的玩家不是佩戴者，则进行相关处理
-			if data ~= nil and data.target and (data.target:HasTag("monster") or justice_targetlist[data.target.prefab]) and data.target.justiceplayer~=self then
+		inst.onMedalHitOther = function(self,data)
+			--攻击目标是怪物或者在目标列表里
+			if data ~= nil and data.target and (data.target:HasOneOfTags({"epic","monster","norewardtoiler"}) or justice_targetlist[data.target.prefab]~=nil) then
 				local justice_value= inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0--正义值
-				--目标列表内的生物要满足正义值才行，不然就要提示玩家正义值不足
-				if justice_targetlist[data.target.prefab] and justice_value<justice_targetlist[data.target.prefab] then
+				local has_origin = HasOriginMedal(self)--是否有本源勋章
+				--暗影生物要正义值足够才行
+				if data.target.gift_value and justice_value < data.target.gift_value * TUNING_MEDAL.JUSTICE_MEDAL.GIFT_VALUE_MULT and not has_origin then
 					MedalSay(self,STRINGS.JUSTICEMEDALSPEECH.NOVALUE)
 					return
 				end
-				
-				--直接砍死了，那就直接算击杀
-				if data.target.components.health and data.target.components.health:IsDead() then
-					if inst.justiceKilled then
-						inst.justiceKilled(self,{victim=data.target})
-					end
-				else
-					--目标没绑定玩家，给它添加推送事件
-					if data.target.justiceplayer==nil then
-						setJustIceKillFn(data.target)
-					end
-					data.target.justiceplayer=self--和佩戴者进行绑定
+				local justice_data = justice_targetlist[data.target.prefab]
+				--目标列表内的生物要满足正义值才行，不然就要提示玩家正义值不足
+				if justice_data ~= nil and justice_data.consume ~=nil and justice_value < justice_data.consume and not has_origin then
+					MedalSay(self,STRINGS.JUSTICEMEDALSPEECH.NOVALUE)
+					return
 				end
+				MedalHitOther(self,data.target,inst)
 			end
 		end
 	end,
@@ -1756,8 +1982,9 @@ medal_defs.treadwater_certificate={
 	deletefn=function(inst)--耐久用完执行的函数
 		
 	end,
-	medal_repair_loot = {malbatross_feather=TUNING_MEDAL.TREADWATER_MEDAL.ADDUSE},--可用邪天翁羽毛修复
+	medal_repair_common = {malbatross_feather=TUNING_MEDAL.TREADWATER_MEDAL.ADDUSE},--可用邪天翁羽毛修复
 	onequipfn=function(inst,owner)
+		inst.isequipped = true--处于装备状态
 		inst.delay_count=0--延迟计数
 		inst.fast_consume=false--是否快速消耗
 		if inst.medal_moving_task then
@@ -1766,19 +1993,23 @@ medal_defs.treadwater_certificate={
 		end
 		--周期生成水花、判定勋章耐久消耗速度
 		inst.medal_moving_task=inst:DoPeriodicTask(0.1,function()
-			local is_moving = owner.sg:HasStateTag("moving")--在移动
-			local is_running = owner.sg:HasStateTag("running")--在跑步
-			local needfaseuse=true
+			local needfaseuse=true--快速消耗
 			--如果玩家在水上移动
 			if owner.components.drownable ~= nil and owner.components.drownable:IsOverWater() then
+				local is_moving = owner.sg:HasStateTag("moving")--在移动
+				local is_running = owner.sg:HasStateTag("running")--在跑步
 				if is_running or is_moving then 
-					inst.delay_count=inst.delay_count+1
+					inst.delay_count = inst.delay_count + 1
 					--生成水花(延迟为5)
-					if inst.delay_count>=5 then
+					if inst.delay_count >= 5 then
 						SpawnPrefab("weregoose_splash_less"..tostring(math.random(2))).entity:SetParent(owner.entity)
 						inst.delay_count=0
 					end
 					needfaseuse=false
+				end
+				--本源在水面上均慢速消耗
+				if needfaseuse and HasOriginMedal(owner) then
+					needfaseuse = false
 				end
 			end
 			if inst.fast_consume~=needfaseuse then
@@ -1804,18 +2035,10 @@ medal_defs.treadwater_certificate={
 			end
 		end)
 		--踏水
-		if owner.components.drownable~=nil then
-			if owner.components.drownable.enabled ~= false then
-				owner.components.drownable.enabled = false
-				owner.Physics:ClearCollisionMask()
-				owner.Physics:CollidesWith(COLLISION.GROUND)
-				owner.Physics:CollidesWith(COLLISION.OBSTACLES)
-				owner.Physics:CollidesWith(COLLISION.SMALLOBSTACLES)
-				owner.Physics:CollidesWith(COLLISION.CHARACTERS)
-				owner.Physics:CollidesWith(COLLISION.GIANTS)
-				owner.Physics:Teleport(owner.Transform:GetWorldPosition())
-			end
+		if owner.components.drownable~=nil and owner.components.drownable.enabled ~= false then
+			owner.components.drownable.enabled = false
 		end
+		SetMedalTreadWaterCollides(owner,true)
 		
 		if inst.medal_losehealth_task then
 			inst.medal_losehealth_task:Cancel()
@@ -1837,28 +2060,20 @@ medal_defs.treadwater_certificate={
 		if inst.components.fueled then
 			inst.components.fueled:StartConsuming()
 		end
-		owner:ListenForEvent("onhitother", inst.onhitotherfn)--监听攻击目标
-		inst:ListenForEvent("medal_repair", inst.medaltakefuel)--监听添加燃料
+		if not HasOriginMedal(owner) then--非本源
+			owner:ListenForEvent("onhitother", inst.onhitotherfn)--在水面攻击掉耐久
+		end
 	end,
 	onunequipfn=function(inst,owner)
+		inst.isequipped = nil
 		--切换贴图
 		if inst.components.inventoryitem then
 			inst.components.inventoryitem:ChangeImageName("treadwater_certificate")
 		end
-		if owner.components.drownable~=nil then
-			if owner.components.drownable.enabled == false then
-				owner.components.drownable.enabled = true
-				if not owner:HasTag("playerghost") then
-					owner.Physics:ClearCollisionMask()
-					owner.Physics:CollidesWith(COLLISION.WORLD)
-					owner.Physics:CollidesWith(COLLISION.OBSTACLES)
-					owner.Physics:CollidesWith(COLLISION.SMALLOBSTACLES)
-					owner.Physics:CollidesWith(COLLISION.CHARACTERS)
-					owner.Physics:CollidesWith(COLLISION.GIANTS)
-					owner.Physics:Teleport(owner.Transform:GetWorldPosition())
-				end
-			end
+		if owner.components.drownable~=nil and owner.components.drownable.enabled == false then
+			owner.components.drownable.enabled = true
 		end
+		SetMedalTreadWaterCollides(owner,false)
 		--取消耐久消耗计算，取消水花生成效果
 		if inst.medal_moving_task then
 			inst.medal_moving_task:Cancel()
@@ -1873,16 +2088,18 @@ medal_defs.treadwater_certificate={
 		if inst.components.fueled then
 			inst.components.fueled:StopConsuming()
 		end
-		inst:RemoveEventCallback("medal_repair", inst.medaltakefuel)
-		owner:RemoveEventCallback("onhitother", inst.onhitotherfn)
+		if not HasOriginMedal(owner) then
+			owner:RemoveEventCallback("onhitother", inst.onhitotherfn)
+		end
 	end,
 	extrafn=function(inst)
 		--添加燃料
-		inst.medaltakefuel=function(self,data)
-			if self.components.fueled then
-				self.components.fueled:StartConsuming()
+		inst.medal_onrepairfn=function(inst)
+			if inst.isequipped and inst.components.fueled ~= nil then
+				inst.components.fueled:StartConsuming()
 			end
 		end
+
 		--监听玩家攻击事件，根据目标血量扣除勋章耐久
 		inst.onhitotherfn = function(self,data)
 			if inst.components.fueled and not inst.components.fueled:IsEmpty() then
@@ -1906,7 +2123,6 @@ medal_defs.tentacle_certificate={
 	taglist={
 	"addfunctional",--可放入融合勋章
 	"copyfunctional",--可印刻
-	"upgradablemedal",--可融合升级
 	"washfunctionalable",--能力可被擦除
 	},
 	isfinal=true,--是最终勋章
@@ -1917,7 +2133,6 @@ medal_defs.tentacle_certificate={
 		owner:PushEvent("changetentaclemedal")--推送触手勋章变更事件
 		if inst.medal_level and inst.medal_level>=TUNING_MEDAL.TENTACLE_MEDAL.SENIOR_LEVEL then
 			owner:AddTag("senior_tentaclemedal")--高级触手勋章标签，装备时不会被触手主动攻击
-			-- owner.senior_tentaclemedal=true--装备时不会被触手主动攻击
 		end
 		--监听玩家攻击事件，概率召唤小触手
 		inst.onattackotherfn=function(self,data)
@@ -1947,8 +2162,12 @@ medal_defs.tentacle_certificate={
 							owner.SoundEmitter:PlaySound("dontstarve/common/shadowTentacleAttack_1")
 							owner.SoundEmitter:PlaySound("dontstarve/common/shadowTentacleAttack_2")
 						end
-						local tentacle = SpawnPrefab("shadowtentacle")
+						--本源召唤暗影大触手,否则召唤小触手
+						local tentacle = SpawnPrefab(HasOriginMedal(owner,"tentaclemedal") and "bigshadowtentacle" or "shadowtentacle")
 						if tentacle ~= nil then
+							if tentacle.prefab == "bigshadowtentacle" then
+								tentacle.from_tentaclemedal = true--大触手要标记一下方便移除
+							end
 							tentacle.Transform:SetPosition(pt.x + offset.x, 0, pt.z + offset.z)
 							tentacle.components.combat:SetTarget(target)
 						end
@@ -1961,29 +2180,11 @@ medal_defs.tentacle_certificate={
 	onunequipfn=function(inst,owner)
 		owner:RemoveTag("tentaclemedal")
 		owner:RemoveTag("senior_tentaclemedal")
-		-- owner.senior_tentaclemedal=nil--装备时不会被触手主动攻击
 		owner:RemoveEventCallback("onattackother", inst.onattackotherfn)
 		owner:PushEvent("changetentaclemedal")--推送触手勋章变更事件
 	end,
 }
 -------------------------------------------------女武神的检验-------------------------------------------------
-local function setValkyrieKillFn(inst)
-	--监听目标死亡
-	inst:ListenForEvent("death",function(inst,data)
-		--克劳斯需要二阶段死了才算
-		if inst.prefab~="klaus" or inst:IsUnchained() then
-			--如果是处于女武神考验中的玩家杀死的，则给这个玩家推事件
-			if data and data.afflicter and data.afflicter.invalkyrietest then
-				data.afflicter:PushEvent("valkyriekilled",{victim=inst})
-			--否则给绑定的玩家推
-			elseif inst.valkyrieplayer then
-				inst.valkyrieplayer:PushEvent("valkyriekilled",{victim=inst})
-				inst.valkyrieplayer=nil
-			end
-		end
-	end)
-end
-
 medal_defs.valkyrie_examine_certificate={
 	name="valkyrie_examine_certificate",
 	animname="valkyrie_examine_certificate",
@@ -1997,46 +2198,28 @@ medal_defs.valkyrie_examine_certificate={
 		returnNewMedal(inst,"valkyrie_test_certificate")
 	end,
 	onequipfn=function(inst,owner)
-		owner.invalkyrietest=true--处于女武神的测验中
-		-- owner:ListenForEvent("killed", inst.valkyrieExamineKilled)
-		owner:ListenForEvent("valkyriekilled", inst.valkyrieExamineKilled)
-		owner:ListenForEvent("onhitother", inst.valkyrieHit)
+		owner:ListenForEvent("medal_killed", inst.medalKilled)
+		owner:ListenForEvent("onhitother", inst.onMedalHitOther)
 	end,
 	onunequipfn=function(inst,owner)
-		owner.invalkyrietest=nil
-		-- owner:RemoveEventCallback("killed", inst.valkyrieExamineKilled)
-		owner:RemoveEventCallback("valkyriekilled", inst.valkyrieExamineKilled)
-		owner:RemoveEventCallback("onhitother", inst.valkyrieHit)
+		owner:RemoveEventCallback("medal_killed", inst.medalKilled)
+		owner:RemoveEventCallback("onhitother", inst.onMedalHitOther)
 	end,
 	extrafn=function(inst)
 		--女武神的检验击杀监听函数
-		inst.valkyrieExamineKilled = function(self,data)
+		inst.medalKilled = function(self,data)
 			--装备时候击杀巨型怪物耐久减1
-			if data ~= nil and data.victim ~= nil and data.victim:HasTag("largecreature") and data.victim:HasTag("monster") then
+			if data ~= nil and data.prefab == inst.prefab and data.victim ~= nil and (data.victim:HasTags({"largecreature","monster"}) or data.victim:HasTag("epic")) then
 				inst.components.finiteuses:Use(1)--消耗耐久
 				--成功的喜悦
 				MedalSay(self,STRINGS.VALKYRIETESTSPEECH.SUCCESS)
 			end
 		end
 		--给目标绑定处于女武神测验中的攻击者
-		inst.valkyrieHit = function(self,data)
+		inst.onMedalHitOther = function(self,data)
 			--攻击目标符合条件，则进行相关处理
-			if data ~= nil and data.target and data.target:HasTag("largecreature") and data.target:HasTag("monster") then
-				--攻击目标绑定的玩家不是佩戴者，才需要进行下一步，否则说明已经绑定过了，直接跳过
-				if data.target.valkyrieplayer~=self  then
-					--目标直接死了，那就直接算击杀
-					if data.target.components.health and data.target.components.health:IsDead() then
-						if inst.valkyrieExamineKilled then
-							inst.valkyrieExamineKilled(self,{victim=data.target})
-						end
-					else
-						--目标没绑定玩家，给它添加推送事件
-						if data.target.valkyrieplayer==nil then
-							setValkyrieKillFn(data.target)
-						end
-						data.target.valkyrieplayer=self--和佩戴者进行绑定
-					end
-				end
+			if data ~= nil and data.target and (data.target:HasTags({"largecreature","monster"}) or data.target:HasTag("epic")) then
+				MedalHitOther(self,data.target,inst)
 			else--否则提醒玩家换个目标
 				MedalSay(self,STRINGS.VALKYRIETESTSPEECH.REPEAT)
 			end
@@ -2057,154 +2240,82 @@ medal_defs.valkyrie_test_certificate={
 		returnNewMedal(inst,"valkyrie_certificate")
 	end,
 	onequipfn=function(inst,owner)
-		owner.invalkyrietest=true--处于女武神的测验中
-		-- owner:ListenForEvent("killed", inst.valkyrieTestKilled)
-		owner:ListenForEvent("valkyriekilled", inst.valkyrieTestKilled)
-		owner:ListenForEvent("onhitother", inst.beDisqualified)
+		owner:ListenForEvent("medal_killed", inst.medalKilled)
+		owner:ListenForEvent("onhitother", inst.onMedalHitOther)
 	end,
 	onunequipfn=function(inst,owner)
-		owner.invalkyrietest=nil
-		-- owner:RemoveEventCallback("killed", inst.valkyrieTestKilled)
-		owner:RemoveEventCallback("valkyriekilled", inst.valkyrieTestKilled)
-		owner:RemoveEventCallback("onhitother", inst.beDisqualified)
+		owner:RemoveEventCallback("medal_killed", inst.medalKilled)
+		owner:RemoveEventCallback("onhitother", inst.onMedalHitOther)
 	end,
 	extrafn=function(inst)--额外扩展函数
-		inst.warningnum=1--警告值
 		inst.getMedalInfo = function(inst)--显示考验记录
-			local str
-			--警告次数
-			if inst.warningnum and inst.warningnum>1 then
-				str = STRINGS.MEDAL_INFO.WARNING1..(inst.warningnum-1)..STRINGS.MEDAL_INFO.WARNING2
-			end
 			--上次考验目标
 			if inst.lasttarget then
 				local prefabname= STRINGS.NAMES[string.upper(inst.lasttarget)] or inst.lasttarget
-				str = (str or "").."\n"..STRINGS.MEDAL_INFO.LASTTARGET..prefabname
+				return STRINGS.MEDAL_INFO.LASTTARGET..prefabname
 			end
-			return str
 		end
 		--女武神的考验击杀监听函数
-		inst.valkyrieTestKilled = function(self,data)
-			if data ~= nil and data.victim ~= nil and not data.victim:HasTag("smallcreature") then
-				if data.victim:HasTag("monster") then
-					if inst.lasttarget and inst.lasttarget==data.victim.prefab then
-						--提醒玩家换个目标
-						MedalSay(self,STRINGS.VALKYRIETESTSPEECH.REPEAT)
-					elseif data.victim.components.health and inst.components.finiteuses then
-						local victim_health=data.victim.components.health:GetMaxWithPenalty()
-						local consume=0--耐久消耗
-						--血量超过双倍消耗条件,则掉2点耐久
-						if victim_health>=TUNING_MEDAL.VALKYRIE_TEST.DOUBLE_CONSUME_HEALTH then
-							consume=2
-							inst.lasttarget=data.victim.prefab--记录上一次战绩
-						--血量超过必消耗条件，必掉1点耐久
-						elseif victim_health>=TUNING_MEDAL.VALKYRIE_TEST.MUST_CONSUME_HEALTH then
-							consume=1
-							inst.lasttarget=data.victim.prefab
-						--否则概率掉耐久
-						elseif math.random() < math.min(victim_health/1000,TUNING_MEDAL.VALKYRIE_TEST.MAX_CONSUME_RATE) then
-							consume=1
-							inst.lasttarget=data.victim.prefab
-						end
-						if consume>0 then
-							consume=consume*TUNING_MEDAL.VALKYRIE_TEST.CONSUME_MULT--计算耐久掉落倍率
-							inst.components.finiteuses:Use(consume)--消耗耐久
-							SpawnMedalTips(self,consume,7)--弹幕提示
-						end
+		inst.medalKilled = function(self,data)
+			if inst.components.finiteuses ~= nil and data ~= nil and data.prefab == inst.prefab and data.victim ~= nil and data.victim:HasOneOfTags({"epic","monster"}) and not data.victim:HasTag("smallcreature") then
+				if inst.lasttarget and inst.lasttarget == data.victim.prefab then
+					MedalSay(self,STRINGS.VALKYRIETESTSPEECH.REPEAT)--提醒玩家换个目标
+				elseif data.victim.components.health then
+					local victim_health=data.victim.components.health:GetMaxWithPenalty()
+					local consume=0--耐久消耗
+					--血量超过双倍消耗条件,则掉2点耐久
+					if victim_health>=TUNING_MEDAL.VALKYRIE_TEST.DOUBLE_CONSUME_HEALTH then
+						consume=2
+					--血量超过必消耗条件，必掉1点耐久
+					elseif victim_health>=TUNING_MEDAL.VALKYRIE_TEST.MUST_CONSUME_HEALTH then
+						consume=1
+					--否则概率掉耐久
+					elseif math.random() < math.min(victim_health/1000,TUNING_MEDAL.VALKYRIE_TEST.MAX_CONSUME_RATE) then
+						consume=1
+					end
+					if consume>0 then
+						inst.lasttarget=data.victim.prefab--记录上一次战绩
+						consume=consume*TUNING_MEDAL.VALKYRIE_TEST.CONSUME_MULT--计算耐久掉落倍率
+						inst.components.finiteuses:Use(consume)--消耗耐久
+						SpawnMedalTips(self,consume,7)--弹幕提示
 					end
 				end
 			end
 		end
 		--女武神的考验攻击监听函数
-		inst.beDisqualified = function(self,data)
+		inst.onMedalHitOther = function(self,data)
 			if data and data.target then
-				--装备女武神的考验击杀小动物会失去勋章
+				--攻击小动物会被警告
 				if data.target:HasTag("smallcreature") then
-					self.SoundEmitter:PlaySound("dontstarve/wilson/use_armour_break")
-					local talkstring=STRINGS.VALKYRIETESTSPEECH.BEDISQUALIFIED--后悔的对话
-					if inst.components.finiteuses then
-						--耐久低于阈值，则耐久恢复满
-						if inst.components.finiteuses:GetPercent()<TUNING_MEDAL.VALKYRIE_TEST.WARNING_THRESHOLD then
-							inst.components.finiteuses:SetUses(TUNING_MEDAL.VALKYRIE_TEST.MAXUSES)
-							talkstring=STRINGS.VALKYRIETESTSPEECH.STARTSOVERAGAIN--重新开始
-						--警告值没到上限则触发警告
-						elseif inst.warningnum and inst.warningnum<=3 then
-							--生成即将爆炸的蚊子
-							for i=1,math.random(inst.warningnum,inst.warningnum*2) do
-								local mosquito=SpawnPrefab("mosquito")
-								if mosquito then
-									mosquito.Transform:SetPosition(self.Transform:GetWorldPosition())
-									if mosquito.drinks then
-										mosquito.drinks=4
-										mosquito.AnimState:Show("body_4")
-									end
-									if mosquito.components.combat then
-										mosquito.components.combat:SuggestTarget(self)
-									end
-								end
+					if (data.target.components.health and data.target.components.health:IsDead()) or data.target.defeated then
+						if inst.components.finiteuses ~= nil then
+							inst.components.finiteuses:Repair(1)--恢复1点耐久
+							if self.SoundEmitter then--播放炸掉的声音
+								self.SoundEmitter:PlaySound("dontstarve/wilson/use_armour_break")
 							end
-							inst.components.finiteuses:SetUses(TUNING_MEDAL.VALKYRIE_TEST.MAXUSES)--重置耐久
-							inst.warningnum=inst.warningnum+1--警告值加1
-							talkstring=STRINGS.VALKYRIETESTSPEECH.WARNING--警告
-						else--否则直接爆炸
-							for i=1,3 do
-								local item=SpawnPrefab("spice_blood_sugar")
-								if item~=nil then
-									if data.target.components.lootdropper then
-										item:Remove()
-										data.target.components.lootdropper:SpawnLootPrefab("spice_blood_sugar")
-									else
-										item.Transform:SetPosition(self.Transform:GetWorldPosition())
-										if item.components.inventoryitem ~= nil and item.components.inventoryitem.ondropfn ~= nil then
-											item.components.inventoryitem.ondropfn(item)
-										end
-									end
-								end
-							end
-							inst:Remove()
 						end
 					end
-					MedalSay(self,talkstring)--说话
-				elseif data.target:HasTag("monster") then
-					--攻击目标绑定的玩家不是佩戴者，才需要进行下一步，否则说明已经绑定过了，直接跳过
-					if data.target.valkyrieplayer~=self  then
-						--目标直接死了，那就直接算击杀
-						if data.target.components.health and data.target.components.health:IsDead() then
-							if inst.valkyrieTestKilled then
-								inst.valkyrieTestKilled(self,{victim=data.target})
-							end
-						--目标重复了，提醒玩家换个目标
-						elseif inst.lasttarget and inst.lasttarget==data.target.prefab then
-							MedalSay(self,STRINGS.VALKYRIETESTSPEECH.REPEAT)
-						else
-							--目标没绑定玩家，给它添加推送事件
-							if data.target.valkyrieplayer==nil then
-								setValkyrieKillFn(data.target)
-							end
-							data.target.valkyrieplayer=self--和佩戴者进行绑定
-						end
+					MedalSay(self,STRINGS.VALKYRIETESTSPEECH.BEDISQUALIFIED)--不能欺负小动物
+				elseif data.target:HasOneOfTags({"epic","monster"}) then
+					--目标重复了，提醒玩家换个目标
+					if inst.lasttarget and inst.lasttarget==data.target.prefab then
+						MedalSay(self,STRINGS.VALKYRIETESTSPEECH.REPEAT)
+						return
 					end
-				else--非怪物,提醒玩家换个怪物目标
+					MedalHitOther(self,data.target,inst)
+				else--非怪物或史诗生物,提醒玩家换个怪物目标
 					MedalSay(self,STRINGS.VALKYRIETESTSPEECH.NOMONSTER)
 				end
 			end
 		end
 	end,
 	onsavefn=function(inst,data)--扩展存储函数
-		--警告值
-		if inst.warningnum then
-			data.warningnum=inst.warningnum
-		end
 		--最后目标
 		if inst.lasttarget then
 			data.lasttarget=inst.lasttarget
 		end
 	end,
 	onloadfn=function(inst,data)--扩展加载函数
-		--警告值
-		if data and data.warningnum then
-			inst.warningnum=data.warningnum
-		end
 		--最后目标
 		if data and data.lasttarget then
 			inst.lasttarget=data.lasttarget
@@ -2214,16 +2325,12 @@ medal_defs.valkyrie_test_certificate={
 -------------------------------------------------女武神勋章-------------------------------------------------
 --伤害系数变更函数
 local function ChangeCombatModifier(owner)
+	if owner == nil or owner.components.combat == nil then return end
 	local equipped = owner.components.inventory:GetEquippedItem(EQUIPSLOTS.HANDS)--获取玩家武器
-	--用的是战斗长矛攻击*1.4
-	if equipped and equipped.prefab=="spear_wathgrithr" then
-		if owner.components.combat ~= nil then
-			owner.components.combat.externaldamagemultipliers:SetModifier("valkyrie_certificate", TUNING_MEDAL.VALKYRIE_MEDAL.COMBAT_ADDITION2)
-		end
-	else--非战斗长矛攻击*1.1
-		if owner.components.combat ~= nil then
-			owner.components.combat.externaldamagemultipliers:SetModifier("valkyrie_certificate", TUNING_MEDAL.VALKYRIE_MEDAL.COMBAT_ADDITION1)
-		end
+	local addtions = equipped ~= nil and TUNING_MEDAL.VALKYRIE_MEDAL.COMBAT_ADDITION[equipped.prefab] or TUNING_MEDAL.VALKYRIE_MEDAL.COMBAT_ADDITION.DEFAULT--加成表
+	local idx = HasOriginMedal(owner) and 2 or 1--本源加成更高
+	if addtions ~= nil then
+		owner.components.combat.externaldamagemultipliers:SetModifier("valkyrie_certificate", addtions[idx])
 	end
 end
 --减伤系数变更函数
@@ -2245,10 +2352,37 @@ local function IsValidVictim(victim)
                 victim:HasTag("groundspike") or
                 victim:HasTag("smashable") or
                 victim:HasTag("abigail") or
+                victim:HasTag("shadowminion") or
                 victim:HasTag("companion"))
         and victim.components.health ~= nil
         and victim.components.combat ~= nil
 end
+
+--可以添加女武神之力的图纸
+local valkyrie_sketchLoot={
+	chesspiece_deerclops_sketch = true,--巨鹿
+	chesspiece_bearger_sketch = true,--熊大
+	chesspiece_moosegoose_sketch = true,--鸭子
+	chesspiece_dragonfly_sketch = true,--龙蝇
+	chesspiece_malbatross_sketch = true,--邪天翁
+	chesspiece_crabking_sketch = true,--帝王蟹
+	chesspiece_toadstool_sketch = true,--蛤蟆
+	chesspiece_stalker_sketch = true,--暗影编织者
+	chesspiece_klaus_sketch = true,--克劳斯
+	chesspiece_beequeen_sketch = true,--蜂后
+	chesspiece_antlion_sketch = true,--蚁狮
+	chesspiece_minotaur_sketch = true,--犀牛
+	chesspiece_guardianphase3_sketch = true,--天体英雄
+	chesspiece_eyeofterror_sketch = true,--恐怖之眼
+	chesspiece_twinsofterror_sketch = true,--双子魔眼
+	chesspiece_daywalker_sketch = true,--梦魇疯猪
+	chesspiece_deerclops_mutated_sketch = true,--变异巨鹿
+	chesspiece_warg_mutated_sketch = true,--变异座狼
+	chesspiece_bearger_mutated_sketch = true,--变异熊大
+	chesspiece_sharkboi_sketch = true,--大霜鲨
+	chesspiece_wormboss_sketch = true,--巨大洞穴蠕虫
+	chesspiece_daywalker2_sketch = true,--拾荒疯猪
+}
 
 medal_defs.valkyrie_certificate={
 	name="valkyrie_certificate",
@@ -2263,35 +2397,18 @@ medal_defs.valkyrie_certificate={
 	onequipfn=function(inst,owner)
 		AddMedalTag(owner,"valkyrie")--女武神标签
 		ChangeCombatModifier(owner)
-		--伤害变更
-		inst.changecombatfn=function(self,data)
-			ChangeCombatModifier(owner)
-		end
-		--女武神之力变更
-		inst.collectsketchfn=function(self)
-			ChangeAbsorbModifier(inst,owner)--减伤，普通玩家最高25%，原本有减伤的角色最高12.5%
-		end
 		ChangeAbsorbModifier(inst,owner)--减伤，普通玩家最高25%，原本有减伤的角色最高12.5%
-		--击杀目标
-		inst.onmedalkilledfn=function(self,data)
-			local victim = data.victim
-			if IsValidVictim(victim) then
-				--击杀目标获得血量、精神，增值=目标伤害*系数*女武神之力/10，女武神系数为0.1，其他玩家为0.2
-				local delta = (victim.components.combat.defaultdamage) * (owner.prefab=="wathgrithr" and 0.1 or 0.2)
-				delta = inst.valkyrie_power and delta*inst.valkyrie_power/10 or 0
-				if delta>0 then
-					if owner.components.health ~= nil then owner.components.health:DoDelta(delta, false, "medal_battleborn") end
-					if owner.components.sanity ~= nil then owner.components.sanity:DoDelta(delta) end
-				end
-				--天道酬勤
-				local total_health = victim.components.health and victim.components.health:GetMaxWithPenalty() or 0--获取攻击目标最大血量
-				RewardToiler(self,math.max(total_health-400,0)*0.0001)
-			end
+		owner:ListenForEvent("equip", ChangeCombatModifier)--穿装备
+		owner:ListenForEvent("unequip", ChangeCombatModifier)--脱装备
+		if inst.medalKilled then
+			owner:ListenForEvent("medal_killed", inst.medalKilled)
 		end
-		owner:ListenForEvent("equip", inst.changecombatfn)--穿装备
-		owner:ListenForEvent("unequip", inst.changecombatfn)--脱装备
-		owner:ListenForEvent("killed", inst.onmedalkilledfn)
-		inst:ListenForEvent("collectsketch", inst.collectsketchfn)
+		if inst.onMedalHitOther then
+			owner:ListenForEvent("onhitother", inst.onMedalHitOther)
+		end
+		if inst.collectsketchfn then
+			inst:ListenForEvent("collectsketch", inst.collectsketchfn)
+		end
 	end,
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"valkyrie")--女武神标签
@@ -2301,16 +2418,53 @@ medal_defs.valkyrie_certificate={
 		if owner.components.health ~= nil then
 			owner.components.health.externalabsorbmodifiers:RemoveModifier("valkyrie_certificate")
 		end
-		owner:RemoveEventCallback("equip", inst.changecombatfn)
-		owner:RemoveEventCallback("unequip", inst.changecombatfn)
-		owner:RemoveEventCallback("killed", inst.onmedalkilledfn)
-		inst:RemoveEventCallback("collectsketch", inst.collectsketchfn)
+		owner:RemoveEventCallback("equip", ChangeCombatModifier)
+		owner:RemoveEventCallback("unequip", ChangeCombatModifier)
+		if inst.medalKilled then
+			owner:RemoveEventCallback("medal_killed", inst.medalKilled)
+		end
+		if inst.onMedalHitOther then
+			owner:RemoveEventCallback("onhitother", inst.onMedalHitOther)
+		end
+		if inst.collectsketchfn then
+			inst:RemoveEventCallback("collectsketch", inst.collectsketchfn)
+		end
 	end,
 	extrafn=function(inst)--额外扩展函数
 		inst.valkyrie_power=0--女武神之力
 		inst.getMedalInfo = function(inst)--显示女武神之力
 			if inst.valkyrie_power then
 				return STRINGS.MEDAL_INFO.VALKYRIEPOWER..inst.valkyrie_power
+			end
+		end
+		inst.valkyrie_sketchLoot = valkyrie_sketchLoot
+		--女武神之力变更
+		inst.collectsketchfn=function(self)
+			ChangeAbsorbModifier(inst,self)--减伤，普通玩家最高25%，原本有减伤的角色最高12.5%
+		end
+		--监听击杀
+		inst.medalKilled = function(self,data)
+			local victim = data and data.victim
+			if data ~= nil and data.prefab == inst.prefab and IsValidVictim(victim) then
+				--击杀目标获得血量、精神，增值=目标伤害*系数*女武神之力/10，女武神系数为0.1，其他玩家为0.2
+				local delta = (victim.components.combat.defaultdamage) * (self.prefab=="wathgrithr" and 0.1 or 0.2)
+				delta = inst.valkyrie_power and delta*inst.valkyrie_power/10 or 0
+				if delta>0 then
+					if self.components.health ~= nil then self.components.health:DoDelta(delta, false, "medal_battleborn") end
+					if self.components.sanity ~= nil then self.components.sanity:DoDelta(delta) end
+				end
+				--天道酬勤
+				local total_health = victim.components.health and victim.components.health:GetMaxWithPenalty() or 0--获取攻击目标最大血量
+				if not victim:HasTag("norewardtoiler") then
+					RewardToiler(self,math.max(total_health-400,0)*0.0001)
+				end
+			end
+		end
+		--绑定攻击目标
+		inst.onMedalHitOther = function(self,data)
+			--攻击目标符合条件，则进行相关处理
+			if data ~= nil and data.target and IsValidVictim(data.target) then
+				MedalHitOther(self,data.target,inst)
 			end
 		end
 	end,
@@ -2337,8 +2491,10 @@ medal_defs.merm_certificate={
 	onequipfn=function(inst,owner)
 		AddMedalTag(owner,"merm_builder")--鱼人制造者
 		AddMedalTag(owner,"merm")--鱼人
-		AddMedalTag(owner,"mermfluent")--鱼语十级
+		AddMedalTag(owner,"playermerm")--鱼人角色
 		AddMedalTag(owner,"stronggrip")--工具不脱手
+		AddMedalTag(owner,"mermfluent")--鱼语十级
+		owner.has_merm_medal = true--有鱼人勋章
 		--沼泽加速
 		if owner.components.locomotor~=nil and not owner.components.locomotor:IsFasterOnGroundTile(GROUND.MARSH) then
 			owner.components.locomotor:SetFasterOnGroundTile(GROUND.MARSH, true)
@@ -2355,8 +2511,10 @@ medal_defs.merm_certificate={
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"merm_builder")--鱼人制造者
 		RemoveMedalTag(owner,"merm")--鱼人
-		RemoveMedalTag(owner,"mermfluent")--鱼语十级
+		RemoveMedalTag(owner,"playermerm")--鱼人角色
 		RemoveMedalTag(owner,"stronggrip")--工具不脱手
+		RemoveMedalTag(owner,"mermfluent")--鱼语十级
+		owner.has_merm_medal = nil
 		if inst.fasteronmarsh then
 			owner.components.locomotor:SetFasterOnGroundTile(GROUND.MARSH, false)
 			inst.fasteronmarsh=false
@@ -2374,6 +2532,7 @@ medal_defs.naughty_certificate={
 	taglist={
 	"addfunctional",--可放入融合勋章
 	"copyfunctional",--可印刻
+	"washfunctionalable",--能力可被擦除
 	},
 	isfinal=true,--是最终勋章
 	onequipfn=function(inst,owner)
@@ -2509,15 +2668,132 @@ medal_defs.silence_certificate={
 		AddMedalTag(owner,"mime")--哑剧标签
 		AddMedalTag(owner,"balloonomancer")--气球制造者标签
 		owner:PushEvent("refreshcrafting")--更新制作栏
+		if HasOriginMedal(owner) then--本源
+			owner.medal_silence_damage = 0--沉默的力量,不在沉默中爆发,就在沉默中灭亡
+			owner:ListenForEvent("attacked", inst.onattackedfn)--挨打
+		end
 	end,
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"mime")--哑剧标签
 		RemoveMedalTag(owner,"balloonomancer")--气球制造者标签
 		owner:PushEvent("refreshcrafting")--更新制作栏
+		if HasOriginMedal(owner) then--本源
+			owner:RemoveEventCallback("attacked", inst.onattackedfn)--挨打
+			owner.medal_silence_damage = nil
+		end
+	end,
+	extrafn=function(inst)
+		--监听玩家攻击事件，根据目标血量扣除勋章耐久
+		inst.onattackedfn = function(self,data)
+			if HasOriginMedal(self) and data and data.original_damage then
+				self.medal_silence_damage = (self.medal_silence_damage or 0) + data.original_damage*.6
+			end
+		end
 	end,
 }
 -------------------------------------------------噬灵勋章-------------------------------------------------
 local devour_soul_medal_fn = require("prefabs/devour_soul_medal_fn")
+
+--噬灵勋章装备函数(勋章,玩家)
+local function devour_soul_onequipfn(inst,owner)
+	inst:AddTag("canreleasesoul")--可释放灵魂
+	--初始化玩家标签
+	owner.medal_soulstealer=1--勋章灵魂吞噬者
+	AddMedalTag(owner,"soulstealer")--吞噬者标签
+	--耐久大于0则添加勋章跳跃标签
+	if inst.components.finiteuses and inst.components.finiteuses:GetPercent()>0 then
+		owner:AddTag("medal_blinker")
+	end
+	--监听灵魂跳跃
+	owner:ListenForEvent("medal_blink", inst.medalblink)
+	--监听勋章耐久变化
+	inst.percentusedchangefn = function(inst,data)
+		if data and data.percent then
+			--耐久用完
+			if data.percent<=0 then
+				owner:RemoveTag("medal_blinker")
+			else
+				owner:AddTag("medal_blinker")
+			end
+			if inst.SyncMedalSouls then
+				inst:SyncMedalSouls(owner)
+			end
+		end
+	end
+	inst:ListenForEvent("percentusedchange", inst.percentusedchangefn)
+	--玩家原本没有监听掉落函数，则添加监听
+	if owner.medal_onentitydroplootfn == nil then
+		owner.medal_onentitydroplootfn = function(src, data)	
+			devour_soul_medal_fn.OnEntityDropLoot(owner, data)
+		end
+		owner:ListenForEvent("entity_droploot", owner.medal_onentitydroplootfn, TheWorld)
+	end
+	--玩家原本没有监听死亡函数，则添加监听
+	if owner.medal_onentitydeathfn == nil then
+		owner.medal_onentitydeathfn = function(src, data)
+			devour_soul_medal_fn.OnEntityDeath(owner, data)
+		end
+		owner:ListenForEvent("entity_death", owner.medal_onentitydeathfn, TheWorld)
+	end
+	--玩家原本没有监听陷阱采集函数，则添加监听
+	if owner.medal_onstarvedtrapsoulsfn == nil then
+		owner.medal_onstarvedtrapsoulsfn = function(src, data) 
+			devour_soul_medal_fn.OnStarvedTrapSouls(owner, data)
+		end
+		owner:ListenForEvent("starvedtrapsouls", owner.medal_onstarvedtrapsoulsfn, TheWorld)
+	end
+	--监听谋杀事件
+	if owner.medal_onmurderedsoulsfn == nil then
+		owner.medal_onmurderedsoulsfn = function(src, data) 
+			devour_soul_medal_fn.OnMurdered(owner, data)
+		end
+		owner:ListenForEvent("murdered", owner.medal_onmurderedsoulsfn)
+	end
+	if owner.prefab~="wortox" then
+		owner:ListenForEvent("harvesttrapsouls", devour_soul_medal_fn.OnHarvestTrapSouls)
+	end
+	--伍迪变身回来玩家跳跃函数会被挪掉，需要重设
+	if (owner.prefab=="woodie" or owner.prefab=="wolfgang") and owner.medalblinkable then
+		if owner.medalblinkable:value() then
+			owner.medalblinkable:set_local(false)
+			owner.medalblinkable:set(true)
+		else
+			owner.medalblinkable:set(true)
+		end
+	end
+end
+
+--噬灵勋章卸下函数(勋章,玩家)
+local function devour_soul_onunequipfn(inst,owner)
+	inst:RemoveTag("canreleasesoul")--可释放灵魂
+	owner.medal_soulstealer=nil--勋章灵魂吞噬者
+	owner:RemoveTag("medal_blinker")
+	RemoveMedalTag(owner,"soulstealer")--吞噬者标签
+	--移除相关监听
+	owner:RemoveEventCallback("medal_blink", inst.medalblink)
+	inst:RemoveEventCallback("percentusedchange", inst.percentusedchangefn)
+		
+	if owner.medal_onentitydroplootfn ~= nil then
+		owner:RemoveEventCallback("entity_droploot", owner.medal_onentitydroplootfn, TheWorld)
+		owner.medal_onentitydroplootfn = nil
+	end
+	if owner.medal_onentitydeathfn ~= nil then
+		owner:RemoveEventCallback("entity_death", owner.medal_onentitydeathfn, TheWorld)
+		owner.medal_onentitydeathfn = nil
+	end
+	if owner.medal_onstarvedtrapsoulsfn ~= nil then
+		owner:RemoveEventCallback("starvedtrapsouls", owner.medal_onstarvedtrapsoulsfn, TheWorld)
+		owner.medal_onstarvedtrapsoulsfn = nil
+	end
+	if owner.medal_onmurderedsoulsfn ~= nil then
+		owner:RemoveEventCallback("murdered", owner.medal_onmurderedsoulsfn)
+		owner.medal_onmurderedsoulsfn = nil
+	end
+	if owner.prefab~="wortox" then
+		owner:RemoveEventCallback("harvesttrapsouls", devour_soul_medal_fn.OnHarvestTrapSouls)
+	end
+end
+
 medal_defs.devour_soul_certificate={
 	name="devour_soul_certificate",
 	animname="devour_soul_certificate",
@@ -2525,118 +2801,26 @@ medal_defs.devour_soul_certificate={
 	"addfunctional",--可放入融合勋章
 	"washfunctionalable",--能力可被擦除
 	},
-	isfinal=true,--是最终勋章
+	grouptag="devoursoulMedal",
+	-- isfinal=true,--是最终勋章
 	maxuses=TUNING_MEDAL.DEVOUR_SOUL_MEDAL.MAXUSES,--次数耐久
 	medal_repair_common={--可补充耐久
 		wortox_soul=1,--灵魂
 		spice_soul=1,--灵魂佐料
 	},
-	onfinishedfn=function(inst)--耐久用完执行的函数
-		
-	end,
+	onfinishedfn=function(inst) end,--耐久用完执行的函数
 	onequipfn=function(inst,owner)
-		--初始化玩家标签
-		owner.medal_soulstealer=true--勋章灵魂吞噬者
-		AddMedalTag(owner,"soulstealer")--吞噬者标签
-		
-		if inst.components.finiteuses then
-			--耐久大于0则添加勋章跳跃标签
-			if inst.components.finiteuses:GetPercent()>0 then
-				owner:AddTag("medal_blinker")
-			end
-		end
-		
-		owner:ListenForEvent("medal_blink", inst.medalblink)
-		--监听勋章耐久变化
-		inst.percentusedchangefn = function(inst,data)
-			if data and data.percent then
-				--耐久用完
-				if data.percent<=0 then
-					owner:RemoveTag("medal_blinker")
-				else
-					owner:AddTag("medal_blinker")
-				end
-			end
-		end
-		inst:ListenForEvent("percentusedchange", inst.percentusedchangefn)
-		--玩家原本没有监听掉落函数，则添加监听，这里要排除wortox自带的监听
-		if owner._onentitydroplootfn == nil and owner.medal_onentitydroplootfn == nil then
-			owner.medal_onentitydroplootfn = function(src, data)	
-				devour_soul_medal_fn.OnEntityDropLoot(owner, data)
-			end
-			owner:ListenForEvent("entity_droploot", owner.medal_onentitydroplootfn, TheWorld)
-		end
-		--玩家原本没有监听死亡函数，则添加监听，这里要排除wortox自带的监听
-		if owner._onentitydeathfn == nil and owner.medal_onentitydeathfn == nil then
-			owner.medal_onentitydeathfn = function(src, data)
-				devour_soul_medal_fn.OnEntityDeath(owner, data)
-			end
-			owner:ListenForEvent("entity_death", owner.medal_onentitydeathfn, TheWorld)
-		end
-		--玩家原本没有监听陷阱采集函数，则添加监听，这里要排除wortox自带的监听
-		if owner._onstarvedtrapsoulsfn == nil and owner.medal_onstarvedtrapsoulsfn == nil then
-			owner.medal_onstarvedtrapsoulsfn = function(src, data) 
-				devour_soul_medal_fn.OnStarvedTrapSouls(owner, data)
-			end
-			owner:ListenForEvent("starvedtrapsouls", owner.medal_onstarvedtrapsoulsfn, TheWorld)
-		end
-		--玩家不是小恶魔，监听谋杀事件
-		if owner.medal_onmurderedsoulsfn == nil and owner.prefab~="wortox" then
-			owner.medal_onmurderedsoulsfn = function(src, data) 
-				devour_soul_medal_fn.OnMurdered(owner, data)
-			end
-			owner:ListenForEvent("murdered", owner.medal_onmurderedsoulsfn)
-		end
-		if owner.prefab~="wortox" then
-			owner:ListenForEvent("harvesttrapsouls", devour_soul_medal_fn.OnHarvestTrapSouls)
-		end
-		--伍迪变身回来玩家跳跃函数会被挪掉，需要重设
-		if (owner.prefab=="woodie" or owner.prefab=="wolfgang") and owner.medalblinkable then
-			if owner.medalblinkable:value() then
-				owner.medalblinkable:set_local(false)
-				owner.medalblinkable:set(true)
-			else
-				owner.medalblinkable:set(true)
-			end
-		end
+		devour_soul_onequipfn(inst,owner)
 	end,
 	onunequipfn=function(inst,owner)
-		--移除相关标签
-		-- owner:RemoveTag("medal_soulstealer")
-		owner.medal_soulstealer=nil--勋章灵魂吞噬者
-		owner:RemoveTag("medal_blinker")
-		RemoveMedalTag(owner,"soulstealer")--吞噬者标签
-		--移除相关监听
-		owner:RemoveEventCallback("medal_blink", inst.medalblink)
-		inst:RemoveEventCallback("percentusedchange", inst.percentusedchangefn)
-		
-		if owner.medal_onentitydroplootfn ~= nil then
-			owner:RemoveEventCallback("entity_droploot", owner.medal_onentitydroplootfn, TheWorld)
-			owner.medal_onentitydroplootfn = nil
-		end
-		if owner.medal_onentitydeathfn ~= nil then
-			owner:RemoveEventCallback("entity_death", owner.medal_onentitydeathfn, TheWorld)
-			owner.medal_onentitydeathfn = nil
-		end
-		if owner.medal_onstarvedtrapsoulsfn ~= nil then
-			owner:RemoveEventCallback("starvedtrapsouls", owner.medal_onstarvedtrapsoulsfn, TheWorld)
-			owner.medal_onstarvedtrapsoulsfn = nil
-		end
-		if owner.medal_onmurderedsoulsfn ~= nil then
-			owner:RemoveEventCallback("murdered", owner.medal_onmurderedsoulsfn)
-			owner.medal_onmurderedsoulsfn = nil
-		end
-		if owner.prefab~="wortox" then
-			owner:RemoveEventCallback("harvesttrapsouls", devour_soul_medal_fn.OnHarvestTrapSouls)
-		end
+		devour_soul_onunequipfn(inst,owner)
 	end,
 	extrafn=function(inst)
 		--监听玩家用勋章灵魂跳跃
-		inst.medalblink = function(self)
+		inst.medalblink = function(self,data)
 			if self.components.inventory and self.components.inventory:Has("wortox_soul", 1) then
-				if self.TryToPortalHop then
-					self:TryToPortalHop()
-				else
+				--优先执行TryToPortalHop,不满足条件才走勋章消耗
+				if not (self.TryToPortalHop and self:TryToPortalHop()) then
 					self.components.inventory:ConsumeByName("wortox_soul", 1)
 				end
 			elseif inst.components.finiteuses then
@@ -2645,6 +2829,125 @@ medal_defs.devour_soul_certificate={
 		end
 	end,
 }
+-------------------------------------------------噬魂勋章-------------------------------------------------
+local function OnCharged(inst)--灵魂跳跃CD结束
+	local owner = inst.components.inventoryitem ~= nil and inst.components.inventoryitem:GetGrandOwner() or nil
+	--身上有灵魂就消耗灵魂
+	if owner and owner.components.inventory ~= nil and owner.components.inventory:Has("wortox_soul", 1) then
+		owner.components.inventory:ConsumeByName("wortox_soul", 1)
+	--没灵魂就消耗耐久
+	elseif inst.components.finiteuses then
+		inst.components.finiteuses:Use(1)
+	end
+end
+medal_defs.medium_devour_soul_certificate={
+	name="medium_devour_soul_certificate",
+	animname="medium_devour_soul_certificate",
+	taglist={
+	"addfunctional",--可放入融合勋章
+	"washfunctionalable",--能力可被擦除
+	"cangivespacegem",--可以赋予空间之力
+	},
+	grouptag="devoursoulMedal",
+	maxuses=TUNING_MEDAL.DEVOUR_SOUL_MEDAL.MEDIUM_MAXUSES,--次数耐久
+	medal_repair_common={--可补充耐久
+		wortox_soul=1,--灵魂
+		spice_soul=1,--灵魂佐料
+	},
+	onfinishedfn=function(inst) end,--耐久用完执行的函数
+	onequipfn=function(inst,owner)
+		devour_soul_onequipfn(inst,owner)
+		owner.medal_soulstealer=2--噬魂勋章拥有者(也是灵魂的可携带倍数)
+	end,
+	onunequipfn=function(inst,owner)
+		devour_soul_onunequipfn(inst,owner)
+	end,
+	extrafn=function(inst)
+		inst:AddComponent("rechargeable")
+		inst.components.rechargeable:SetOnChargedFn(OnCharged)--CD结束
+		--监听玩家用勋章灵魂跳跃
+		inst.medalblink = function(self,data)
+			if not (self.TryToPortalHop and self:TryToPortalHop()) then
+				if inst.components.rechargeable ~= nil then
+					--不在CD中，则开始CD
+					if inst.components.rechargeable:IsCharged() then
+						inst.components.rechargeable:Discharge(TUNING.WORTOX_FREEHOP_TIMELIMIT)
+					else--已经在CD中，则停止CD并立即消耗
+						inst.components.rechargeable:SetPercent(1)
+					end
+				end
+			end
+		end
+	end,
+}
+-------------------------------------------------噬空勋章-------------------------------------------------
+medal_defs.large_devour_soul_certificate={
+	name="large_devour_soul_certificate",
+	animname="large_devour_soul_certificate",
+	taglist={
+	"addfunctional",--可放入融合勋章
+	"washfunctionalable",--能力可被擦除
+	},
+	grouptag="devoursoulMedal",
+	isfinal=true,--是最终勋章
+	maxuses=TUNING_MEDAL.DEVOUR_SOUL_MEDAL.LARGE_MAXUSES,--次数耐久
+	medal_repair_common={--可补充耐久
+		wortox_soul=1,--灵魂
+		spice_soul=1,--灵魂佐料
+	},
+	onfinishedfn=function(inst) end,--耐久用完执行的函数
+	onequipfn=function(inst,owner)
+		owner:AddTag("medal_map_blinker")--地图灵魂跳跃者
+		devour_soul_onequipfn(inst,owner)
+		owner.medal_soulstealer=2--噬魂勋章拥有者(也是灵魂的可携带倍数)
+		if inst.SyncMedalSouls then
+			inst:SyncMedalSouls(owner)
+		end
+	end,
+	onunequipfn=function(inst,owner)
+		owner:RemoveTag("medal_map_blinker")
+		devour_soul_onunequipfn(inst,owner)
+		--耐久变量置零
+		if owner.medal_souls_num and owner.medal_souls_num:value() ~= 0 then
+			owner.medal_souls_num:set(0)
+		end
+	end,
+	extrafn=function(inst)
+		inst:AddComponent("rechargeable")
+		inst.components.rechargeable:SetOnChargedFn(OnCharged)--CD结束
+		--监听玩家用勋章灵魂跳跃
+		inst.medalblink = function(self,data)
+			if data and data.mapuse and self.components.inventory then
+				local result, num = self.components.inventory:Has("wortox_soul", data.mapuse)
+				self.components.inventory:ConsumeByName("wortox_soul", data.mapuse)
+				--身上的灵魂数量不够,用勋章耐久抵扣,能到这步的肯定已经满足本源这个前置条件了
+				if not result and inst.components.finiteuses then
+					inst.components.finiteuses:Use(data.mapuse - num)
+				end
+			elseif not (self.TryToPortalHop and self:TryToPortalHop()) then
+				if inst.components.rechargeable ~= nil then
+					--不在CD中，则开始CD
+					if inst.components.rechargeable:IsCharged() then
+						inst.components.rechargeable:Discharge(TUNING.WORTOX_FREEHOP_TIMELIMIT)
+					else--已经在CD中，则重置CD
+						local mult = HasOriginMedal(self) and 2 or 1--本源勋章CD翻倍
+						inst.components.rechargeable:Discharge(TUNING_MEDAL.DEVOUR_SOUL_MEDAL.RESET_FREEHOP_TIMELIMIT * mult)
+					end
+				end
+			end
+		end
+		--同步勋章耐久至网络变量
+		inst.SyncMedalSouls = function(inst,owner)
+			if HasOriginMedal(owner) and owner.medal_souls_num ~= nil then
+				local uses = inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0
+				if owner.medal_souls_num:value() ~= uses then
+					owner.medal_souls_num:set(uses)
+				end
+			end
+		end
+	end,
+}
+
 -------------------------------------------------钓鱼勋章-------------------------------------------------
 medal_defs.smallfishing_certificate={
 	name="smallfishing_certificate",
@@ -2705,7 +3008,9 @@ medal_defs.smallfishing_certificate={
 				if inst.components.finiteuses and consume>0 then
 					consume=consume*TUNING_MEDAL.FISHING_MEDAL.CONSUME_MULT
 					inst.components.finiteuses:Use(consume)
-					SpawnMedalTips(self,consume,8)--弹幕提示
+					if not RewardToiler(self,0.05) then--天道酬勤
+						SpawnMedalTips(self,consume,8)--弹幕提示
+					end
 				end
 				-- print(data.pond.prefab)
 			end
@@ -2816,7 +3121,9 @@ medal_defs.mediumfishing_certificate={
 					inst.fishlist[#inst.fishlist+1] = prefabname--记录到海鱼表
 					consume=consume*TUNING_MEDAL.FISHING_MEDAL.CONSUME_MULT
 					inst.components.finiteuses:Use(consume)
-					SpawnMedalTips(self,consume,8)--弹幕提示
+					if not RewardToiler(self,0.1) then--天道酬勤
+						SpawnMedalTips(self,consume,8)--弹幕提示
+					end
 				end
 			end
 		end
@@ -2835,7 +3142,7 @@ medal_defs.mediumfishing_certificate={
 -------------------------------------------------渔翁勋章-------------------------------------------------
 local function large_fishing_collect(player,data)
 	if data and data.fish and data.pond==nil then--仅限海钓
-		RewardToiler(player,TUNING_MEDAL.REWARD_TOILER_CHANCE*2)
+		RewardToiler(player,0.05)
 	end
 end
 medal_defs.largefishing_certificate={
@@ -2849,13 +3156,16 @@ medal_defs.largefishing_certificate={
 	grouptag="fishingMedal",
 	onequipfn=function(inst,owner)
 		AddMedalTag(owner,"fast_kill_fish")--快速杀鱼
-		owner.medal_fishing_time_mult = TUNING_MEDAL.FISHING_MEDAL.LARGE_TIME_MULT--钓鱼时间倍率
-		owner.medal_fishing_chance_mult = TUNING_MEDAL.FISHING_MEDAL.LARGE_CHANCE_MULT--遗失塑料袋概率加成
-		owner.medal_fishing_consume_mult = TUNING_MEDAL.FISHING_MEDAL.LARGE_CONSUME_MULT--钓鱼消耗减免
+		owner:AddTag("has_largefishing_medal")--渔翁
+		local has_origin = HasOriginMedal(owner)
+		owner.medal_fishing_time_mult = TUNING_MEDAL.FISHING_MEDAL[has_origin and "ORIGIN_TIME_MULT" or "LARGE_TIME_MULT"]--钓鱼时间倍率
+		owner.medal_fishing_chance_mult = TUNING_MEDAL.FISHING_MEDAL[has_origin and "ORIGIN_CHANCE_MULT" or "LARGE_CHANCE_MULT"]--遗失塑料袋概率加成
+		owner.medal_fishing_consume_mult = TUNING_MEDAL.FISHING_MEDAL[has_origin and "ORIGIN_CONSUME_MULT" or "LARGE_CONSUME_MULT"]--钓鱼消耗减免
 		owner:ListenForEvent("medal_fishingcollect", large_fishing_collect)--监听钓鱼
 	end,
 	onunequipfn=function(inst,owner)
 		RemoveMedalTag(owner,"fast_kill_fish")--快速杀鱼
+		owner:RemoveTag("has_largefishing_medal")
 		owner.medal_fishing_time_mult = nil
 		owner.medal_fishing_chance_mult = nil
 		owner.medal_fishing_consume_mult = nil
@@ -2869,13 +3179,14 @@ medal_defs.down_filled_coat_certificate={
 	taglist={
 	"addfunctional",--可放入融合勋章
 	"nofreezing",--不会过冷
+	"washfunctionalable",--能力可被擦除
 	},
 	isfinal=true,--是最终勋章
 	fuellevel=TUNING_MEDAL.DOWN_FILLED_COAT_MEDAL_PERISHTIME,--燃料耐久
 	deletefn=function(inst)--耐久用完执行的函数
 		returnNewMedal(inst,"blank_certificate")--返还空白勋章
 	end,
-	medal_repair_loot = {goose_feather=TUNING_MEDAL.DOWN_FILLED_COAT_ADDUSE},--可用鸭毛修复
+	medal_repair_common = {goose_feather=TUNING_MEDAL.DOWN_FILLED_COAT_ADDUSE},--可用鸭毛修复
 	--需要对载体生效的部分装备函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
 	onequipwithrhfn=function(inst,item,owner)
 		if inst.components.insulator==nil then
@@ -2891,6 +3202,10 @@ medal_defs.down_filled_coat_certificate={
 	end,
 	onequipfn=function(inst,owner)
 		if inst.components.fueled then
+			local has_origin = HasOriginMedal(owner)
+			if has_origin then--本源降低消耗速度
+				inst.components.fueled.rate_modifiers:SetModifier("origin_medal", .25)
+			end
 			inst.components.fueled:StartConsuming()
 			if owner.components.temperature then
 				local current=owner.components.temperature:GetCurrent()
@@ -2898,7 +3213,7 @@ medal_defs.down_filled_coat_certificate={
 					owner.components.temperature:SetTemperature(6)
 					-- inst.components.fueled:DoDelta(-math.ceil(TUNING_MEDAL.DOWN_FILLED_COAT_CONSUME*(6-current)))
 					inst:DoTaskInTime(0,function(inst)
-						inst.components.fueled:DoDelta(-math.ceil(TUNING_MEDAL.DOWN_FILLED_COAT_CONSUME*(6-current)))
+						inst.components.fueled:DoDelta(-math.ceil(TUNING_MEDAL.DOWN_FILLED_COAT_CONSUME*(6-current)*(has_origin and .25 or 1)))
 					end)
 				end
 			end
@@ -2910,6 +3225,7 @@ medal_defs.down_filled_coat_certificate={
 	end,
 	onunequipfn=function(inst,owner)
 		if inst.components.fueled then
+			inst.components.fueled.rate_modifiers:RemoveModifier("origin_medal")
 			inst.components.fueled:StopConsuming()
 		end
 		if inst.components.insulator~=nil then
@@ -2924,13 +3240,14 @@ medal_defs.blue_crystal_certificate={
 	taglist={
 	"addfunctional",--可放入融合勋章
 	"nooverheat",--不会过热
+	"washfunctionalable",--能力可被擦除
 	},
 	isfinal=true,--是最终勋章
 	fuellevel=TUNING_MEDAL.HAT_BLUE_CRYSTAL_MEDAL_PERISHTIME,--耐久
 	deletefn=function(inst)--耐久用完执行的函数
 		returnNewMedal(inst,"blank_certificate")--返还空白勋章
 	end,
-	medal_repair_loot = {medal_blue_obsidian=TUNING_MEDAL.HAT_BLUE_CRYSTAL_ADDUSE},--可用蓝曜石修复
+	medal_repair_common = {medal_blue_obsidian=TUNING_MEDAL.HAT_BLUE_CRYSTAL_ADDUSE},--可用蓝曜石修复
 	--需要对载体生效的部分装备函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
 	onequipwithrhfn=function(inst,item,owner)
 		if inst.components.insulator==nil then
@@ -2947,13 +3264,17 @@ medal_defs.blue_crystal_certificate={
 	end,
 	onequipfn=function(inst,owner)
 		if inst.components.fueled then
+			local has_origin = HasOriginMedal(owner)
+			if has_origin then--本源降低消耗速度
+				inst.components.fueled.rate_modifiers:SetModifier("origin_medal", .25)
+			end
 			inst.components.fueled:StartConsuming()
 			if owner.components.temperature then
 				local current=owner.components.temperature:GetCurrent()
 				if current>64 then--当前体温高于64度时，额外消耗耐久降温，消耗量=温差*每度消耗
 					owner.components.temperature:SetTemperature(64)
 					inst:DoTaskInTime(0,function(inst)
-						inst.components.fueled:DoDelta(-math.ceil(TUNING_MEDAL.HAT_BLUE_CRYSTAL_CONSUME*(current-64)))
+						inst.components.fueled:DoDelta(-math.ceil(TUNING_MEDAL.HAT_BLUE_CRYSTAL_CONSUME*(current-64)*(has_origin and .25 or 1)))
 					end)
 				end
 			end
@@ -2970,6 +3291,7 @@ medal_defs.blue_crystal_certificate={
 	end,
 	onunequipfn=function(inst,owner)
 		if inst.components.fueled then
+			inst.components.fueled.rate_modifiers:RemoveModifier("origin_medal")
 			inst.components.fueled:StopConsuming()
 		end
 		if inst.components.insulator~=nil then
@@ -3021,9 +3343,19 @@ local ammo_consume_list={
 	slingshotammo_gold=1,--金弹
 	slingshotammo_marble=2,--大理石弹
 	slingshotammo_thulecite=2,--诅咒弹
+	slingshotammo_honey=2,--蜂蜜弹
 	slingshotammo_freeze=3,--冰弹
 	slingshotammo_slow=3,--减速弹
 	slingshotammo_poop=1,--便便弹
+	slingshotammo_moonglass=2,--月亮碎片弹
+	slingshotammo_dreadstone=3,--绝望石弹
+	slingshotammo_gunpowder=3,--火药弹
+	slingshotammo_lunarplanthusk=3,--亮茄弹
+	slingshotammo_purebrilliance=3,--纯粹辉煌弹
+	slingshotammo_horrorfuel=3,--纯粹恐惧弹
+	slingshotammo_gelblob=3,--恶液弹
+	slingshotammo_scrapfeather=3,--闪电弹
+	slingshotammo_stinger=2,--针刺弹
 	trinket_1=10,--融化的大理石
 	medalslingshotammo_sanityrock=10,--方尖弹
 	medalslingshotammo_sandspike=10,--沙刺弹
@@ -3033,6 +3365,15 @@ local ammo_consume_list={
 	medalslingshotammo_spines=10,--尖刺弹
 	mandrakeberry=3,--曼德拉果
 }
+
+--截取弹药名称
+local function GetProjStr(str)
+    if str:sub(-5)=="_proj" then
+       return str:sub(1,-6)
+    end
+    return str
+end
+
 --童心勋章
 medal_defs.childishness_certificate={
 	name="childishness_certificate",
@@ -3102,14 +3443,13 @@ medal_defs.childishness_certificate={
 		inst.medal_shoot = function(self,data)
 			if data and data.ammo and inst.ammolist then
 				local consume=0--消耗耐久
-				if inst.ammolist[data.ammo.prefab] then
-					if inst.ammolist[data.ammo.prefab] < 60 then
-						inst.ammolist[data.ammo.prefab] = inst.ammolist[data.ammo.prefab]+1
-						consume = ammo_consume_list[data.ammo.prefab] or 1
-					end
-				else
-					inst.ammolist[data.ammo.prefab] = 1
-					consume = ammo_consume_list[data.ammo.prefab] or 1
+				local ammo_prefab = GetProjStr(data.ammo.prefab)
+				if inst.ammolist[ammo_prefab] == nil then
+					inst.ammolist[ammo_prefab] = 0
+				end
+				if inst.ammolist[ammo_prefab] < 60 then
+					inst.ammolist[ammo_prefab] = inst.ammolist[ammo_prefab]+1
+					consume = ammo_consume_list[ammo_prefab] or 1
 				end
 				--沃尔特消耗耐久翻倍
 				if self.prefab=="walter" then
@@ -3190,7 +3530,7 @@ medal_defs.bee_king_certificate={
 	onfinishedfn=function(inst)--耐久用完执行的函数
 		--耐久耗光把群攻状态切成毒伤状态
 		if inst.changeState then
-			inst:changeState(nil)
+			inst:changeState(false)
 		end
 	end,
 	onequipfn=function(inst,owner)
@@ -3200,8 +3540,10 @@ medal_defs.bee_king_certificate={
 		AddMedalTag(owner,"insect")--昆虫标签，防止被蜜蜂主动叮咬
 		owner:PushEvent("refreshcrafting")--更新制作栏
 		owner:ListenForEvent("onattackother", inst.onattackotherfn)--监听攻击目标
-		owner:ListenForEvent("onhitother", inst.onhitotherfn)--监听攻击到目标
-		
+		owner.medal_extra_health_delta = inst.medal_extra_health_delta--毒伤(真实伤害部分)
+		if owner.components.medal_chaosdamage then
+			owner.components.medal_chaosdamage:SetCalcBonusDamageFn(inst.medal_CalcChaosDamage,"bee_king_certificate")--毒伤(混沌伤害部分)
+		end
 	end,
 	onunequipfn=function(inst,owner)
 		owner.isbeeking=nil
@@ -3210,11 +3552,25 @@ medal_defs.bee_king_certificate={
 		owner:PushEvent("refreshcrafting")--更新制作栏
 		
 		if inst.changeState then
-			inst:changeState(nil)
+			inst:changeState(false)
 		end
 		inst.medal_owner=nil
 		owner:RemoveEventCallback("onattackother", inst.onattackotherfn)
-		owner:RemoveEventCallback("onhitother", inst.onhitotherfn)
+		owner.medal_extra_health_delta = nil
+		if owner.components.medal_chaosdamage then
+			owner.components.medal_chaosdamage:SetCalcBonusDamageFn(nil,"bee_king_certificate")--额外混沌伤害
+		end
+	end,
+	--客户端扩展函数
+	client_extrafn=function(inst)--额外扩展函数
+		--展示名
+		inst.displaynamefn = function(inst)
+			if inst:HasTag("medal_aoe") then
+				return STRINGS.NAMES.BEE_KING_CERTIFICATE_ISAOE
+			else
+				return STRINGS.NAMES.BEE_KING_CERTIFICATE
+			end
+		end
 	end,
 	extrafn=function(inst)--额外扩展函数
 		inst:AddComponent("rechargeable")
@@ -3223,7 +3579,7 @@ medal_defs.bee_king_certificate={
 			local owner=inst.medal_owner
 			--群攻模式
 			if isaoe then
-				inst.isaoe=true--勋章群攻标记
+				inst:AddTag("medal_aoe")--勋章群攻标记
 				--如果玩家有aoe buff,吸收其层数转化为耐久
 				if owner and owner.medal_aoecombat_value then
 					if owner.medal_aoecombat_value>0 and inst.components.finiteuses then
@@ -3232,7 +3588,9 @@ medal_defs.bee_king_certificate={
 					owner:RemoveDebuff("buff_medal_aoecombat")--取消aoe Buff
 				end
 				if owner and owner.components.combat then
-					owner.components.combat.externaldamagemultipliers:SetModifier("bee_king_certificate", TUNING_MEDAL.BEE_KING_MEDAL.AOE_MULT)--降低伤害系数
+					if not HasOriginMedal(owner) then--本源不降低
+						owner.components.combat.externaldamagemultipliers:SetModifier("bee_king_certificate", TUNING_MEDAL.BEE_KING_MEDAL.AOE_MULT)--降低伤害系数
+					end
 					--设置AOE伤害
 					if owner.components.combat.areahitrange==nil then
 						owner.components.combat:SetAreaDamage(TUNING_MEDAL.BEE_KING_MEDAL.AOE_DIST,1,function(victim,player)
@@ -3249,7 +3607,7 @@ medal_defs.bee_king_certificate={
 					inst.components.inventoryitem:ChangeImageName("bee_king_certificate_aoe")
 				end
 			else--毒伤模式
-				inst.isaoe=nil--取消勋章群攻标记
+				inst:RemoveTag("medal_aoe")--取消勋章群攻标记
 				if owner and owner.components.combat then
 					owner.components.combat.externaldamagemultipliers:RemoveModifier("bee_king_certificate")--伤害系数恢复正常
 				end
@@ -3269,7 +3627,7 @@ medal_defs.bee_king_certificate={
 		--监听玩家攻击目标的事件
 		inst.onattackotherfn = function(self,data)
 			--远程射击武器会推两次消息，以第一次消耗为准
-			if inst.isaoe and data.projectile==nil then
+			if inst:HasTag("medal_aoe") and data.projectile==nil then
 				local distance=math.sqrt(self:GetDistanceSqToInst(data.target))--距离
 				local consume = math.ceil(math.max(distance-3,0)/3) + 1--消耗
 				--群攻模式每次攻击根据命中距离消耗耐久
@@ -3278,34 +3636,36 @@ medal_defs.bee_king_certificate={
 				end
 			end
 		end
-		--监听玩家攻击到目标的事件
-		inst.onhitotherfn = function(self,data)
-			--毒伤模式
-			if not inst.isaoe then
-				if data.target and data.target:IsValid() and data.target.components.health and not data.target.components.health:IsDead() then
-					data.target:AddDebuff("buff_medal_poisonmark","buff_medal_poisonmark")
-					--延迟一点点造成伤害，太快造成伤害的话无法击晕龙蝇
-					data.target:DoTaskInTime(0,function(target)
-						if target and target:IsValid() and target.components.health and not target.components.health:IsDead() then
-							local uses = inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0--剩余耐久
-							local poison_count = target.medal_poison_mark or 1--蜂毒层数
-							--蜂毒层数超过阈值，需额外消耗耐久
-							if poison_count > TUNING_MEDAL.BEE_KING_MEDAL.POISON_MAX_NOCONSUME then
-								if uses>0 then
-									inst.components.finiteuses:Use(1)
-								else--耐久不足就限制毒伤至阈值
-									poison_count = TUNING_MEDAL.BEE_KING_MEDAL.POISON_MAX_NOCONSUME
-								end
-							end
-							--造成(毒标记层数*3.4)点额外伤害(无视防御)
-							target.components.health:DoDelta(-poison_count*TUNING_MEDAL.BEE_KING_MEDAL.POISON_DAMAGE, nil, "bee_king_certificate",nil,nil,true)
-						end
-					end)
-					if inst.components.rechargeable then
-						inst.components.rechargeable:Discharge(TUNING_MEDAL.BEE_KING_MEDAL.POISON_CD)--蜂毒消失CD
-					end
+		--毒伤(混沌伤害)
+		inst.medal_CalcChaosDamage = function(owner, target)
+			local chaos_damage = 0
+			if target and not inst:HasTag("medal_aoe") then--仅限毒伤模式
+				target:AddDebuff("buff_medal_poisonmark","buff_medal_poisonmark",{marknum = HasOriginMedal(owner) and 2 or 1})
+				local poison_count = math.min(target.medal_poison_mark or 1,TUNING_MEDAL.BEE_KING_MEDAL.POISON_MAX_NOCONSUME)--蜂毒层数
+				if inst.components.rechargeable then--勋章进入冷却CD
+					inst.components.rechargeable:Discharge(TUNING_MEDAL.BEE_KING_MEDAL.POISON_CD)
+				end
+				chaos_damage = chaos_damage + poison_count * TUNING_MEDAL.BEE_KING_MEDAL.POISON_DAMAGE
+			end
+			return chaos_damage
+		end
+		--毒伤(真实伤害)
+		inst.medal_extra_health_delta = function(target, amount, overtime, cause, ignore_invincible, afflicter, ignore_absorb)
+			local poison_count = target and target.medal_poison_mark or 0--蜂毒层数
+			--蜂毒层数超过阈值,需额外消耗耐久,超出部分为真伤
+			if poison_count > TUNING_MEDAL.BEE_KING_MEDAL.POISON_MAX_NOCONSUME and not inst:HasTag("medal_aoe") then
+				local true_damage = (TUNING_MEDAL.BEE_KING_MEDAL.POISON_MAX_NOCONSUME - poison_count) * TUNING_MEDAL.BEE_KING_MEDAL.POISON_DAMAGE
+				--本源勋章不需要消耗耐久
+				if HasOriginMedal(afflicter,"is_bee_king") then
+					return true_damage, true
+				end
+				local uses = inst.components.finiteuses and inst.components.finiteuses:GetUses() or 0--剩余耐久
+				if uses and uses>0 then
+					inst.components.finiteuses:Use(1)
+					return true_damage, true
 				end
 			end
+			return 0, ignore_absorb
 		end
 	end,
 }
@@ -3317,7 +3677,7 @@ local function InitMission(inst,id,use,doer)
 		inst.init_task:Cancel()
 		inst.init_task = nil
 	end
-	local randomnum = doer and doer.components.medal_destiny and doer.components.medal_destiny:GetDestiny() or math.random()
+	local randomnum = math.random()--GetMedalDestiny(inst)--已经废弃的东西就别整宿命了，别浪费资源
 	inst.medal_task_id = id or math.floor(randomnum*(#medal_missions)+1)
 	local missiondata = medal_missions[inst.medal_task_id]
 	if missiondata then
@@ -3336,6 +3696,7 @@ medal_defs.mission_certificate={
 	name="mission_certificate",
 	animname="mission_certificate",
 	hassound=true,--需要播声音
+	nodebug=true,--dm_allmedal()不自动生成
 	taglist={
 	"addfunctional",--可放入融合勋章
 	"showmedalinfo",--显示勋章信息
@@ -3385,141 +3746,309 @@ medal_defs.mission_certificate={
 		end
 	end,
 }
+-------------------------------------------------暗影勋章-------------------------------------------------
+--杀死仆从
+local function KillPet(pet)
+	if pet.components.health then
+		if pet.components.health:IsInvincible() then
+			pet._killtask = pet:DoTaskInTime(.5, KillPet)
+		else
+			pet.components.health:Kill()
+		end
+	end
+end
+--移除所有仆从
+local function KillAllPets(inst)
+    for k, v in pairs(inst.components.petleash:GetPets()) do
+        if v:HasTag("shadowminion") and v._killtask == nil and v.ismedalshadowpet then
+            -- v._killtask = v:DoTaskInTime(math.random(), KillPet)
+			KillPet(v)
+        end
+    end
+end
+--生成仆从
+local function OnSpawnPet(inst, pet)
+    local medal = inst and inst.components.inventory:EquipMedalWithName("shadowmagic_certificate")--获取玩家的暗影勋章
+	--暗影勋章有足够耐久才走这块逻辑
+	if medal and medal.components.finiteuses and medal.components.finiteuses:GetUses() > 0 and pet:HasTag("shadowminion") then
+		if not (inst.components.health:IsDead() or inst:HasTag("playerghost")) then
+			medal.components.finiteuses:Use(1)--消耗1点耐久
+            inst:ListenForEvent("onremove", medal.medal_onpetlost, pet)
+            pet.components.skinner:CopySkinsFromPlayer(inst)
+			pet.ismedalshadowpet=true--是勋章特有仆从
+        elseif pet._killtask == nil then
+            pet._killtask = pet:DoTaskInTime(math.random(), KillPet)
+        end
+	elseif inst.medal_OnSpawnPet ~= nil then
+		inst:medal_OnSpawnPet(pet)
+	end
+end
+--移除仆从
+local function OnDespawnPet(inst, pet)
+	if pet:HasTag("shadowminion") and pet.ismedalshadowpet then
+		if not inst.is_snapshot_user_session and pet.sg ~= nil then
+			pet.sg:GoToState("quickdespawn")
+		else
+			pet:Remove()
+		end
+    elseif inst.medal_OnDespawnPet ~= nil then
+        inst:medal_OnDespawnPet(pet)
+    end
+end
+medal_defs.shadowmagic_certificate={
+	name="shadowmagic_certificate",
+	animname="shadowmagic_certificate",
+	taglist={
+	"addfunctional",--可放入融合勋章
+	"washfunctionalable",--能力可被擦除
+	"shadowlevel",--暗影装备加成等级
+	},
+	isfinal=true,--是最终勋章
+	upgradable=true,--可升级
+	maxlevel=TUNING_MEDAL.SHADOWMAGIC_MEDAL.MAX_LEVEL,--最高等级
+	maxuses=TUNING_MEDAL.SHADOWMAGIC_MEDAL.MAXUSES[1],--次数耐久
+	onfinishedfn=function(inst)--耐久用完执行的函数
+		
+	end,
+	--需要对载体生效的部分装备函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
+	onequipwithrhfn=function(inst,item,owner)
+		if inst.components.shadowlevel==nil then
+			inst:AddComponent("shadowlevel")
+		end
+		inst.components.shadowlevel:SetLevelFn(function(inst)
+			return item and item.medal_level or 1
+		end)
+	end,
+	--需要对载体生效的部分卸下函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
+	onunequipwithrhfn=function(inst,item,owner)
+		if inst.components.shadowlevel~=nil then
+			inst:RemoveComponent("shadowlevel")
+		end
+	end,
+	onequipfn=function(inst,owner)
+		AddMedalTag(owner,"shadowmagic")--暗影魔术师标签
+		AddMedalComponent(owner,"magician")--魔术师组件
+		owner:AddTag("has_shadowmagic_medal")
+		owner:PushEvent("refreshcrafting")--更新制作栏
+		inst.components.finiteuses:SetPercent(1)--装备的时候回满耐久
+		--仆从组件
+		if owner.components.petleash ~= nil then
+			owner.medal_OnSpawnPet = owner.components.petleash.onspawnfn
+			owner.medal_OnDespawnPet = owner.components.petleash.ondespawnfn
+			owner.components.petleash:SetMaxPets(owner.components.petleash:GetMaxPets() + inst.maxuses_level[inst.medal_level])
+		else--正常情况下不会没有这个组件
+			AddMedalComponent(owner,"petleash")
+			owner.components.petleash:SetMaxPets(inst.maxuses_level[inst.medal_level])
+		end
+		owner.components.petleash:SetOnSpawnFn(OnSpawnPet)
+		owner.components.petleash:SetOnDespawnFn(OnDespawnPet)
+	end,
+	onunequipfn=function(inst,owner)
+		RemoveMedalTag(owner,"shadowmagic")--暗影魔术师标签
+		RemoveMedalComponent(owner,"magician")--魔术师组件
+		owner:RemoveTag("has_shadowmagic_medal")
+		owner:PushEvent("refreshcrafting")--更新制作栏
+
+		KillAllPets(owner)
+
+		if owner.medal_OnSpawnPet ~= nil then
+			owner.components.petleash:SetMaxPets(owner.components.petleash:GetMaxPets() - inst.maxuses_level[inst.medal_level])
+			owner.components.petleash:SetOnSpawnFn(owner.medal_OnSpawnPet)
+    		owner.components.petleash:SetOnDespawnFn(owner.medal_OnDespawnPet)
+			owner.medal_OnSpawnPet = nil
+			owner.medal_OnDespawnPet = nil
+		else
+			RemoveMedalComponent(owner,"petleash")
+		end
+	end,
+	extrafn=function(inst)--额外扩展函数
+		inst:AddComponent("shadowlevel")--暗影装备加成等级
+		inst.components.shadowlevel:SetLevelFn(function(inst)
+			return inst.medal_level or 1
+		end)
+		inst.maxuses_level = TUNING_MEDAL.SHADOWMAGIC_MEDAL.MAXUSES--不同等级耐久上限
+		inst.LevelUpFn = function(inst)--升级时执行
+			if inst.medal_level and inst.components.finiteuses and inst.maxuses_level then
+				inst.components.finiteuses:SetMaxUses(inst.maxuses_level[inst.medal_level])
+				inst.components.finiteuses:SetPercent(1)
+			end
+		end
+		--监听仆从死亡
+		inst.medal_onpetlost = function(self,data)
+			if inst.components.finiteuses:GetPercent()<1 then
+				inst.components.finiteuses:Use(-1)--恢复1点耐久
+			end
+		end
+	end,
+	onloadfn=function(inst,data)--扩展加载函数
+		inst:LevelUpFn()
+	end,
+}
 -------------------------------------------------空白勋章-------------------------------------------------
+local function TeachBlackMedal(inst)
+	local order = {1,2,3,4,5,6,7,8}
+	inst.puzzle = {}
+	inst.product_orchestrina=true
+	for i=1,8 do
+		local num = math.random(1,#order)
+		table.insert(inst.puzzle,order[num])
+		table.remove(order,num)
+	end
+	inst:ListenForEvent("onteach", function(inst)
+		--生成特效
+		SpawnPrefab("lavaarena_player_revive_from_corpse_fx").Transform:SetPosition(inst.Transform:GetWorldPosition())
+		--禁止拾取
+		if inst.components.inventoryitem then
+			inst.components.inventoryitem.canbepickedup=false
+		end
+		inst:DoTaskInTime(2, function() 
+			local newmedal=SpawnPrefab("inherit_certificate")
+			if newmedal then
+				local x, y, z = inst.Transform:GetWorldPosition()
+				local main = TheSim:FindEntities(x,y,z, 10, {"archive_orchestrina_main"})
+				if main then
+					for i,ent in ipairs(main)do
+						ent.busy = false--解除法阵的占用状态
+					end
+				end
+				newmedal.Transform:SetPosition(x, y, z)
+				inst:Remove()
+			end
+		end)
+	end)
+end
+
+--材料(无功能)
 medal_defs.blank_certificate={
 	name="blank_certificate",
 	animname="blank_certificate",
+	isfinal=true,--是最终勋章
 	taglist={
-	"addfunctional",--可放入融合勋章
-	-- "upgradablemedal",--可融合升级
+	-- "addfunctional",--可放入融合勋章
 	"archive_lockbox",--遗忘的知识(方便被识别，用来解锁传承)
 	},
-	isfinal=true,--是最终勋章
 	onequipfn=function(inst,owner)
-		local medalname=inst.blankmedalchangename and inst.blankmedalchangename:value() or "blank_certificate"
-		if medalname == "blank_certificate" then return end--空白勋章不能重复调用自己的装备函数，防止栈溢出
-		--如果含有等级信息则把等级信息切掉
-		if string.find(medalname,"&") then
-			local info_pack = string.split(medalname, "&")
-			medalname=info_pack[1]
-		end
-		if medal_defs[medalname]~=nil then
+		
+	end,
+	onunequipfn=function(inst,owner)
+		
+	end,
+	extrafn=function(inst)--额外扩展函数
+		TeachBlackMedal(inst)--变成传承勋章
+	end,
+}
+--印刻后
+medal_defs.copy_blank_certificate={
+	name="copy_blank_certificate",
+	animname="blank_certificate",
+	atlas="blank_certificate",--共用图集所以要用这个
+	taglist={
+	"addfunctional",--可放入融合勋章
+	"blank_certificate",--空白勋章标签
+	"archive_lockbox",--遗忘的知识(方便被识别，用来解锁传承)
+	"washfunctionalable",--能力可被擦除
+	},
+	-- isfinal=true,--是最终勋章
+	nodebug=true,--dm_allmedal()不自动生成
+	onequipfn=function(inst,owner)
+		local medalname = inst.medalname or "copy_blank_certificate"--空白勋章不能重复调用自己的装备函数，防止栈溢出
+		if medalname ~= "copy_blank_certificate" and medal_defs[medalname]~=nil then
 			medal_defs[medalname].onequipfn(inst,owner)
 		end
 	end,
 	onunequipfn=function(inst,owner)
-		local medalname=inst.blankmedalchangename and inst.blankmedalchangename:value() or "blank_certificate"
-		if medalname == "blank_certificate" then return end--空白勋章不能重复调用自己的装备函数，防止栈溢出
-		--如果含有等级信息则把等级信息切掉
-		if string.find(medalname,"&") then
-			local info_pack = string.split(medalname, "&")
-			medalname=info_pack[1]
-		end
-		if medal_defs[medalname]~=nil then
+		local medalname = inst.medalname or "copy_blank_certificate"
+		if medalname ~= "copy_blank_certificate" and medal_defs[medalname]~=nil then
 			medal_defs[medalname].onunequipfn(inst,owner)
 		end
 	end,
 	--需要对载体生效的部分装备函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
 	onequipwithrhfn=function(inst,item,owner)
-		local medalname=item.blankmedalchangename and item.blankmedalchangename:value() or "blank_certificate"
-		if medalname == "blank_certificate" then return end--空白勋章不能重复调用自己的装备函数，防止栈溢出
-		--如果含有等级信息则把等级信息切掉
-		if string.find(medalname,"&") then
-			local info_pack = string.split(medalname, "&")
-			medalname=info_pack[1]
-		end
-		if medal_defs[medalname] and medal_defs[medalname].onequipwithrhfn then
+		local medalname = inst.medalname or "copy_blank_certificate"
+		if medalname ~= "copy_blank_certificate" and medal_defs[medalname] and medal_defs[medalname].onequipwithrhfn then
 			medal_defs[medalname].onequipwithrhfn(inst,item,owner)
 		end
 	end,
 	--需要对载体生效的部分卸下函数(inst是融合勋章,item是勋章本身,owner是佩戴者)
 	onunequipwithrhfn=function(inst,item,owner)
-		local medalname=item.blankmedalchangename and item.blankmedalchangename:value() or "blank_certificate"
-		if medalname == "blank_certificate" then return end--空白勋章不能重复调用自己的装备函数，防止栈溢出
-		--如果含有等级信息则把等级信息切掉
-		if string.find(medalname,"&") then
-			local info_pack = string.split(medalname, "&")
-			medalname=info_pack[1]
-		end
-		if medal_defs[medalname] and medal_defs[medalname].onunequipwithrhfn then
+		local medalname = inst.medalname or "copy_blank_certificate"
+		if medalname ~= "copy_blank_certificate" and medal_defs[medalname] and medal_defs[medalname].onunequipwithrhfn then
 			medal_defs[medalname].onunequipwithrhfn(inst,item,owner)
 		end
 	end,
 	--客户端扩展函数
 	client_extrafn=function(inst)--额外扩展函数
-		inst.grouptag="blank_certificate"--默认勋章组
+		inst.grouptag="copy_blank_certificate"--默认勋章组
 		--印刻勋章名网络变量
 		inst.blankmedalchangename = net_string(inst.GUID, "blankmedalchangename", "blankmedalchangenamedirty")
-		inst.blankmedalchangename:set("blank_certificate")
+		inst.blankmedalchangename:set("copy_blank_certificate")
 		inst:ListenForEvent("blankmedalchangenamedirty", function(inst)
-			local displayname = inst.blankmedalchangename:value() or "blank_certificate"--勋章名
-			local medallevel=0--勋章等级
-			--检查名字里是否包含等级信息，如果有就把等级信息切出来
-			if string.find(displayname,"&") then
-				local info_pack = string.split(displayname, "&")
-				displayname=info_pack[1]
-				medallevel=info_pack[2]+0
-			end
-			
-			--更换空白勋章展示名字
-			if displayname ~= "blank_certificate" and medal_defs[displayname]~=nil and medal_defs[displayname].taglist and table.contains(medal_defs[displayname].taglist,"copyfunctional") then
-				--切换贴图
-				if inst.components.inventoryitem then
-					inst.components.inventoryitem:ChangeImageName("copy_"..displayname)
-				end
-				--更换勋章组
-				inst.grouptag=medal_defs[displayname].grouptag or displayname
-				--等级继承
-				inst.medal_level=nil
-				if medal_defs[displayname].maxlevel then
-					medallevel=math.min(medallevel,medal_defs[displayname].maxlevel)
-					if medallevel>0 then
-						inst.medal_level = medallevel
-					end
-				else
-					medallevel=0--这里用来清除被移除了等级机制的勋章等级
-				end
-				--更改展示名
-				inst.displaynamefn = function(inst)
-					return medallevel>1 and subfmt(STRINGS.NAMES["BLANK_CERTIFICATE_LEVEL"], { level = medallevel,medal = STRINGS.NAMES[string.upper(displayname)] }) or subfmt(STRINGS.NAMES["BLANK_CERTIFICATE_COPY"], {medal = STRINGS.NAMES[string.upper(displayname)] })
-				end
-			end 
+			local displayname = inst.blankmedalchangename:value() or "copy_blank_certificate"--勋章名
+			local medalinfo = string.split(displayname, "&")
+			local medalname = medalinfo[1]
+			inst.medal_displayname = medalname--展示名
+			inst.medal_displaylevel = medalinfo[2] and medalinfo[2] + 0--展示等级
+			inst.grouptag = medal_defs[medalname] and medal_defs[medalname].grouptag or medalname--勋章组
 		end)
+		--展示名
+		inst.displaynamefn = function(inst)
+			local medallevel = inst.medal_displaylevel or 0
+			local displayname = inst.medal_displayname or "copy_blank_certificate"
+			if medallevel > 1 then
+				return subfmt(STRINGS.NAMES.BLANK_CERTIFICATE_LEVEL, { level = medallevel,medal = STRINGS.NAMES[string.upper(displayname)] })
+			end
+			return subfmt(STRINGS.NAMES.BLANK_CERTIFICATE_COPY, {medal = STRINGS.NAMES[string.upper(displayname)] })
+		end
 	end,
 	extrafn=function(inst)--额外扩展函数
-		local order = {1,2,3,4,5,6,7,8}
-		inst.puzzle = {}
-		inst.product_orchestrina=true
-		for i=1,8 do
-			local num = math.random(1,#order)
-			table.insert(inst.puzzle,order[num])
-			table.remove(order,num)
-		end
-		inst:ListenForEvent("onteach", function(inst)
-			--生成特效
-			SpawnPrefab("lavaarena_player_revive_from_corpse_fx").Transform:SetPosition(inst.Transform:GetWorldPosition())
-			--禁止拾取
-			if inst.components.inventoryitem then
-				inst.components.inventoryitem.canbepickedup=false
+		TeachBlackMedal(inst)--变成传承勋章
+		--能力印刻
+		inst.PowerPrint = function(inst,target_medal)
+			local medalname = target_medal.prefab
+			local level = target_medal.medal_level
+			local medalstr = medalname
+			if level and level > 0 then
+				medalstr = medalname.."&"..level
 			end
-			inst:DoTaskInTime(2, function() 
-				local newmedal=SpawnPrefab("inherit_certificate")
-				if newmedal then
-					newmedal.Transform:SetPosition(inst.Transform:GetWorldPosition())
-					inst:Remove()
-				end
-			end)
-		end)
+			if inst.blankmedalchangename == nil or medalstr == inst.blankmedalchangename:value() then
+				return false--,"ALREADY"--已经有这个能力了
+			end
+			--切换贴图
+			if inst.components.inventoryitem then
+				inst.components.inventoryitem:ChangeImageName("copy_"..medalname)
+			end
+			inst.medalname = medalname--记录印刻的勋章名
+			inst.medal_level = level--覆盖勋章等级
+			inst.grouptag = medal_defs[medalname] and medal_defs[medalname].grouptag or medalname--勋章组
+			inst.blankmedalchangename:set(medalstr)--换名
+			return true
+		end
 	end,
 	onsavefn=function(inst,data)--扩展存储函数
 		--空白勋章名字保存
-		data.functional_tag=inst.blankmedalchangename and inst.blankmedalchangename:value() or "blank_certificate"
+		data.functional_tag=inst.blankmedalchangename and inst.blankmedalchangename:value() or "copy_blank_certificate"
 	end,
 	onloadfn=function(inst,data)--扩展加载函数
 		--空白勋章换名
 		if data and data.functional_tag then
-			inst.blankmedalchangename:set(data.functional_tag or "blank_certificate")
-			inst.grouptag=data.functional_tag
+			local medalinfo = string.split(data.functional_tag, "&")
+			local medalname = medalinfo[1]
+			local level = medalinfo[2]
+			--确保原本印刻的勋章现在也还是可印刻的
+			if medalname and medal_defs[medalname]~=nil and medal_defs[medalname].taglist and table.contains(medal_defs[medalname].taglist,"copyfunctional") then
+				local maxlevel = medal_defs[medalname].maxlevel
+				--切换贴图
+				if inst.components.inventoryitem then
+					inst.components.inventoryitem:ChangeImageName("copy_"..medalname)
+				end
+				inst.medalname = medalname--记录印刻的勋章名
+				inst.grouptag = medal_defs[medalname] and medal_defs[medalname].grouptag or medalname--勋章组
+				if maxlevel then--有最大等级意味着可升级,所以至少也应该有1级
+					inst.medal_level = math.min(level and level + 0 or 1, maxlevel)--继承勋章等级
+					medalname = medalname.."&"..inst.medal_level
+				end
+				inst.blankmedalchangename:set(medalname)
+			end
 		end
 	end,
 }

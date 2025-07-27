@@ -171,6 +171,10 @@ local function DoDamage(inst)
             end
         end
     end
+
+    if inst.fromplayer then
+        DoBreak(inst)--是玩家召唤的就马上自毁，不要放在那碍事
+    end
 end
 --变成玻璃
 local function ChangeToGlass(inst)
@@ -248,8 +252,8 @@ local function OnHitOther(inst, other, damage)
         if inst.animname then
             other.components.health:DoDeltaMedalDelayDamage(TUNING_MEDAL.MEDAL_SANDSPIKE.DELAY_DAMAGE[string.upper(inst.animname)])
         end
-        DoBreak(inst)--攻击到后自毁
     end
+    DoBreak(inst)--攻击到后自毁
 end
 
 local function PlayBlockSound(inst)
@@ -324,6 +328,9 @@ local function MakeSpikeFn(shape, size)
         inst.components.combat.playerdamagepercent = .5
         inst.components.combat:SetKeepTargetFunction(KeepTargetFn)
         inst.components.combat.onhitotherfn = OnHitOther--攻击到生物时执行函数
+        
+	    inst:AddComponent("medal_chaosdamage")--混沌伤害
+	    inst.components.medal_chaosdamage:SetBaseDamage(TUNING_MEDAL.MEDAL_SANDSPIKE.CHAOS_DAMAGE[string.upper(inst.animname)])
 
         inst:ListenForEvent("animover", StartSpikeAnim)
         inst:ListenForEvent("death", OnDeath)

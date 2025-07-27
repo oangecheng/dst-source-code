@@ -53,6 +53,13 @@ local function customcheckfn(pt)
 	return TheWorld.Map:IsPassableAtPoint(pt.x, 0, pt.z) and TheWorld.net.components.medal_spacetimestorms ~= nil and TheWorld.net.components.medal_spacetimestorms:IsPointInSpacetimestorm(pt)
 end
 
+--时空吞噬者生成点检查
+local function specialcheckfn(pt)
+	--坐标点处于时空风暴中并且坐标点附近没碍事的东西
+	return TheWorld.Map:IsPassableAtPoint(pt.x, 0, pt.z) and TheWorld.Map:IsDeployPointClear(pt, nil, 1)
+		and TheWorld.net.components.medal_spacetimestorms ~= nil and TheWorld.net.components.medal_spacetimestorms:IsPointInSpacetimestorm(pt)
+end
+
 --节点可生成时空风暴
 local function NodeCanHaveSpacetimestorm(node)
 	return node ~= nil
@@ -331,7 +338,7 @@ function self:FindStormCenterPos()
 		-- 	return center
 		-- end
 		for i = 1, math.ceil((max_dist-min_dist)/add_dist)+1 do
-			pos = FindWalkableOffset(center, math.random()*2*PI, min_dist+i*add_dist, 16, true, nil, customcheckfn, nil, nil)
+			pos = FindWalkableOffset(center, math.random()*2*PI, min_dist+i*add_dist, 16, true, nil, specialcheckfn, nil, nil)
 			if pos then
 				pos = center + pos
 				return pos
@@ -377,10 +384,12 @@ end
 function self:GetLostPlayer()
 	local lostplayers={}--迷失玩家
 	for i, v in ipairs(_activeplayers) do
-		local pt = Vector3(v.Transform:GetWorldPosition())
 		--遍历玩家列表，在风暴里的玩家都是迷路人
-		if TheWorld.net.components.medal_spacetimestorms and TheWorld.net.components.medal_spacetimestorms:IsPointInSpacetimestorm(pt) then
-			table.insert(lostplayers,v)
+		if v:IsValid() and v.components.health ~= nil and not v.components.health:IsDead() and not v:HasTag("playerghost") then
+			local pt = Vector3(v.Transform:GetWorldPosition())
+			if TheWorld.net.components.medal_spacetimestorms and TheWorld.net.components.medal_spacetimestorms:IsPointInSpacetimestorm(pt) then
+				table.insert(lostplayers,v)
+			end
 		end
 	end
 	return lostplayers

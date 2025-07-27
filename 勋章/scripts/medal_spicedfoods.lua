@@ -47,9 +47,9 @@ local function MedalGenerateSpicedFoods(foods)
                 if spicedata.oneatenfn ~= nil then
                     if newdata.oneatenfn ~= nil then
                         local oneatenfn_old = newdata.oneatenfn
-                        newdata.oneatenfn = function(inst, eater)
-                            spicedata.oneatenfn(inst, eater)
-                            oneatenfn_old(inst, eater)
+                        newdata.oneatenfn = function(inst, eater, ...)
+                            spicedata.oneatenfn(inst, eater, ...)
+                            oneatenfn_old(inst, eater, ...)
                         end
                     else
                         newdata.oneatenfn = spicedata.oneatenfn

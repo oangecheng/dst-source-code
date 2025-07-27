@@ -32,8 +32,8 @@ local function OnPicked(inst, picker, loot)
     inst:RemoveEventCallback("animover", OnBloomed)
     inst:ListenForEvent("animover", inst.Remove)
     inst.AnimState:PlayAnimation("picked_wilt")
-    if picker and picker:HasTag("has_transplant_medal") then
-        RewardToiler(picker)--天道酬勤
+    if picker and picker:HasTag("has_plant_medal") then
+        RewardToiler(picker, picker:HasTag("has_transplant_medal") and 0.02 or 0.01)--天道酬勤
     end
 end
 

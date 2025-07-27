@@ -103,23 +103,28 @@ local function KeepTargetFn(inst, target)
         or (inst.components.combat:CanTarget(target) and
             inst:IsNear(target, 40))
 end
---额外伤害(对有蜜蜂过敏的目标额外造成10点伤害)
+--额外伤害
 local function bonus_damage_via_allergy(inst, target, damage, weapon)
-	--对有蜜蜂过敏的目标额外造成10点伤害
-	local extra_damage = target:HasTag("allergictobees") and TUNING.BEE_ALLERGY_EXTRADAMAGE or 0
-    local blood_mark = target.blood_honey_mark or 0--血蜜标记层数
-	--对中了蜂毒的目标造成额外伤害=(max(蜂毒层数-5,0)/10+向下取整(凋零值/20)*0.5+0.5)*蜂毒层数*(0.005*血蜜标记层数²+1)*难度系数
-	if target.injured_damage then
-		local withered_num = 0--凋零值
+	--对有蜜蜂过敏的目标额外造成伤害
+	return target:HasTag("allergictobees") and TUNING.BEE_ALLERGY_EXTRADAMAGE or 0
+end
+--计算混沌伤害,混沌伤害=向上取整(((蜂毒层数*0.125+向下取整(凋零值*0.05))*蜂毒层数*(0.005*血蜜标记层数²+1)+基础混沌伤害)*难度系数)
+local function CalcChaosDamage(inst, target)
+    local chaos_damage = TUNING_MEDAL.MEDAL_BEEGUARD_CHAOS_DAMAGE--基础混沌伤害
+    local injured_damage = target and target.injured_damage--蜂毒层数
+    if injured_damage then
+		local blood_mark = target and target.blood_honey_mark or 0--血蜜标记层数
+        local withered_num = 0--凋零值
 		local queen = inst.components.entitytracker:GetEntity("queen")--获取实体跟踪器绑定的蜂王
 		if queen and queen.components.health and not queen.components.health:IsDead() then
-			withered_num=queen.GetWithereNum and queen:GetWithereNum() or 0--获取凋零值
+			withered_num = queen.GetWithereNum and queen:GetWithereNum() or 0--获取凋零值
 		end
-		extra_damage = extra_damage+(math.max(target.injured_damage-5,0)/10+math.floor(withered_num/20)*0.5+0.5)*target.injured_damage*(0.005*math.pow(blood_mark,2)+1)*TUNING_MEDAL.MEDAL_BEEGUARD_EXTRA_DAMAGE_MULT
+		chaos_damage = chaos_damage + (injured_damage * 0.125 + math.floor(withered_num * 0.05)) * injured_damage * (0.005 * math.pow(blood_mark, 2) + 1)
 	end
-	-- print("小蜂额外伤害:"..extra_damage)
-	return extra_damage
+    chaos_damage = math.ceil(chaos_damage * TUNING_MEDAL.MEDAL_BEEGUARD_CHAOS_DAMAGE_MULT)
+    return chaos_damage
 end
+
 --判断是否可以把攻击目标共享给对方
 local function CanShareTarget(dude)
     --对方必须是蜂类，并且不在容器里，也没死，也不能是蜂后这种级别的
@@ -160,14 +165,14 @@ local function OnHitOther(inst,data)
             local drink_blood_mult=1--吸血倍率
             
 			if queen and queen.components.health and not queen.components.health:IsDead() then
-                local withered_num=queen.GetWithereNum and queen:GetWithereNum() or 0--获取凋零值(包含守卫数量带来的凋零值加成)
+                local withered_num = queen.GetWithereNum and queen:GetWithereNum() or 0--获取凋零值(包含守卫数量带来的凋零值加成)
                 local soldiers_num = queen.components.commander and queen.components.commander:GetNumSoldiers() or 0--获取守卫数量
-                --吸血倍率=max(凋零值,堕落之蜂数量)*(3.5-向下取整(arctan(凋零值/2.5+1)*20)/10)*(0.01*血蜜标记层数²+1)*难度系数
-                drink_blood_mult=math.max(withered_num,soldiers_num)*(3.5-math.floor(math.atan(withered_num/2.5+1)*20)/10)*(0.01*math.pow(blood_mark,2)+1)*TUNING_MEDAL.MEDAL_BEEGUARD_DRINK_BLOOD_MULT
+                --吸血倍率=堕落之蜂数量*(3.5-向下取整(arctan(凋零值/2.5+1)*20)/10)*(0.01*血蜜标记层数²+1)*难度系数
+                drink_blood_mult = soldiers_num*(3.5-math.floor(math.atan(withered_num/2.5+1)*20)/10)*(0.01*math.pow(blood_mark,2)+1)*TUNING_MEDAL.MEDAL_BEEGUARD_DRINK_BLOOD_MULT
             end
 
             if data.damage then
-                inst.puffy_drink_blood=inst.puffy_drink_blood+data.damage*drink_blood_mult
+                inst.puffy_drink_blood = inst.puffy_drink_blood + data.damage * drink_blood_mult
                 -- print("伤害:"..data.damage..",吸血量:"..inst.puffy_drink_blood)
                 if blood_mark>0 then
                     data.target.blood_honey_mark = data.target.blood_honey_mark-1--减少一层血蜜标记
@@ -176,21 +181,11 @@ local function OnHitOther(inst,data)
                     end
                 end
             end
-        --非炸毛状态
-        -- elseif data.target.components.debuffable ~= nil and data.target.components.debuffable:IsEnabled() and
-        --     not (data.target.components.health ~= nil and data.target.components.health:IsDead()) and
-        --     not data.target:HasTag("playerghost") then
-        --         data.target.components.debuffable:AddDebuff("buff_medal_bloodhoneymark","buff_medal_bloodhoneymark")--添加血蜜标记
-        --         --血蜜标记层数超标了,概率叠毒
-        --         if blood_mark>=TUNING_MEDAL.MEDAL_BUFF_BLOODHONEYMARK_MAX and math.random()<.25 then
-        --             data.target.components.debuffable:AddDebuff("buff_medal_injured","buff_medal_injured")--蜂毒
-        --         end
-        -- end
-        else
+        else--非炸毛状态
             data.target:AddDebuff("buff_medal_bloodhoneymark","buff_medal_bloodhoneymark")--添加血蜜标记
             --血蜜标记层数超标了,概率叠毒
             if blood_mark>=TUNING_MEDAL.MEDAL_BUFF_BLOODHONEYMARK_MAX and math.random()<.25 then
-                data.target.components.debuffable:AddDebuff("buff_medal_injured","buff_medal_injured")--蜂毒
+                data.target:AddDebuff("buff_medal_injured","buff_medal_injured")--蜂毒
             end
         end
     end
@@ -225,28 +220,19 @@ end
 local function OnDeath(inst)
 	SpawnPrefab("medal_blood_honey_splat").Transform:SetPosition(inst.Transform:GetWorldPosition())
 	local x, y, z = inst.Transform:GetWorldPosition()
-	local ents=TheSim:FindEntities(x, y, z, 2.5 ,nil , {"INLIMBO", "NOCLICK", "catchable", "notdevourable","bee"},{"player","_combat"})
+	local ents=TheSim:FindEntities(x, y, z, 2.5 ,nil , {"INLIMBO", "NOCLICK", "catchable", "notdevourable","bee","chaos_creature"},{"player","_combat"})
 	local damage=inst.puffy_drink_blood or 0--爆炸伤害=自身吸血量
 	if #ents>0 then
 		for i,v in ipairs(ents) do
             local blood_mark = v.blood_honey_mark or 0--血蜜标记层数
             if blood_mark < TUNING_MEDAL.MEDAL_BEEGUARD_MARK_CONSUME then
-                if v.components.debuffable ~= nil and v.components.debuffable:IsEnabled() and
-                not (v.components.health ~= nil and v.components.health:IsDead()) and
-                not v:HasTag("playerghost") then
-                    v.components.debuffable:AddDebuff("buff_medal_bloodhoneymark","buff_medal_bloodhoneymark")
-                end
+                v:AddDebuff("buff_medal_bloodhoneymark","buff_medal_bloodhoneymark")
             elseif v.components.pinnable then
                 -- v.components.pinnable:Stick("medal_blood_honey_goo")--黏他
                 --有黑暗血糖
-                if v.components.debuffable and v.components.debuffable:HasDebuff("buff_medal_suckingblood") then
-                    --暗影盾
-                    local fx=SpawnPrefab("medal_shield_player")
-                    if fx then fx.entity:SetParent(v.entity) end
+                if v.medal_dark_ningxue then
                     --抵消buff时长
-                    v.components.debuffable:AddDebuff("buff_medal_suckingblood", "buff_medal_suckingblood",{extend_durationfn=function(timer_left)
-                        return math.max(0,timer_left - TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
-                    end})
+                    ConsumeMedalBuff(v,"buff_medal_suckingblood",TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
                 else
                     v.components.pinnable:Stick("medal_blood_honey_goo")--黏他
                 end
@@ -291,12 +277,7 @@ local function FocusTarget(inst, target)
 			local queen = inst.components.entitytracker:GetEntity("queen")--获取实体跟踪器绑定的蜂王
 			if queen and queen.components.health and not queen.components.health:IsDead() then
 				if inst.puffy_drink_blood>0 then
-					-- print("吸血:"..inst.puffy_drink_blood)
-					queen.components.health:DoDelta(inst.puffy_drink_blood)--将吸来的血献祭给蜂王,献祭血量=吸血量*蜂王凋零值
-					if queen.withered_num>0 then
-						--降低凋零值，降低量=math.clamp(math.floor(吸血量/40),0.5,4)
-						queen.withered_num=math.max(queen.withered_num-math.clamp(math.floor(inst.puffy_drink_blood/40),0.5,4),0)
-					end
+					queen.components.health:DoDelta(inst.puffy_drink_blood)--将吸来的血献祭给蜂王
 				end
 			end
 			inst.puffy_drink_blood=nil--取消炸毛状态标记
@@ -364,8 +345,7 @@ local function fn()
     inst:AddTag("scarytoprey")--可怕的捕食者
     inst:AddTag("flying")--飞行生物
     inst:AddTag("ignorewalkableplatformdrowning")--无视炸船溺水
-	inst:AddTag("senior_tentaclemedal")--不会被触手主动攻击
-	-- inst.senior_tentaclemedal=true--不会被触手主动攻击
+	inst:AddTag("chaos_creature")--混沌生物
 
     MakeInventoryFloatable(inst)
 
@@ -383,11 +363,11 @@ local function fn()
     inst.components.lootdropper:AddChanceLoot("royal_jelly", 0.02)--蜂王浆
     inst.components.lootdropper:AddChanceLoot("medal_bee_larva", 0.1)--育王蜂种
 
-    inst:AddComponent("sleeper")
-    inst.components.sleeper:SetResistance(4)--睡眠抗性
-    inst.components.sleeper:SetSleepTest(ShouldSleep)
-    inst.components.sleeper:SetWakeTest(ShouldWake)
-    inst.components.sleeper.diminishingreturns = true--睡眠收益递减(就是越来越抗催眠)
+    -- inst:AddComponent("sleeper")
+    -- inst.components.sleeper:SetResistance(4)--睡眠抗性
+    -- inst.components.sleeper:SetSleepTest(ShouldSleep)
+    -- inst.components.sleeper:SetWakeTest(ShouldWake)
+    -- inst.components.sleeper.diminishingreturns = true--睡眠收益递减(就是越来越抗催眠)
 
     inst:AddComponent("locomotor")
     inst.components.locomotor:EnableGroundSpeedMultiplier(false)--不受地皮速度影响
@@ -412,10 +392,15 @@ local function fn()
     inst:AddComponent("entitytracker")--实体跟踪器
     inst:AddComponent("knownlocations")
 
-    MakeSmallBurnableCharacter(inst, "mane")--可点燃
-    MakeSmallFreezableCharacter(inst, "mane")--可冰冻
-    inst.components.freezable:SetResistance(2)--冰冻抗性
-    inst.components.freezable.diminishingreturns = true--冰冻效益递减
+    inst:AddComponent("planarentity")--实体抵抗
+    inst.ChaosDeathTimesKey = "medal_beequeen"--死亡次数以凋零之蜂的为准
+    inst:AddComponent("medal_chaosdamage")--混沌伤害
+    inst.components.medal_chaosdamage:SetCalcBonusDamageFn(CalcChaosDamage)--额外混沌伤害
+
+    -- MakeSmallBurnableCharacter(inst, "mane")--可点燃
+    -- MakeSmallFreezableCharacter(inst, "mane")--可冰冻
+    -- inst.components.freezable:SetResistance(2)--冰冻抗性
+    -- inst.components.freezable.diminishingreturns = true--冰冻效益递减
 
     inst:SetStateGraph("SGmedal_beeguard")--绑定sg动画
     inst:SetBrain(brain)--绑定行为树

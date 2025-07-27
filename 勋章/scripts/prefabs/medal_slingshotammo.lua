@@ -42,6 +42,70 @@ end
 local function OnMiss(inst, owner, target)
     inst:Remove()
 end
+
+local AOE_TARGET_MUST_TAGS     = { "_combat", "_health" }
+local AOE_TARGET_CANT_TAGS     = { "INLIMBO", "notarget", "noattack", "flight", "invisible", "playerghost", "companion", "player" }
+local AOE_TARGET_CANT_TAGS_PVP = { "INLIMBO", "notarget", "noattack", "flight", "invisible", "playerghost" }
+local function OnUpdateSkillshot(inst)
+    local x, y, z = inst.Transform:GetWorldPosition()
+
+    local attacker = inst._attacker
+
+    if not (attacker ~= nil and attacker.components.combat ~= nil and attacker:IsValid()) then
+        return
+    end
+
+    for i, v in ipairs(TheSim:FindEntities(x, y, z, 4, AOE_TARGET_MUST_TAGS, TheNet:GetPVPEnabled() and AOE_TARGET_CANT_TAGS_PVP or AOE_TARGET_CANT_TAGS)) do
+        local range = v:GetPhysicsRadius(.5) + inst.components.projectile.hitdist
+
+        if v:GetDistanceSqToPoint(x, y, z) < range * range and
+            attacker.components.combat:CanTarget(v) and
+            v.components.combat:CanBeAttacked(attacker) and
+            not attacker.components.combat:IsAlly(v)
+        then
+            inst.components.projectile:Hit(v)
+
+            break
+        end
+    end
+end
+--子弹发射
+local function OnThrown(inst, owner, target, attacker)
+	if inst.ammo_def ~= nil and inst.ammo_def.onlaunch ~= nil then
+        inst.ammo_def.onlaunch(inst, owner, target, attacker)
+    end
+	--不是空对象直接retrun,是空对象说明是右键发射的，需要自行计算是否命中
+    if not target:HasTag("CLASSIFIED") then
+		return
+    end
+
+    inst._attacker = attacker
+
+    inst.components.projectile:SetHitDist(.7)
+
+    inst:AddComponent("updatelooper")
+    inst.components.updatelooper:AddOnUpdateFn(OnUpdateSkillshot)
+end
+
+--骑射的时候调高弹道
+local function SetHighProjectile(inst)
+    inst.AnimState:PlayAnimation("spin_loop_mount")
+    inst.AnimState:PushAnimation("spin_loop")
+end
+--蓄力射击，根据蓄力情况伤害1~2倍
+local function SetChargedMultiplier(inst, mult)
+	mult = 1 + (TUNING.SLINGSHOT_MAX_CHARGE_DAMAGE_MULT - 1) * mult
+	if inst.components.weapon then
+		local dmg = inst.components.weapon.damage
+		if dmg and  dmg > 0 then
+			inst.components.weapon:SetDamage(dmg * mult)
+		end
+	end
+	if inst.components.planardamage then
+		inst.components.planardamage:AddMultiplier(inst, mult, "chargedattack")
+	end
+end
+
 --定义射出的子弹实体
 local function projectile_fn(ammo_def)
     local inst = CreateEntity()
@@ -77,6 +141,9 @@ local function projectile_fn(ammo_def)
         return inst
     end
 
+	inst.SetHighProjectile = SetHighProjectile
+	inst.SetChargedMultiplier = SetChargedMultiplier
+
     inst.persists = false
 
 	inst.ammo_def = ammo_def
@@ -90,10 +157,10 @@ local function projectile_fn(ammo_def)
     inst.components.projectile:SetSpeed(25)
     inst.components.projectile:SetHoming(false)
     inst.components.projectile:SetHitDist(1.5)
-    -- inst.components.projectile:SetOnHitFn(OnPreHit)--鸽雷写的错误代码
-	inst.components.projectile.onprehit=OnPreHit--这才是正确赋值
+    inst.components.projectile:SetOnPreHitFn(OnPreHit)
     inst.components.projectile:SetOnHitFn(OnHit)
     inst.components.projectile:SetOnMissFn(OnMiss)
+    inst.components.projectile:SetOnThrownFn(OnThrown)
     inst.components.projectile.range = 30
 	inst.components.projectile.has_damage_set = true
 	
@@ -140,7 +207,7 @@ local function inv_fn(name,ammo_def)
     inst:AddComponent("tradable")
 
     inst:AddComponent("stackable")
-    inst.components.stackable.maxsize = TUNING.STACK_SIZE_TINYITEM
+    inst.components.stackable.maxsize = TUNING.STACK_SIZE_PELLET
 
     inst:AddComponent("inspectable")
 

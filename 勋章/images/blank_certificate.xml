@@ -7,6 +7,7 @@
 		<Element name="copy_spider_spitter_certificate.tex" u1="0.430435" u2="0.569565" v1="0.573913" v2="0.713043"/>
 		<Element name="copy_mediumfishing_certificate.tex" u1="0.143478" u2="0.282609" v1="0.430435" v2="0.569565"/>
 		<Element name="blank_certificate.tex" u1="0.000000" u2="0.139130" v1="0.860870" v2="1.000000"/>
+		<Element name="copy_blank_certificate.tex" u1="0.000000" u2="0.139130" v1="0.860870" v2="1.000000"/>
 		<Element name="copy_childlike_certificate.tex" u1="0.430435" u2="0.569565" v1="0.430435" v2="0.569565"/>
 		<Element name="copy_friendly_certificate.tex" u1="0.573913" u2="0.713043" v1="0.286957" v2="0.426087"/>
 		<Element name="copy_naughty_certificate.tex" u1="0.286957" u2="0.426087" v1="0.717391" v2="0.856522"/>

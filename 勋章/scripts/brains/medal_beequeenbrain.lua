@@ -33,10 +33,10 @@ end
 --尝试触发尖叫
 local function TryScreech(self)
 	--身上着火了
-	if self.inst.components.health.takingfiredamage then
-		-- return "screech"--无视CD直接尖叫
-		self.inst.withered_num = math.min(self.inst.withered_num+1,90)--凋零值+1
-	end
+	-- if self.inst.components.health.takingfiredamage then
+	-- 	-- return "screech"--无视CD直接尖叫
+	-- 	self.inst.withered_num = math.min(self.inst.withered_num+1,90)--凋零值+1
+	-- end
 	--当前有攻击目标(简单来说就是重新进入交战状态的时候会触发一次尖叫)
 	if self.inst.components.combat:HasTarget() then
         self._lastengaged = GetTime()--将交战时间设为当前时间

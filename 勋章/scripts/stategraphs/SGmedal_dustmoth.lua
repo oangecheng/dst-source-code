@@ -30,7 +30,7 @@ local events =
 }
 
 local SNEEZE_CHANCE = .2
-local REPAIR_LOOP_CLEAN_SOUND_CHANCE = .33
+local REPAIR_LOOP_CLEAN_SOUND_CHANCE = 0--.33--打扫的时候发出声音的概率
 
 local function reset_dustable_fn(inst)
     if not inst:HasTag("dustable") then
@@ -482,7 +482,7 @@ CommonStates.AddWalkStates(states,
             inst.SoundEmitter:PlaySound(inst._sounds.slide_out)
         end),
 
-        TimeEvent(9*FRAMES, function(inst) if math.random() < 0.3 then inst.SoundEmitter:PlaySound(inst._sounds.mumble) end end),
+        -- TimeEvent(9*FRAMES, function(inst) if math.random() < 0.3 then inst.SoundEmitter:PlaySound(inst._sounds.mumble) end end),
 
         TimeEvent(21*FRAMES, function(inst)
             inst.components.locomotor:WalkForward()

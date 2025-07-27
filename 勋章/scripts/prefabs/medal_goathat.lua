@@ -1,7 +1,6 @@
 assets =
 {
     Asset("ANIM", "anim/medal_goathat.zip"),
-    Asset("ANIM", "anim/medal_goathat_skin1.zip"),
     Asset("ATLAS", "images/medal_goathat.xml"),
 	Asset("ATLAS_BUILD", "images/medal_goathat.xml",256),
 }
@@ -55,14 +54,11 @@ local function onlightingstrike(inst)
 			if inst.components.sanity then
 				inst.components.sanity:DoDelta(-health_change)--掉san
 			end
-			if inst.components.debuffable ~= nil and inst.components.debuffable:IsEnabled() and
-				not (inst.components.health ~= nil and inst.components.health:IsDead()) and
-				not inst:HasTag("playerghost") then
-				inst.components.debuffable:AddDebuff("buff_medal_electricattack", "buff_medal_electricattack",{extend_duration=TUNING_MEDAL.MEDAL_BUFF_ELECTRICATTACK_DURATION})
+			inst:AddDebuff("buff_medal_electricattack", "buff_medal_electricattack",{extend_duration=TUNING_MEDAL.MEDAL_BUFF_ELECTRICATTACK_DURATION},nil,function()
 				removeElectricLightTask(inst)
 				--特效定时器
 				inst.electriclighttask = inst:DoPeriodicTask(2, spawnElectricLight)
-            end
+			end)
         end
     end
 end
@@ -181,7 +177,7 @@ local function fn()
 	
 	inst:AddTag("hat")
 	inst:AddTag("medal_skinable")--可换皮肤
-	inst.medal_repair_loot = {transistor=TUNING_MEDAL.GOATHAT_ADDUSE}--可用电子元件修复
+	inst.medal_repair_common = {transistor=TUNING_MEDAL.GOATHAT_ADDUSE}--可用电子元件修复
 	-- inst:AddTag("medal_goathat")
 	
 	MakeInventoryFloatable(inst,"med",0.1,0.65)

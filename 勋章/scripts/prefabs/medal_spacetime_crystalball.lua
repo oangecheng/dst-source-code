@@ -37,19 +37,25 @@ local function DoProphesy(inst,doer,target)
 
 				MedalSay(doer,STRINGS.READMEDALTREASUREMAP_SPEECH.LOCATION)
 			end
+			if target.ProphesyFn then
+				target:ProphesyFn()
+			end
 			inst.components.finiteuses:Use(TUNING_MEDAL.MEDAL_SPACETIME_CRYSTALBALL_USE2)
 			return true
 		end
+	--奉纳盒
+	elseif target.tribute_answer ~= nil and uses>=TUNING_MEDAL.MEDAL_SPACETIME_CRYSTALBALL_USE2 and target.ProphesyFn ~= nil then
+		target:ProphesyFn(doer)
+		inst.components.finiteuses:Use(TUNING_MEDAL.MEDAL_SPACETIME_CRYSTALBALL_USE2)
+		return true
 	elseif uses >= TUNING_MEDAL.MEDAL_SPACETIME_CRYSTALBALL_USE1 then
 		local code = nil
 		--三种书
 		if target.ProphesyFn then
 			code = target:ProphesyFn(doer)
 		--不朽果实
-		elseif target.prefab=="farm_plant_immortal_fruit" or target.prefab=="immortal_fruit_oversized" then
-			if target.medal_destiny_num then
-				code = GetMedalRandomItem(TUNING_MEDAL.IMMORTAL_FRUIT_VARIATION_ROOT,target.medal_destiny_num)--返回权重增值后的随机key
-			end
+		elseif target.prefab=="immortal_fruit_oversized" then
+			code = GetMedalRandomItem(TUNING_MEDAL.IMMORTAL_FRUIT_VARIATION_ROOT, target)--返回权重增值后的随机key
 		end
 		if code then
 			local str = STRINGS.PROPHESYSPEECH[string.upper(code)]

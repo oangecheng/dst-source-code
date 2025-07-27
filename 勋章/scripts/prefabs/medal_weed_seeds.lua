@@ -52,6 +52,7 @@ local function fn()
     --cookable (from cookable component) added to pristine state for optimization
     inst:AddTag("cookable")
     inst:AddTag("oceanfishing_lure")
+    inst:AddTag("treeseed")--可放入种子包(目前只有种子包用到该标签)
 
     MakeInventoryFloatable(inst)
 

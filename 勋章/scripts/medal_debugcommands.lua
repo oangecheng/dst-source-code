@@ -32,20 +32,39 @@ function dm_allmedal(isfinal)
 		table.insert(items, "multivariate_certificate")
 	end
 	for k, v in pairs(require("medal_defs/functional_medal_defs").MEDAL_DEFS) do
-		if not isfinal or v.isfinal then
+		if (not isfinal or v.isfinal) and not v.nodebug then
 			table.insert(items, v.name)
 		end
 	end
 	_spawn_list(items, 1,isfinal and function(inst)
 		--有等级则直接满级
-		if inst.medal_level and inst.medal_level_max then
-			inst.medal_level=inst.medal_level_max
-			inst.changemedallevelname:set(inst.medal_level)
+		if inst.medal_level and inst.medal_level_max and inst.MedalLevelUp then
+			inst:MedalLevelUp(inst.medal_level_max)
 		end
 		if inst.valkyrie_power then--女武神之力满上
 			inst.valkyrie_power=TUNING_MEDAL.VALKYRIE_MEDAL.MAX_POWER
 		end
 	end)
+end
+
+--生成耐久快用完的勋章
+function dm_usesmedal(code,uses)
+	local medal = SpawnPrefab(code)
+	if medal then
+		if medal.components.finiteuses then
+			medal.components.finiteuses:SetUses(uses or 1)
+		elseif medal.components.fueled then
+			medal.components.fueled:SetPercent(uses or 0.01)
+		end
+		
+		local player = ConsoleCommandPlayer()
+		local pt = ConsoleWorldPosition()
+		if player and player.components.inventory then
+			player.components.inventory:GiveItem(medal)
+		else
+			medal.Transform:SetPosition(pt.x,0,pt.z)
+		end
+	end
 end
 
 --生成所有果树
@@ -171,7 +190,7 @@ end
 --生成所有玩具(过滤节日玩具,堆叠数量,生成间距)
 function dm_alltoys(nofestival,num,spacing)
 	if NUM_TRINKETS and NUM_TRINKETS>0 then
-		local items = {"antliontrinket"}
+		local items = {"antliontrinket","cotl_trinket"}
 		for k=1, NUM_TRINKETS do
 			if not (nofestival and k >= HALLOWEDNIGHTS_TINKET_START and k <= HALLOWEDNIGHTS_TINKET_END) then
 				table.insert(items, "trinket_"..k)
@@ -232,6 +251,15 @@ function dm_allammos(justmedal,num,spacing)
 		"slingshotammo_freeze",
 		"slingshotammo_slow",
 		"slingshotammo_poop",
+		"slingshotammo_moonglass",
+		"slingshotammo_dreadstone",
+		"slingshotammo_gunpowder",
+		"slingshotammo_lunarplanthusk",
+		"slingshotammo_purebrilliance",
+		"slingshotammo_horrorfuel",
+		"slingshotammo_gelblob",
+		"slingshotammo_scrapfeather",
+		"slingshotammo_stinger",
 		"trinket_1",
 	}
 	if justmedal then
@@ -272,42 +300,12 @@ end
 --生成所有种类塑料袋(间距)
 function dm_allpouch(spacing)
 	local items = {}
-	for k, v in pairs(require("medal_defs/medal_bundle_defs")) do
+	for k, v in pairs(require("medal_defs/medal_losswetpouch_defs")) do
 		table.insert(items, k)
 	end
 	_spawn_list(items, spacing or 1)
 end
 
---解锁全皮肤的风花雪月
-function dm_allskins()
-	local staff=SpawnPrefab("medal_skin_staff")
-	if staff then
-		for k,v in pairs(require("medal_defs/medal_skin_defs")) do--遍历皮肤数据表
-			if not v.hide then
-				staff.skin_data[k]={}
-				if v.skin_info then
-					for i, skin in ipairs(v.skin_info) do
-						staff.skin_data[k][i]=skin.id
-					end
-				end
-			end
-		end
-
-		--给客户端同步皮肤解锁数据
-		if staff.skin_data and staff.skin_str then
-			local info_str=json.encode(staff.skin_data)
-			staff.skin_str:set(info_str)
-		end
-
-		local player = ConsoleCommandPlayer()
-		local pt = ConsoleWorldPosition()
-		if player and player.components.inventory then
-			player.components.inventory:GiveItem(staff)
-		else
-			staff.Transform:SetPosition(pt.x,0,pt.z)
-		end
-	end
-end
 
 --生成树根宝箱(阶段,数量,间距)
 function dm_livingrootchest(stage,num,spacing)
@@ -373,3 +371,129 @@ function dm_allstatues(spacing)
 	end
 	_spawn_list(items, spacing or 2.5)
 end
+
+--变成鱼人
+function dm_merm()
+	local player = ConsoleCommandPlayer() or ThePlayer
+	if player and player.sg and not (player.components.rider and player.components.rider:IsRiding()) then
+		player.sg:GoToState("medal_transform_merm")
+	end
+end
+
+--生成奉纳盒(数量,类型[1海鲜2料理3生物4蔬果],偏好[1肉2素3糖4蜜5大厨6零嘴7小吃8主食9大餐],间距)
+-- function dm_pay_box(num,type,preference,spacing)
+-- 	local items={}
+-- 	for i=1,num or 1 do
+-- 		table.insert(items,"medal_pay_tribute_box")
+-- 	end
+-- 	_spawn_list(items, spacing or 2.5, function(inst,count)
+-- 		if type and inst and inst.InitTributeType then
+-- 			inst:InitTributeType(type,preference)
+-- 		end
+-- 	end)
+-- end
+--生成奉纳盒(是否显示答案,数量,间距)
+function dm_pay_box(showanswer,num,spacing)
+	local items={}
+	for i=1,num or 1 do
+		table.insert(items,"medal_pay_tribute_box")
+	end
+	_spawn_list(items, spacing or 2.5, showanswer and function(inst,count)
+		inst:AddTag("showmedalinfo")
+		inst.getMedalInfo = function(inst)--显示当前收集进度
+			if inst.GetAnswer then
+				return subfmt(STRINGS.Medal_PAY_TRIBUTE_SPEECH.ANSWER, inst:GetAnswer())
+			end
+		end
+	end or nil)
+end
+
+--统计标签数
+function dm_counttags(player,row_num)
+	player = player or ConsoleCommandPlayer() or ThePlayer
+	if player and player.entity then
+		local str = player.entity:GetDebugString()
+		local tags_str = str:match("Tags: (.+)\nPrefab:")
+		if tags_str == nil then return end
+		local tags = string.split(tags_str," ")
+		str = (player == ThePlayer and STRINGS.MEDAL_DEBUG_SPEECH.TAGCOUNT1 or GetMedalDisplayName(player))..STRINGS.MEDAL_DEBUG_SPEECH.TAGCOUNT2..#tags..STRINGS.MEDAL_DEBUG_SPEECH.TAGCOUNT3
+		TheNet:Say(str)
+		if row_num then--打印标签
+			if type(row_num) ~= "number" then
+				row_num = 10
+			end
+			print(str)
+			str = ""
+			local count = 0
+			for i, v in ipairs(tags) do
+				count = count + 1
+				str = str..v.."|"
+				if count >= row_num then
+					print(str)
+					count = 0
+					str = ""
+				end
+			end
+			if str ~= "" then
+				print(str)
+			end
+		end
+	end
+end
+
+--生成不朽道具(代码,不朽等级)
+function dm_immortal_item(code,level)
+	local item = SpawnPrefab(code)
+	if item then
+		if item.components.medal_immortal then
+			item.components.medal_immortal:SetImmortal(level or item.components.medal_immortal.maxlevel,true)
+		end
+		
+		local player = ConsoleCommandPlayer()
+		local pt = ConsoleWorldPosition()
+		if player and player.components.inventory and item.components.inventoryitem then
+			player.components.inventory:GiveItem(item)
+		else
+			item.Transform:SetPosition(pt.x,0,pt.z)
+		end
+	end
+end
+
+-------------------生成远古档案馆解谜法阵-------------------
+-- local obj_layout = require("map/object_layout")
+-- local function _SpawnLayout_AddFn(prefab, points_x, points_y, current_pos_idx, entitiesOut, width, height, prefab_list, prefab_data, rand_offset)
+--     local x = math.floor((points_x[current_pos_idx] - width/2.0)  * TILE_SCALE * 100) / 100.0
+--     local y = math.floor((points_y[current_pos_idx] - height/2.0) * TILE_SCALE * 100) / 100.0
+-- 	local inst = SpawnPrefab(prefab)
+-- 	if inst == nil then return end
+-- 	inst.Transform:SetPosition(x, 0, y)
+-- 	if prefab_data then
+--         if prefab_data.data ~= nil then
+--             local data = FunctionOrValue(prefab_data.data)
+--             if data ~= nil then
+--                 inst:SetPersistData(data, Ents)
+--                 inst:LoadPostPass(Ents, data)
+--             end
+--         end
+
+--         if prefab_data.scenario ~= nil then
+--             inst:AddComponent("scenariorunner")
+--             inst.components.scenariorunner:SetScript(prefab_data.scenario)
+--             inst.components.scenariorunner:Run()
+--         end
+--     end
+-- end
+
+-- function dm_spawnlayout(name, choices, offset)
+--     offset = offset or 3
+-- 	local map_width, map_height = TheWorld.Map:GetSize()
+-- 	local entities = {}
+-- 	local add_fn = {
+-- 		fn = _SpawnLayout_AddFn,
+-- 		args = {entitiesOut=entities, width=map_width, height=map_height, rand_offset = false, debug_prefab_list=nil}
+-- 	}
+--     local x, z = TheWorld.Map:GetTileCoordsAtPoint(ConsoleWorldPosition():Get())
+-- 	obj_layout.Place({math.floor(x) - offset, math.floor(z) - offset}, name, add_fn, choices, TheWorld.Map)
+-- end
+
+-- dm_spawnlayout("SINGLE_NORTH",{"archive_keyroom"})

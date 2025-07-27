@@ -25,13 +25,15 @@ local function onEat(inst,eater)
 	end
 	--概率掉落种子
     local mandark_chance = eater:HasTag("player") and TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.MANDRAKE_CONMON or TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.MANDRAKE_LESS
-    local weed_chance = eater:HasTag("player") and TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_CONMON or TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_TINY
+    local weed_chance = eater:HasTag("player") and TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_CONMON or TUNING_MEDAL.MANDRAKEBERRY_SEED_CHANCE.WEED_LESS
     local prefabname = nil
+    local rand = math.random()
+    weed_chance = mandark_chance + weed_chance
     --蔓草种子
-    if math.random()<mandark_chance then
+    if rand<mandark_chance then
 		prefabname = "mandrake_seeds"
 	--杂草种子
-    elseif math.random()<weed_chance then
+    elseif rand<weed_chance then
         prefabname = "medal_weed_seeds"
     end
     if prefabname ~= nil and inst.components.lootdropper then

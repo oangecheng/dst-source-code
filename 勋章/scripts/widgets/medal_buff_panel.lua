@@ -7,6 +7,7 @@ local medalBuffPanel = Class(Widget, function(self,owner)
 	Widget._ctor(self, "medalBuffPanel")
 	self.owner = owner
 	self.root = self:AddChild(Widget("ROOT"))
+	self.root:Hide()
 	
 	--顶栏
 	self.bar = self.root:AddChild(Image("images/medal_buff_ui.xml", "medal_buff_bar.tex"))
@@ -51,6 +52,8 @@ local medalBuffPanel = Class(Widget, function(self,owner)
 	end
 
 	self.isopen=true
+
+	SendModRPCToServer(MOD_RPC.functional_medal.ToggleBuffTask, TUNING.MEDAL_BUFF_SETTING)--同步下Buff面板设置
 end)
 
 --构造单个buff卡
@@ -83,6 +86,7 @@ function medalBuffPanel:InitBuffLoot()
 	for i=1,self.maxbuffnum do
 		self["buff_card_"..i] = self.root:AddChild(self:BuffCard())
 		self["buff_card_"..i]:SetPosition(0, 0-32*i)--40*i)
+		self["buff_card_"..i]:Hide()--默认隐藏
 	end
 end
 
@@ -192,8 +196,14 @@ function medalBuffPanel:SetBuffInfo()
 end
 
 function medalBuffPanel:OnUpdate(dt)
-    if self.isopen and TUNING.MEDAL_BUFF_SETTING>0 then
-		self:SetBuffInfo()
+	if TheNet:IsServerPaused() then return end
+	if self.isopen and TUNING.MEDAL_BUFF_SETTING>0 then
+		self.time = (self.time or 0) + dt
+		if self.time > 1 then
+			-- print("生成面板资源"..self.time)
+			self:SetBuffInfo()
+			self.time = self.time - 1
+		end
     end
 
 	if TUNING.MEDAL_BUFF_SETTING>0 and not self.isopen then

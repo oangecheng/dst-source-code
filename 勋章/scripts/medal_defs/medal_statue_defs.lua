@@ -50,9 +50,9 @@ local nomal_loot = {
 }
 --任务掉落
 local task_loot = {
-	medal_statue_marble_gugugu = "mission_certificate",--大帅鸽,使命勋章
+	medal_statue_marble_gugugu = "medal_monster_symbol",--大帅鸽,暗影挑战符
 	medal_statue_marble_saltfish = "medal_tribute_symbol",--咸鱼,奉纳符
-	medal_statue_marble_stupidcat = "medal_gift_fruit_seed",--猫猫,包果种子
+	medal_statue_marble_stupidcat = "medal_loss_treasure_map",--猫猫,遗失藏宝图
 }
 --生成任务物品
 local function spawnTask(prefab,doer)
@@ -100,13 +100,21 @@ local function pyGift(inst, thefirst, isfirst, doer)
 	elseif inst.components.lootdropper then
 		inst.components.lootdropper:FlingItem(spawnTask(task_loot[inst.prefab],doer))
 	end
+
+	--添加天道酬勤标记
+	if doer then
+		doer.medal_rewardtoiler_mark = math.min((doer.medal_rewardtoiler_mark or 0) + TUNING_MEDAL.MEDAL_REWARDTOILER_MARK_ADD,TUNING_MEDAL.MEDAL_REWARDTOILER_MARK_MAX)
+	end
 end
 
 --回收列表
 local junk_loot = {
-	mission_certificate = "glommerfuel",--使命勋章-格罗姆黏液
-	medal_loss_treasure_map = function(inst)--遗失藏宝图--对应的奖励道具
-		return task_loot[inst.prefab] or "medal_gift_fruit_seed"
+	mission_certificate = "medal_gift_fruit",--使命勋章-包果(旧内容回收)
+	medal_loss_treasure_map = "medal_gift_fruit",--遗失藏宝图-包果
+	medal_tribute_symbol = "medal_gift_fruit",--奉纳符-包果
+	medal_monster_symbol = "medal_gift_fruit",--暗影挑战符-包果
+	medal_diligence_token = function(inst)--酬勤令--对应的奖励道具
+		return task_loot[inst.prefab] or "medal_gift_fruit"
 	end,
 }
 
@@ -193,6 +201,7 @@ local medal_statue_defs={
 	{--丘比特
 		assets={
 			Asset("ANIM", "anim/statue_small_harp_build.zip"),
+			Asset("ANIM", "anim/statue_small_harp_vine_build.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_harp.xml"),
@@ -204,6 +213,25 @@ local medal_statue_defs={
 		anim="full",
 		minimap="statue_small.png",
 		symbol="statue_small_harp_build",
+		taglist={
+			"canaddmedalivy",--可缠绕旋花藤
+		},
+		masterfn=function(inst)
+			inst.addMedalIvy = function(inst)--缠绕旋花藤
+				inst.has_medal_ivy = true
+				inst.AnimState:AddOverrideBuild("statue_small_harp_vine_build")
+			end
+			inst.OnLoad = function(inst, data)
+				if data and data.has_medal_ivy then
+					inst:addMedalIvy()
+				end
+			end
+    		inst.OnSave = function(inst, data)
+				if inst.has_medal_ivy then
+					data.has_medal_ivy = inst.has_medal_ivy
+				end
+			end
+		end,
 	},
 	{--老麦
 		assets={
@@ -219,6 +247,9 @@ local medal_statue_defs={
 		build="statue_maxwell_build",
 		anim="idle_full",
 		minimap="statue.png",
+		taglist={
+			"canaddmedalivy",--可缠绕旋花藤
+		},
 		onworkfn=function(inst, worker, workleft)
 			if workleft <= 0 then
 				local pos = inst:GetPosition()
@@ -235,6 +266,22 @@ local medal_statue_defs={
 			else
 				inst.AnimState:PlayAnimation("hit_full")
 				inst.AnimState:PushAnimation("idle_full")
+			end
+		end,
+		masterfn=function(inst)
+			inst.addMedalIvy = function(inst)--缠绕旋花藤
+				inst.has_medal_ivy = true
+				inst.AnimState:AddOverrideBuild("statue_maxwell_vine_build")
+			end
+			inst.OnLoad = function(inst, data)
+				if data and data.has_medal_ivy then
+					inst:addMedalIvy()
+				end
+			end
+    		inst.OnSave = function(inst, data)
+				if inst.has_medal_ivy then
+					data.has_medal_ivy = inst.has_medal_ivy
+				end
 			end
 		end,
 	},
@@ -254,9 +301,6 @@ local medal_statue_defs={
 	{--咕咕咕
 		assets={
 			Asset("ANIM", "anim/medal_statue_gugugu.zip"),
-			Asset("ANIM", "anim/medal_statue_gugugu_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_gugugu_skin2.zip"),
-			Asset("ANIM", "anim/medal_statue_gugugu_skin3.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_gugugu.xml"),
@@ -282,9 +326,6 @@ local medal_statue_defs={
 	{--咸鱼
 		assets={
 			Asset("ANIM", "anim/medal_statue_saltfish.zip"),
-			Asset("ANIM", "anim/medal_statue_saltfish_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_saltfish_skin2.zip"),
-			Asset("ANIM", "anim/medal_statue_saltfish_skin3.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_saltfish.xml"),
@@ -310,8 +351,6 @@ local medal_statue_defs={
 	{--沙雕猫
 		assets={
 			Asset("ANIM", "anim/medal_statue_stupidcat.zip"),
-			Asset("ANIM", "anim/medal_statue_stupidcat_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_stupidcat_skin2.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_stupidcat.xml"),
@@ -337,8 +376,6 @@ local medal_statue_defs={
 	{--大黑蛋子
 		assets={
 			Asset("ANIM", "anim/medal_statue_blackegg.zip"),
-			Asset("ANIM", "anim/medal_statue_blackegg_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_blackegg_skin2.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_blackegg.xml"),
@@ -360,12 +397,6 @@ local medal_statue_defs={
 	{--百变雕像
 		assets={
 			Asset("ANIM", "anim/medal_statue_changeable.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin2.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin3.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin4.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin5.zip"),
-			Asset("ANIM", "anim/medal_statue_changeable_skin6.zip"),
 			Asset("ANIM", "anim/statue_small.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_changeable.xml"),
@@ -388,12 +419,6 @@ local medal_statue_defs={
 	{--百花盆栽
 		assets={
 			Asset("ANIM", "anim/medal_statue_potting.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin1.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin2.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin3.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin4.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin5.zip"),
-			Asset("ANIM", "anim/medal_statue_potting_skin6.zip"),
 			Asset("MINIMAP_IMAGE", "statue_small"),
 			Asset("ATLAS", "images/medal_statue_marble_potting.xml"),
 			Asset("IMAGE", "images/medal_statue_marble_potting.tex"),

@@ -9,6 +9,16 @@ local assets =
 	Asset("ATLAS_BUILD", "images/trap_bat.xml",256),
 }
 
+local function onfinished_normal(inst)
+    inst:RemoveComponent("inventoryitem")
+    inst:RemoveComponent("mine")
+    inst.persists = false
+    inst.Physics:SetActive(false)
+    inst.AnimState:PushAnimation("used", false)
+    inst.SoundEmitter:PlaySound("dontstarve/common/destroy_wood")
+    inst:DoTaskInTime(3, inst.Remove)
+end
+
 local function OnExplode(inst, target)
     inst.AnimState:PlayAnimation("trap")
     if target then
@@ -18,24 +28,10 @@ local function OnExplode(inst, target)
 		else
 			target.components.combat:GetAttacked(inst, TUNING_MEDAL.TRAP_BAT_COMBAT_OTHER)
 		end
+        if inst.components.finiteuses ~= nil then
+            inst.components.finiteuses:Use(1)
+        end
     end
-	
-	if inst:HasTag("autoTrap") then
-		--在水里不自动重置
-		local x,y,z=inst.Transform:GetWorldPosition()
-		if not TheWorld.Map:IsOceanAtPoint(x, y, z) then
-			if inst.auto_task then
-				inst.auto_task:Cancel()
-				inst.auto_task=nil
-			end
-			inst.auto_task = inst:DoTaskInTime(TUNING_MEDAL.AUTOTRAP_RESET_TIME, function(inst)
-				if inst.components.mine and inst.components.mine.issprung then
-					inst.components.mine:Reset()
-				end
-				inst.auto_task=nil
-			end)
-		end
-	end
 end
 
 local function OnResetMax(inst)
@@ -97,28 +93,6 @@ local function OnHaunt(inst, haunter)
     return false
 end
 
---升级成自动陷阱
-local function setAutoTrap(inst)
-	inst:AddTag("autoTrap")
-    --如果处于触发后状态，则直接重置
-	if inst.components.mine and inst.components.mine.issprung then
-		inst.components.mine:Reset()
-	end
-	inst.medaltrapchangename:set(true)--名字加前缀
-end
-
-local function onsavefn(inst,data)
-	if inst:HasTag("autoTrap") then
-		data.autovalue=true
-	end
-end
-
-local function onloadfn(inst,data)
-	if data~=nil and data.autovalue then
-		setAutoTrap(inst)
-	end
-end
-
 local function fn()
     local inst = CreateEntity()
 
@@ -135,15 +109,6 @@ local function fn()
     inst.AnimState:SetBank("trap_bramble")
     inst.AnimState:SetBuild("trap_bat")
     inst.AnimState:PlayAnimation("idle")
-	
-	inst.medaltrapchangename = net_bool(inst.GUID, "medaltrapchangename", "medaltrapchangenamedirty")
-	inst:ListenForEvent("medaltrapchangenamedirty", function(inst)
-		if inst:HasTag("autoTrap") and inst.medaltrapchangename:value() then
-			inst.displaynamefn = function(aaa)
-				return subfmt(STRINGS.NAMES["MEDAL_AUTO_TRAP"], { trap = STRINGS.NAMES[string.upper(inst.prefab)] })
-			end
-		end
-	end)
 
     inst:AddTag("trap")
 
@@ -154,8 +119,6 @@ local function fn()
     if not TheWorld.ismastersim then
         return inst
     end
-	
-	inst.setAutoTrap=setAutoTrap--升级为智能陷阱函数
 
     inst:AddComponent("inspectable")
 
@@ -172,6 +135,11 @@ local function fn()
     inst.components.mine:SetOnSprungFn(SetSprung)
     inst.components.mine:SetOnDeactivateFn(SetInactive)
 
+    inst:AddComponent("finiteuses")
+    inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.TRAP_BAT_USES)
+    inst.components.finiteuses:SetUses(TUNING_MEDAL.TRAP_BAT_USES)
+    inst.components.finiteuses:SetOnFinished(onfinished_normal)
+
     inst:AddComponent("deployable")
     inst.components.deployable.ondeploy = ondeploy
     inst.components.deployable:SetDeploySpacing(DEPLOYSPACING.LESS)
@@ -180,9 +148,6 @@ local function fn()
     inst.components.hauntable:SetOnHauntFn(OnHaunt)
 	
 	inst.components.mine:Reset()
-	
-	inst.OnSave = onsavefn
-	inst.OnLoad = onloadfn
 
     return inst
 end

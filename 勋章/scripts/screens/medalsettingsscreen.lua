@@ -7,6 +7,8 @@ local PopupDialogScreen = require "screens/redux/popupdialog"
 local TEMPLATES = require "widgets/redux/templates"
 local ScrollableList = require "widgets/scrollablelist"
 
+local PANELHEIGHT = 400
+
 local MedalSettingsScreen =
     Class(
     Screen,
@@ -64,12 +66,11 @@ local MedalSettingsScreen =
             self:OnCancel()
         end
 		--总界面
-        -- self.destspanel = self.root:AddChild(TEMPLATES.RectangleWindow(350, 550))
-        self.destspanel = self.root:AddChild(TEMPLATES.CurlyWindow(200, 320))
+        self.destspanel = self.root:AddChild(TEMPLATES.CurlyWindow(200, PANELHEIGHT))
         self.destspanel:SetPosition(0, 25)
 		--标题
         self.current = self.destspanel:AddChild(Text(BODYTEXTFONT, 35))
-        self.current:SetPosition(0, 200, 0)--坐标
+        self.current:SetPosition(0, PANELHEIGHT - 150, 0)--坐标
         self.current:SetRegionSize(250, 50)--设置区域大小
         self.current:SetHAlign(ANCHOR_MIDDLE)
 		self.current:SetString(STRINGS.MEDAL_SETTING_UI.TITLE)
@@ -137,6 +138,7 @@ local button_data={
             },
             onchanged_fn=function(spinner_data)
                 TUNING.MEDAL_BUFF_SETTING=spinner_data
+                SendModRPCToServer(MOD_RPC.functional_medal.ToggleBuffTask, TUNING.MEDAL_BUFF_SETTING)--同步下Buff面板设置
                 SaveMedalSettingData()
             end,
             font_size=22,
@@ -168,6 +170,52 @@ local button_data={
             end,
         },
     },
+    {--容器拖拽
+        name="container_drag_btn",
+        text=STRINGS.MEDAL_SETTING_UI.CONTAINER_DRAG,
+        spinner_data={
+            spinnerdata={
+                {text=STRINGS.MEDAL_SETTING_UI.CLOSE,data=false},
+                {text=STRINGS.MEDAL_SETTING_UI.OPEN,data=true},
+            },
+            onchanged_fn=function(spinner_data)
+                TUNING.MEDAL_CLIENT_DRAG_SWITCH=spinner_data
+                SaveMedalSettingData()
+            end,
+            font_size=22,
+            width_label=120,
+            width_spinner=120,
+            selected_fn=function(spinner)
+                spinner:SetSelected(TUNING.MEDAL_CLIENT_DRAG_SWITCH)
+            end,
+        },
+    },
+    {--弹弓锁敌
+        name="slingshot_lock_btn",
+        text=STRINGS.MEDAL_SETTING_UI.SLINGSHOT_LOCK,
+        spinner_data={
+            spinnerdata={
+                {text=STRINGS.MEDAL_SETTING_UI.CLOSE,data=0},
+                {text=1,data=1},
+                {text=1.25,data=1.25},
+                {text=1.5,data=1.5},
+                {text=1.75,data=1.75},
+                {text=2,data=2},
+                {text=2.25,data=2.25},
+                {text=2.5,data=2.5},
+            },
+            onchanged_fn=function(spinner_data)
+                TUNING.MEDAL_LOCK_TARGET_RANGE_MULT=spinner_data
+                SaveMedalSettingData()
+            end,
+            font_size=22,
+            width_label=120,
+            width_spinner=120,
+            selected_fn=function(spinner)
+                spinner:SetSelected(TUNING.MEDAL_LOCK_TARGET_RANGE_MULT)
+            end,
+        },
+    },
     {--访问介绍页
         name="medal_page_btn",
         text=STRINGS.MEDAL_SETTING_UI.MEDAL_PAGE,
@@ -180,6 +228,24 @@ local button_data={
         text=STRINGS.MEDAL_SETTING_UI.RESET_UI,
         fn=function()
             ResetMedalUIPos()
+        end
+    },
+    {--宣告标签
+        name="counttags_btn",
+        text=STRINGS.MEDAL_SETTING_UI.SHOWTAGSNUM,
+        fn=function(self)
+            dm_counttags()
+            self:OnCancel()
+        end
+    },
+    {--使用兑换码
+        name="usecdk_btn",
+        text=STRINGS.MEDAL_SETTING_UI.USECKD,
+        fn=function(self)
+            if self.owner and self.owner.HUD then
+                self.owner.HUD:ShowMedalUsecdkScreen()
+            end
+            self:OnCancel()
         end
     },
     {--关闭按钮
@@ -226,7 +292,7 @@ function MedalSettingsScreen:LoadButton()
                 )
             )
         end
-        self[v.name]:SetPosition(0, 180-40*i)
+        self[v.name]:SetPosition(0, PANELHEIGHT - 150-40*i)
     end
 end
 

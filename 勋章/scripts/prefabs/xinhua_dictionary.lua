@@ -9,12 +9,14 @@ local assets =
 local function onequip_dictionary(inst, owner)
 	owner.AnimState:Hide("ARM_carry")
 	owner.AnimState:Show("ARM_normal")
+    owner:AddTag("medal_canstudy")--可以读无字天书
 end
 
 --卸下新华字典
 local function onunequip_dictionary(inst, owner)
 	owner.AnimState:Hide("ARM_carry")
 	owner.AnimState:Show("ARM_normal")
+    owner:RemoveTag("medal_canstudy")
 end
 
 --初始化
@@ -31,7 +33,7 @@ local function fn()
     inst.AnimState:SetBuild("xinhua_dictionary")
     inst.AnimState:PlayAnimation("xinhua_dictionary")
 	
-	inst:AddTag("xinhua_dictionary")
+	-- inst:AddTag("xinhua_dictionary")
 	-- inst:AddTag("book")--在书架上可恢复耐久(做梦！)
 	inst:AddTag("bookcabinet_item")--可放入书架
 	

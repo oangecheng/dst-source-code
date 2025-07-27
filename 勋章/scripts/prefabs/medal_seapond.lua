@@ -2,8 +2,6 @@ local FISH_DATA = require("prefabs/oceanfishdef")
 local assets =
 {
     Asset("ANIM", "anim/medal_seapond.zip"),
-    Asset("ANIM", "anim/medal_seapond_skin1.zip"),
-    Asset("ANIM", "anim/medal_seapond_skin2.zip"),
     Asset("ANIM", "anim/crater_pool.zip"),
 	Asset("ATLAS", "images/medal_seapond.xml"),
 	Asset("IMAGE", "images/medal_seapond.tex"),

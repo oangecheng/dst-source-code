@@ -288,7 +288,10 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.TOIL_MONEY = "It's money for life!"
 --熊皮宝箱
 STRINGS.NAMES.BEARGER_CHEST = "Bearkin Chest"
 STRINGS.RECIPE_DESC.BEARGER_CHEST = "Mom doesn't have to worry about food going bad anymore"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEARGER_CHEST = "Mom doesn't have to worry about food going bad anymore"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEARGER_CHEST = {
+	GENERIC = "Mom doesn't have to worry about food going bad anymore",
+	UPGRADED_STACKSIZE = "How much food can be stuffed in here!",
+}
 --不朽果实
 STRINGS.NAMES.IMMORTAL_FRUIT = "Immortal Fruit"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.IMMORTAL_FRUIT = "It looks delicious"
@@ -321,6 +324,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_KRAMPUS_CHEST_ITEM = "It must be nice 
 --硝化树
 STRINGS.NAMES.MEDAL_NITRIFY_TREE = "Nitrify Tree"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_NITRIFY_TREE = "It was baptized by the power of immortality that it became like this!"
+--不朽道具
+STRINGS.NAMES.IMMORTAL_ITEM = "Immortal {item}"
+STRINGS.NAMES.IMMORTAL_ITEM_LEVEL = "Immortal Lv.{level} {item}"
 ------------------------------------------------------------------
 -----------------------------友善勋章-----------------------------
 ------------------------------------------------------------------
@@ -359,6 +365,9 @@ STRINGS.RECIPE_DESC.BLANK_CERTIFICATE = "Nothing is everything~"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.BLANK_CERTIFICATE = "Nothing is everything~"
 STRINGS.NAMES.BLANK_CERTIFICATE_COPY = "Copy·{medal}"
 STRINGS.NAMES.BLANK_CERTIFICATE_LEVEL = "Copy·Lv.{level} {medal}"
+STRINGS.NAMES.COPY_BLANK_CERTIFICATE = "Blank Medal"
+STRINGS.RECIPE_DESC.COPY_BLANK_CERTIFICATE = "Nothing is everything~"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.COPY_BLANK_CERTIFICATE = "Nothing is everything~"
 --羽绒勋章
 STRINGS.NAMES.DOWN_FILLED_COAT_CERTIFICATE = "Eiderdown Medal"
 STRINGS.RECIPE_DESC.DOWN_FILLED_COAT_CERTIFICATE = "It's like wearing a down jacket~"
@@ -403,6 +412,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.SANITYROCK_FRAGMENT = "Without the power of 
 STRINGS.NAMES.SANITYROCK_MACE = "Obelisk Mace"
 STRINGS.RECIPE_DESC.SANITYROCK_MACE = "Powerful shadow power"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.SANITYROCK_MACE = "It's powerful, but I think it's swallowing my sanity!"
+--传承书页
+STRINGS.NAMES.MEDAL_INHERIT_PAGE = "Inherit Page"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_INHERIT_PAGE = "It seems to have a long history."
 ------------------------------------------------------------------
 -----------------------------女武神勋章-----------------------------
 ------------------------------------------------------------------
@@ -486,12 +498,20 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.IMMORTAL_STAFF = "Stones have many time beca
 STRINGS.NAMES.MEDAL_SKIN_STAFF = "Romantic Theme"
 STRINGS.RECIPE_DESC.MEDAL_SKIN_STAFF = "Valuable"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SKIN_STAFF = "You are the dust of the world, and you are my only romantic."
---特制鱼饵
+--月光法杖
+STRINGS.NAMES.MEDAL_MOONLIGHT_STAFF = "Moonlight Staff"
+STRINGS.RECIPE_DESC.MEDAL_MOONLIGHT_STAFF = "Stable Moonlight Energy"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_MOONLIGHT_STAFF = "When the moonlight illuminates you, will you still be the same as before?"
+--特制鱼食
 STRINGS.NAMES.MEDAL_CHUM = "Special Chum"
-STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_CHUM = "I really want to know the formula of this chum!"
+STRINGS.RECIPE_DESC.MEDAL_CHUM = "Only those who can feed fish can fish"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_CHUM = "No one can imagine how attractive this thing is to fish!"
 --皮肤券
 STRINGS.NAMES.MEDAL_SKIN_COUPON = "Skin Coupon"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SKIN_COUPON = "Maybe we should use it to exchange some beautiful skin!"
+------------------------------------------------------------------
+-----------------------------天道酬勤-----------------------------
+------------------------------------------------------------------
 --奉纳盒
 STRINGS.NAMES.MEDAL_PAY_TRIBUTE_BOX = "Pay Tribute Box"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_PAY_TRIBUTE_BOX = "Tribute to the Great Eternal Continent!"
@@ -525,6 +545,12 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_GIFT_FRUIT_OVERSIZED = "It's enough fo
 --使命勋章
 STRINGS.NAMES.MISSION_CERTIFICATE = "Mission Medal"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MISSION_CERTIFICATE = "The mission sounds a little heavy."
+--酬勤令
+STRINGS.NAMES.MEDAL_DILIGENCE_TOKEN = "Diligence Token"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DILIGENCE_TOKEN = "This is what industrious people deserve! What should I exchange it for?"
+--暗影挑战符
+STRINGS.NAMES.MEDAL_MONSTER_SYMBOL = "Shadow Challenger"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_MONSTER_SYMBOL = "I have to be ready for the battle because of the strong shadow smell!"
 ------------------------------------------------------------------
 -----------------------------矿工勋章-----------------------------
 ------------------------------------------------------------------
@@ -590,7 +616,7 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.SPIDERQUEEN_CERTIFICATE = "It seals a Spider
 -----------------------------浴火勋章-----------------------------
 ------------------------------------------------------------------
 --浴火勋章
-STRINGS.NAMES.BATHINGFIRE_CERTIFICATE = "Bath fire Medal"
+STRINGS.NAMES.BATHINGFIRE_CERTIFICATE = "Bath Fire Medal"
 STRINGS.RECIPE_DESC.BATHINGFIRE_CERTIFICATE = "Born of Fire!"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.BATHINGFIRE_CERTIFICATE = "Born of Fire!"
 --红晶火坑
@@ -742,6 +768,12 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.DEVOUR_SOUL_CERTIFICATE = "What is the taste
 --暗夜坎普斯
 STRINGS.NAMES.MEDAL_RAGE_KRAMPUS = "Dark Krampus"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_RAGE_KRAMPUS = "He looks very angry! It doesn't feel good."
+--噬魂勋章
+STRINGS.NAMES.MEDIUM_DEVOUR_SOUL_CERTIFICATE = "Middle Devour Soul Medal"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDIUM_DEVOUR_SOUL_CERTIFICATE = "I want to hear the echoes of my soul."
+--噬空勋章
+STRINGS.NAMES.LARGE_DEVOUR_SOUL_CERTIFICATE = "Senior Devour Soul Medal"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.LARGE_DEVOUR_SOUL_CERTIFICATE = "So the soul can also break the constraints of time and space?!"
 ------------------------------------------------------------------
 -----------------------------渔翁勋章-----------------------------
 ------------------------------------------------------------------
@@ -829,6 +861,9 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_RESONATOR_ITEM = "It can take me to fi
 --神秘土堆
 STRINGS.NAMES.MEDAL_TREASURE = "Mysterious Mound"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_TREASURE = "What's buried underneath?"
+--藏宝洞
+STRINGS.NAMES.MEDAL_TREASURE_CHEST = "Treasure Hole"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_TREASURE_CHEST = "The treasure is inside!"
 --童心箱
 STRINGS.NAMES.MEDAL_CHILDISHNESS_CHEST = "Childishness Chest"
 STRINGS.RECIPE_DESC.MEDAL_CHILDISHNESS_CHEST = "Chest with childlike innocence"
@@ -865,8 +900,8 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_AMMO_BOX = "It's a must-have for a sho
 -----------------------------蜂王勋章-----------------------------
 ------------------------------------------------------------------
 --蜂王勋章
-STRINGS.NAMES.BEE_KING_CERTIFICATE = "Bee King Medal"
-STRINGS.RECIPE_DESC.BEE_KING_CERTIFICATE = "The king of bees"
+STRINGS.NAMES.BEE_KING_CERTIFICATE = "Bee King Medal.Poison"
+STRINGS.NAMES.BEE_KING_CERTIFICATE_ISAOE = "Bee King Medal.AOE"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.BEE_KING_CERTIFICATE = "With it, I am the real king of bees!"
 --凋零之蜂
 STRINGS.NAMES.MEDAL_BEEQUEEN = "Withering Bee King"
@@ -1104,6 +1139,71 @@ STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DUSTMERINGUE = "Those kids must love i
 STRINGS.NAMES.MEDAL_DUSTMOTHDEN_BASE = "Nest base of dust moth"
 STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_DUSTMOTHDEN_BASE = "Those little guys are suitable for nesting on it."
 ------------------------------------------------------------------
+-----------------------------暗影魔法-----------------------------
+------------------------------------------------------------------
+--驱光遗骸
+STRINGS.NAMES.MEDAL_SHADOWTHRALL_SCREAMER = "Shadowthrall Remains"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOWTHRALL_SCREAMER = "Big moth!"
+--暗影魔法石
+STRINGS.NAMES.MEDAL_SHADOW_MAGIC_STONE = "Shadow Magic Stone"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOW_MAGIC_STONE = "That darkness seems to be devouring me!"
+--暗影魔法勋章
+STRINGS.NAMES.SHADOWMAGIC_CERTIFICATE = "Shadow Magic Medal"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.SHADOWMAGIC_CERTIFICATE = "Carrying the power hidden in the darkness."
+--血色飓风
+STRINGS.NAMES.MEDAL_RED_TORNADO = "Bloody Hurricane"
+--混沌拳击袋
+STRINGS.NAMES.PUNCHINGBAG_CHAOS = "Primal Chaos Boxer"
+STRINGS.RECIPE_DESC.PUNCHINGBAG_CHAOS = "Test how well your weapons fare against primal chaos foes."
+--暗影工具
+STRINGS.NAMES.MEDAL_SHADOW_TOOL = "Shadow Magic Tool"
+STRINGS.RECIPE_DESC.MEDAL_SHADOW_TOOL = "Free switching of shapes"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_SHADOW_TOOL = "There is nothing more versatile than it!"
+------------------------------------------------------------------
+-----------------------------本源之树-----------------------------
+------------------------------------------------------------------
+--本源勋章
+STRINGS.NAMES.ORIGIN_CERTIFICATE = "Origin Medal"
+STRINGS.RECIPE_DESC.ORIGIN_CERTIFICATE = "Perhaps it can inspire more power from the medals"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.ORIGIN_CERTIFICATE = "Perhaps it can inspire more power from the medals"
+--本源精华
+STRINGS.NAMES.MEDAL_ORIGIN_ESSENCE = "本源精华"
+STRINGS.RECIPE_DESC.MEDAL_ORIGIN_ESSENCE = "万物之源"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_ESSENCE = "万物之源"
+--本源之树
+STRINGS.NAMES.MEDAL_ORIGIN_TREE = "Origin Tree"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE = "What a big tree!"
+--本源小树
+STRINGS.NAMES.MEDAL_ORIGIN_SMALL_TREE = "Origin Tree"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_SMALL_TREE = "Grow up quickly!"
+--本源根鞭
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_ROOT = "本源根鞭"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_ROOT = "被它抽到绝对不会好受！"
+--本源之花
+STRINGS.NAMES.MEDAL_ORIGIN_FLOWER = "本源之花"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_FLOWER = "越好看越危险！赶紧把它摘了！"
+--本源花瓣
+STRINGS.NAMES.MEDAL_ORIGIN_PETALS = "本源花瓣"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_PETALS = "看起是一味好药材。"
+--本源孢子云
+STRINGS.NAMES.MEDAL_SPORECLOUD = "本源孢子云"
+--本源果蝇
+STRINGS.NAMES.MEDAL_ORIGIN_FRUITFLY = "本源果蝇"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_FRUITFLY = "你不要过来啊！"
+--本源果妖
+STRINGS.NAMES.MEDAL_ORIGIN_ELF = "本源果妖"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_ELF = "这些家伙也太吵了！"
+--本源守卫幼苗
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD_SAPLING = "本源守卫幼苗"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD_SAPLING = "不及时挖了后果不堪设想！"
+--本源守卫
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD = "本源守卫"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD = "我要赶紧把它清理掉！"
+--本源守卫藤蔓
+STRINGS.NAMES.MEDAL_ORIGIN_TREE_GUARD_VINE_END = "本源守卫藤蔓"
+STRINGS.CHARACTERS.GENERIC.DESCRIBE.MEDAL_ORIGIN_TREE_GUARD_VINE_END = "离我远点！"
+------------------------------------------------------------------
+------------------------------------------------------------------
 -------------------------------BUFF-------------------------------
 ------------------------------------------------------------------
 --羊角帽电击
@@ -1122,10 +1222,10 @@ STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_QUICKLOCOMOTOR ="Exasperat
 STRINGS.NAMES.BUFF_MEDAL_BLOODSUCKING = "Blood Sugar"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_BLOODSUCKING ="I want to fight!"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_BLOODSUCKING ="As if I lost all my strength"
---黑暗血糖,吸血
+--黑暗血糖
 STRINGS.NAMES.BUFF_MEDAL_SUCKINGBLOOD = "Dark Blood Sugar"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_SUCKINGBLOOD ="The beast in my body was awakened."
-STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_SUCKINGBLOOD ="What just happened to me? Whose blood did I suck?"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_SUCKINGBLOOD ="What happened to me just now? It seems like darkness has devoured my soul."
 --土豆淀粉,耐饿
 STRINGS.NAMES.BUFF_MEDAL_ASSUAGEHUNGER = "Potato Starch"
 STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_ASSUAGEHUNGER ="I feel full."
@@ -1162,6 +1262,8 @@ STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_INJURED ="Bee venom finall
 STRINGS.NAMES.BUFF_MEDAL_BLOODHONEYMARK = "Blood Honey"
 --时之伤(debuff)
 STRINGS.NAMES.MEDAL_DELAY_DAMAGE = "Delay Damage"
+--寄生值(debuff)
+STRINGS.NAMES.MEDAL_PARASITIC_VALUE = "Parasitic Value"
 --痰蛋弹,易伤(debuff)
 STRINGS.NAMES.BUFF_MEDAL_WEAK = "Dirty Ammo"
 --血汗钱,萎靡(debuff)
@@ -1169,7 +1271,22 @@ STRINGS.NAMES.BUFF_MEDAL_MALAISE = "Malaise"
 --鱼人诅咒(debuff)
 STRINGS.NAMES.BUFF_MEDAL_MERMCURSE = "Merm Curse"
 --天道酬勤标记
-STRINGS.NAMES.BUFF_MEDAL_REWARDTOILER_MARK = "Reward Times"
+STRINGS.NAMES.MEDAL_REWARDTOILER_MARK = "Reward Times"
+--迷糊标记(debuff)
+STRINGS.NAMES.BUFF_MEDAL_CONFUSED = "Muddle"
+--红蓝晶充能
+STRINGS.NAMES.MEDAL_RED_CHARGING = "Red Charging"
+STRINGS.NAMES.MEDAL_BLUE_CHARGING = "Blue Charging"
+--流血(方尖弹)
+STRINGS.NAMES.BUFF_MEDAL_BLEED = "Bleed"
+--混乱,反向操作(debuff)
+STRINGS.NAMES.BUFF_MEDAL_CONFUSION = "Confusion"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_ATTACH_BUFF_MEDAL_CONFUSION ="My sense of direction has deteriorated!"
+STRINGS.CHARACTERS.GENERIC.ANNOUNCE_DETACH_BUFF_MEDAL_CONFUSION ="My sense of direction has returned!"
+--正义值
+STRINGS.NAMES.MEDAL_JUSTICE_VALUE = "Justice Value"
+--爆发力
+STRINGS.NAMES.MEDAL_SILENCE_DAMAGE = "Anger Value"
 
 --原版Buff，兼容buff显示用
 STRINGS.NAMES.BUFF_ATTACK = "Chili Flakes"
@@ -1178,6 +1295,7 @@ STRINGS.NAMES.BUFF_ELECTRICATTACK = "Electric Attack"
 STRINGS.NAMES.BUFF_MOISTUREIMMUNITY = "Moisture Immunity"
 STRINGS.NAMES.BUFF_PLAYERABSORPTION = "Garlic Powder"
 STRINGS.NAMES.BUFF_SLEEPRESISTANCE = "Mushy Cake"
+STRINGS.NAMES.BUFF_FIREFRENZY = "Burning Frenzy"
 STRINGS.NAMES.HEALTHREGENBUFF = "Jelly Bean"
 STRINGS.NAMES.TILLWEEDSALVE_BUFF = "Tillweed Salve"
 STRINGS.NAMES.SWEETTEA_BUFF = "Soothing Tea"
@@ -1191,15 +1309,28 @@ STRINGS.NAMES.HALLOWEENPOTION_BRAVERY_LARGE_BUFF = "Brew of Phobic Abrogation"
 STRINGS.NAMES.MEDAL_TEMPERATURE_UP = "Keep Warm"
 STRINGS.NAMES.MEDAL_TEMPERATURE_DOWN = "Cooling"
 STRINGS.NAMES.MEDAL_WORMLIGHT = "Light"
+STRINGS.NAMES.NIGHTVISION_BUFF = STRINGS.NAMES.ANCIENTFRUIT_NIGHTVISION or "Nightberry"
+STRINGS.NAMES.HEALINGSALVE_ACIDBUFF = STRINGS.NAMES.HEALINGSALVE_ACID or "Slimy Salve"
 
 --一些配方的命名，防止蓝图报错
 STRINGS.NAMES.TOIL_MONEY_COPY = "Hard-earned Money"
 STRINGS.NAMES.MEDAL_FISHINGROD_NEW = "Glass Fishing Rod"
 STRINGS.NAMES.TENTACLESPIKE_MEDAL = "tentacle spike"
 STRINGS.NAMES.MESSAGEBOTTLEEMPTY_MEDAL = "empty bottle"
-STRINGS.NAMES.DUSTMOTHDEN_COPY = "tidy hidey-hole"
-STRINGS.RECIPE_DESC.DUSTMOTHDEN = "Make a nest for the little guy"
 STRINGS.NAMES.MEDAL_GLOMMER_ESSENCE_COPY = "Glommer Essence"
+STRINGS.NAMES.DUSTMOTHDEN_COPY = STRINGS.NAMES.DUSTMOTHDEN or "Tidy Hidey-Hole"
+STRINGS.RECIPE_DESC.DUSTMOTHDEN = STRINGS.NAMES.DUSTMOTHDEN or "Tidy Hidey-Hole"
+STRINGS.NAMES.ARCHIVE_COOKPOT_COPY = STRINGS.NAMES.ARCHIVE_COOKPOT or "Ancient Kiln"
+STRINGS.RECIPE_DESC.ARCHIVE_COOKPOT = STRINGS.NAMES.ARCHIVE_COOKPOT or "Ancient Kiln"
+STRINGS.NAMES.INSANITYROCK_COPY = "Insanity Obelisk"
+STRINGS.RECIPE_DESC.INSANITYROCK = STRINGS.RECIPE_DESC.INSANITYROCK or "Insanity Obelisk"
+STRINGS.NAMES.SANITYROCK_COPY = "Sanity Obelisk"
+STRINGS.RECIPE_DESC.SANITYROCK = STRINGS.RECIPE_DESC.SANITYROCK or "Sanity Obelisk"
+STRINGS.NAMES.MEATRACK_HERMIT_COPY = STRINGS.NAMES.MEATRACK_HERMIT or "Drying Rack"
+STRINGS.RECIPE_DESC.MEATRACK_HERMIT = STRINGS.NAMES.MEATRACK_HERMIT or "Drying Rack"
+STRINGS.NAMES.BEEBOX_HERMIT_COPY = STRINGS.NAMES.BEEBOX_HERMIT or "Bee Box"
+STRINGS.RECIPE_DESC.BEEBOX_HERMIT = STRINGS.NAMES.BEEBOX_HERMIT or "Bee Box"
+STRINGS.NAMES.MEDAL_COMPOSTWRAP = STRINGS.NAMES.COMPOSTWRAP or "Compost Wrap"
 ------------------------------------------------------------------
 ------------------------------新对话------------------------------
 ------------------------------------------------------------------
@@ -1207,10 +1338,12 @@ STRINGS.NAMES.MEDAL_GLOMMER_ESSENCE_COPY = "Glommer Essence"
 STRINGS.IMMORTALSPEECH={
 	SUCCESS="I gave it immortality!",
 	ALREADY="It has long been immortal!",
-	NOTENOUGH="I have not enough immortal essence! I need ",
-	NOTENOUGH2=" immortal essence!",
+	NOTENOUGH="I have not enough immortal essence! I need {consume} immortal essence!",
 	POWERNOTENOUGH="The power of immortality is not enough.",
 	ISEQUIPPED="Maybe I should take it off first.",
+	ISMAX="This is already its limit!",
+	NOGEM="Need {x} immortal gems to upgrade!",
+	CANTADD="It cannot yet bestow immortality!",
 }
 --能力印刻
 STRINGS.POWERPRINTSPEECH={
@@ -1296,12 +1429,13 @@ STRINGS.NAUGHTYBELLSPEECH={
 	MAKETROUBLE="I seem to be in trouble...",--激怒小偷
 	ONLUNARISLAND="Even the moon goddess hate me?",--在月岛摇铃铛
 	LISTENER="They're staring at me!",--聆听者
+	NOTHING="It seems like nothing happened, maybe I should try another place!",--没召唤成功
 }
 --能力印刻
 STRINGS.MEDALUPGRADESPEECH={
 	SUCCESS="Be made one!",
 	ISMAX="It seems that this is the limit of it...",
-	UNLIKE="It looks like they can't fusion...",
+	-- UNLIKE="It looks like they can't fusion...",
 	ISEQUIPPED="It's not wise to fusion when equipping!",
 	NEEDEMPTY="Hey, there's something in it!",
 }
@@ -1320,6 +1454,11 @@ STRINGS.PLACECHUMSPEECH={
 STRINGS.WASHFUNCTIONALSPEECH={
 	ISEQUIPPED="Can't wash it when wear it!",
 	CANTWASH="I don't think it should be cleaned on the floor.",
+}
+--月光变异
+STRINGS.MEDAL_MOONLIGHT_SPEECH={
+	CANT="It seems to have no effect!",
+	NOTENOUGH="It seems that the magic is not enough.",
 }
 --吃了秘制料理
 STRINGS.EATPOOPSPEECH={
@@ -1479,6 +1618,33 @@ STRINGS.MEDAL_READ_RESULT={
 	NOWISDOMVALUE = "My brain power is a little insufficient.",--耐久不够
 	MUSTLAND = "This is not a good place to read!",--必需在岸上读
 }
+--智慧勋章相关提示
+STRINGS.WISDOM_MEDAL_SPEECH={
+	SAYANSWER = "I think the correct answer should be:",--公布答案(答题)
+	COUNTVALUE = "You may get:",--奉纳盒价值预测
+}
+--奉纳盒提示
+STRINGS.Medal_PAY_TRIBUTE_SPEECH={
+	FAIL = "I almost got it right! The answer should be:{veg1},{veg2},{veg3},{veg4}",--奉纳失败
+	PROPHESY = "I see:{veg1},{veg2},{veg3},{veg4}",--预言
+	ANSWER = "Answer:{veg1},{veg2},{veg3},{veg4}",--显示答案
+}
+--GM提示
+STRINGS.MEDAL_DEBUG_SPEECH={
+	TAGCOUNT1="I",
+	TAGCOUNT2="have",
+	TAGCOUNT3="tags",
+}
+
+------------------------------------------------------
+-------------------------公告-------------------------
+------------------------------------------------------
+STRINGS.MEDAL_ANNOUNCE={
+	NEWMOON="The New Moon Arrives",
+	REINCARNATION1=" Almost killed by: ",
+	REINCARNATION2=".Fell into time and space collapse at a critical moment and was saved!",
+}
+
 ------------------------------------------------------------------
 -------------------------新动作的文字提示-------------------------
 ------------------------------------------------------------------
@@ -1491,6 +1657,7 @@ STRINGS.MEDAL_NEWACTION={
 	SEALSPIDER="Seal",
 	POWERABSORB="Absorption",
 	MEDALUPGRADE="Fusion",
+	INHERITMEDALUPGRADE="Upgrade",
 	-- REPAIRSTAFF="Replenish Energy",
 	REPAIRARMORBLUECRYSTAL="Repair",
 	MAKECOOLDOWN="Cooling",
@@ -1551,7 +1718,15 @@ STRINGS.MEDAL_NEWACTION={
 	MEDALUSESKINCOUPON="Exchange",
 	WORMWOODFLOWERPLANT="Winding",
 	CALLTRIBUTEBOX="Call",
+	READCLOSEDBOOK="Study",
+	MEDALCOPYINGBLUEPRINT="Copying Blueprints",
+	MEDALBEEBOXHARVEST="Harvest Withered Royal Jelly",
+	MEDALMOONTREEHARVEST="Pick",
+	MEDAL_ADVANCE_ORIGIN_TREE_GROWTH="Use",
 }
+--原版动作文字补充
+STRINGS.ACTIONS.USESPELLBOOK.SHADOW_TOOL="Switching tools"
+STRINGS.ACTIONS.CLOSESPELLBOOK.SHADOW_TOOL="Cancel"
 ---------------------------动作失败提示------------------------
 --原版动作失败提示(勋章新增的特定提示)
 STRINGS.MEDAL_ACTIONFAIL_SPEECH={
@@ -1561,6 +1736,8 @@ STRINGS.MEDAL_ACTIONFAIL_SPEECH={
 		MUSTLAND = "This is not a good place to read!",--必需在岸上读
 	},
 }
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.BUILD.INHERITMEDALNORECIPE = "Inherit Medal has not unlocked this recipe!"
+--勋章动作失败提示
 STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.WORMWOODFLOWERPLANT={
 	NOTENOUGH = "This vine may not be enough to cover it!",
 }
@@ -1571,9 +1748,47 @@ STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALPYTREDE={
 	TOOOFTEN="Let me have a rest.",
 	NOTNEWMOON="There is still light in the sky!",
 }
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.READCLOSEDBOOK={
+	NOSANITY = "I'm a little dizzy and can't learn!",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.FISHMOONINWATER={
+	TOOCONFUSED = "I'm probably crazy, how could I do such a foolish thing?!",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALTOOLSORB={
+	UNSUPPORTED = "These two tools seem to be unable to merge!",
+	ALREADY = "It already has the effect of this tool!",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALMOONTREEHARVEST={
+	TOOSMALL = "Let it grow for a while longer!",
+}
+STRINGS.CHARACTERS.GENERIC.ACTIONFAIL.MEDALDELIVERYTREASURE={
+	CANTSPAWN = "This location cannot establish a spatial connection!",
+}
+
 ------------------------------------------------------------------
 ----------------------------UI文字提示----------------------------
 ------------------------------------------------------------------
+--新制作栏标题
+STRINGS.UI.CRAFTING_FILTERS.MEDAL = "Functional Medal"
+--制作栏解锁提醒
+STRINGS.UI.CRAFTING.NEEDSCARTOGRAPHYDESK = "Use a Cartographer's Desk to build a prototype!"
+STRINGS.UI.CRAFTING.NEEDSTECH.SEASONINGCHEF = "Wearing the Head Chef Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.WISDOMBUILDER = "Wearing the Wisdom Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_HANDY_MEDAL = "Wearing the Handy Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_PLANT_MEDAL = "Wearing the Wormwood Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_TRANSPLANT_MEDAL = "Wearing the Plant Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.TENTACLEMEDAL = "Wearing the Tentacle Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.NAUGHTYMEDAL = "Wearing the Naughty Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_BATHFIRE_MEDAL = "Wearing the Bath Fire Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_CHILDISHNESS = "Wearing the Childishness Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.SENIOR_CHILDISHNESS = "Wearing the Childlike Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.IS_BEE_KING = "Wearing the Bee King Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.SPACETIME_MEDAL = "Wearing the Space Time Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.HAS_SHADOWMAGIC_MEDAL = "Wearing the Shadow Magic Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER1 = "Wearing the Inherit Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER2 = "Wearing the Lv.2 Inherit Medal to unlock!"
+STRINGS.UI.CRAFTING.NEEDSTECH.TRADITIONALBEARER3 = "Wearing the Lv.3 Inherit Medal to unlock!"
+
 STRINGS.MEDAL_UI={
 	MEDALPAGETIPS="Click to open the Functional Medal setting interfac",
 	DRAGABLETIPS="Right click to drag",
@@ -1590,14 +1805,34 @@ STRINGS.MEDAL_UI={
 	SKIN_TITLE="Romantic Theme",
 	SKIN_BUY_BUTTON="Buy",
 	SKIN_BOUGHT="Owned",
+	SKIN_FREEUSE="Free Use",
 	SKIN_TIP_TITLE="Buy Skin",
 	SKIN_TIP_INFO1="Are you sure you want to spend",
 	SKIN_TIP_INFO2="skin coins to buy this skin?",
 	SKIN_NEED_COUPON="Locked",
+	SKIN_VIP_TIME_TIP={
+		TIP = "SKIN VIP:",
+		DAY = "d",
+		HOUR = "h",
+		MINUTE = "min",
+		LESSMINUTE = "1min",
+		NOTIME = "Unactivated",
+	},
 	SKIN_HELP="You can recharge with hard-earned money. 1:10",
 	BUFF_OPEN_TIP="Show More",
 	BUFF_CLOSE_TIP="Show Less",
 	LISTEN_QUESTION="Listen to the question",
+	PAY_TRIBUTE="Pay Tribute",
+	PAY_TRIBUTE_TITLE="Veggies Tribute",
+	PAY_TRIBUTE_SMALL_TITLE1="Optional：",
+	PAY_TRIBUTE_SMALL_TITLE2="Tribute Record",
+	PAY_TRIBUTE_TIPS={
+		"Put in any 4 alternative veggies (repeatable)",
+		"Indicates both the location and type are correct",
+		"Indicates correct type but incorrect position",
+		"Carrying a prophecy crystal ball has benefits",
+		"Immortal fruits can replace any veggies",
+	},
 }
 STRINGS.MEDAL_SETTING_UI={
 	TITLE="Functional Medal Settings",
@@ -1614,6 +1849,40 @@ STRINGS.MEDAL_SETTING_UI={
 	LOWEST="Lowest",
 	SHOW_MEDAL_INFO="Show More Info",
 	MUST="Necessary",
+	SHOWTAGSNUM="Show My Tags Num",
+	CONTAINER_DRAG="Drag Container",
+	SLINGSHOT_LOCK="Lock Target Range",
+	USECKD="Use Cdkey",
+	SUBMIT="Submit",
+}
+STRINGS.MEDAL_USECDK_UI={
+	TITLE="Skin Vip Cdkey",
+	TIPS="Please enter the correct cdkey",
+	STATE={
+		"The network connection is abnormal! Please try again!",
+		"Please ensure that the computer time is synchronized with reality!",
+		"It's already been activated, no need to reuse it!",
+		"Use failed, invalid cdkey!",
+		"Still invalid cdkey, please check again!",
+		"Still invalid, do not hand hit directly copy paste it!",
+		"Stop trying! You're wasting your time!",
+		-- "You've already used this cdkey!",
+		-- "Try another one, you've already used this one!",
+		-- "A cdkey can only be used once!",
+	},
+	SUCCESS="Use successfully! Valid until ",
+	DAY=" days",
+}
+STRINGS.MEDAL_SHADOW_TOOL_UI={
+	AXE="Axe",
+	PICKAXE="Pickaxe",
+	SHOVEL="Shovel",
+	HAMMER="Hammer",
+	BUGNET="Bug Net",
+	FARM_HOE="Garden Hoe",
+	PITCHFORK="Pitchfork",
+	OAR="Oar",
+	MULTI_USE="Five in one",
 }
 STRINGS.MEDAL_INFO={
 	FRONT="",
@@ -1634,6 +1903,7 @@ STRINGS.MEDAL_INFO={
 	IMMUNITY="Magic Immunity:",
 	FOODLOG="Recorded Food:",
 	FOODLOG2="Recorded HeadChef Food:",
+	FOODLOG3="Making or using spices (up to 50), current:",
 	NEEDSPICE="Make any seasoning food to improve your cooking skills",
 	HONOR="Honor:",
 	LOSSPACK="Lost package",
@@ -1648,6 +1918,27 @@ STRINGS.MEDAL_INFO={
 	SPACETIMEVALUE="Space Tiem Hunger:",
 	TRIBUTE_TIP1="Collect:",
 	TRIBUTE_TIP2="\nYou can obtain 4 gift fruits and 1 gift fruit seed.",
+	JUSTICE_VALUE="Justice Value:",
+}
+--奉纳盒提示
+STRINGS.MEDAL_PAY_TRIBUTE_INFO={
+	FISHBOX="Tribute requirement: Any seafood, the slot cannot be empty\nWarm prompt: The more types, the better the reward",
+	FOODBOX="Tribute requirement: Any non-seasoning food, the slot cannot be empty or stacked\nWarm prompt: The more types and the more fit the preference, the better the reward. The module cooking is not included in the category",
+	FOOD_PREFERENCE="Cooking preference:",
+	FOOD_PREFERENCE_LOOT={
+		"Meat",
+		"Veggie",
+		"Goodies",
+		"Honeyed",
+		"Master food",
+		"Snacks(Hunger<=12.5)",
+		"Munchies(12.5<Hunger<=25)",
+		"Staple food(25<Hunger<75)",
+		"Feast(Hunger>=75)",
+	},
+	FOOD_NOPREFERENCE="None",
+	CREATUREBOX="Tribute requirement: Any small creature, the slot cannot be empty or stacked\nWarm prompt: the same small creature can only be counted once",
+	VEGGIESBOX="Tribute requirement: Any veggies or seeds, the slot cannot be empty\nWarm prompt: The more types and the more items in a single cell, the better the reward. Crops and seeds are the same kind",
 }
 STRINGS.MISSION_TAGINFO={
 	--击杀目标
@@ -1746,54 +2037,58 @@ STRINGS.MEDAL_HOVER_TIPS={
 ----------------------------皮肤名----------------------------
 STRINGS.MEDAL_SKIN_NAME={
 	UNDEFINED = "No skin data",
-	MEDAL_STATUE_GUGUGU_SKIN1="Pigeon King",
-	MEDAL_STATUE_GUGUGU_SKIN2="Family Happiness",
-	MEDAL_STATUE_GUGUGU_SKIN3="Ice Sculptures",
-	MEDAL_STATUE_SALTFISH_SKIN1="Panda Remix",
-	MEDAL_STATUE_SALTFISH_SKIN2="Lucky Koi",
-	MEDAL_STATUE_SALTFISH_SKIN3="Ice Sculptures",
-	MEDAL_STATUE_STUPIDCAT_SKIN1="Fortune Cat",
-	MEDAL_STATUE_STUPIDCAT_SKIN2="Ice Sculptures",
-	LUREPLANT_ROD_SKIN1="Vileplume",
-	MEDAL_NAUGHTYBELL_SKIN1="Ice Glommer",
-	MEDAL_NAUGHTYBELL_SKIN2="Safe and Healthy",
-	SANITYROCK_MACE_SKIN1="Upstream",
-	SANITYROCK_MACE_SKIN2="Frostmourn",
-	DEVOUR_STAFF_SKIN1="Greedy Snake",
-	MEDAL_KRAMPUS_CHEST_ITEM_SKIN1="Full of Blessings",
-	MEDAL_KRAMPUS_CHEST_ITEM_SKIN2="Carve Ice and Jade",
-	MEDAL_FISHINGROD_SKIN1="Wintersweet",
-	MEDAL_GOATHAT_SKIN1="Luck and Prosperity",
-	BEARGER_CHEST_SKIN1="Excellent Meal",
-	BEARGER_CHEST_SKIN2="Space Time Chest",
-	MEDAL_BOX_SKIN1="Exquisite and Unique",
-	MEDAL_BOX_SKIN2="Snow on Paper",
-	SPICES_BOX_SKIN1="Bittersweet",
-	SPICES_BOX_SKIN2="Blessing Sachet",
-	SPICES_BOX_SKIN3="Star Candy Can",
-	MEDAL_STATUE_CHANGEABLE_SKIN1="Da Bai",
-	MEDAL_STATUE_CHANGEABLE_SKIN2="Imaginer",
-	MEDAL_STATUE_CHANGEABLE_SKIN3="Hubert",
-	MEDAL_STATUE_CHANGEABLE_SKIN4="Dark Krampus",
-	MEDAL_STATUE_CHANGEABLE_SKIN5="Withering Bee King",
-	MEDAL_STATUE_CHANGEABLE_SKIN6="Space Time Devourer",
-	METEOR_STAFF_SKIN1="Big Dipper",
-	MEDAL_SEAPOND_SKIN1="Pool Party",
-	MEDAL_SEAPOND_SKIN2="Winter Hot Spring",
-	MEDAL_STATUE_BLACKEGG_SKIN1="Black Handsome",
-	MEDAL_STATUE_BLACKEGG_SKIN2="White Egg?",
-	MEDAL_COOKPOT_SKIN1="Chafing Dish",
-	MEDAL_FRUIT_TREE_IMMORTAL_FRUIT_SKIN1="Wisteria Flower",
-	MEDAL_STATUE_POTTING_SKIN1="Winter Jasmine",
-	MEDAL_STATUE_POTTING_SKIN2="Pear Blossom",
-	MEDAL_STATUE_POTTING_SKIN3="Lilac",
-	MEDAL_STATUE_POTTING_SKIN4="Rose",
-	MEDAL_STATUE_POTTING_SKIN5="Rhododendron",
-	MEDAL_STATUE_POTTING_SKIN6="Water Lilies",
-	MEDAL_LIVINGROOT_CHEST_SKIN1="Mushroom Forest",
-	MEDAL_SPACE_STAFF_SKIN1="Bird Clock",
-	MEDAL_TOY_CHEST_SKIN1="Toy Storage Box",
-	MEDAL_SKIN_STAFF_SKIN1="Snowflake ballad",
-	DOWN_FILLED_COAT_SKIN1="Chinese Costume",
-	MEDAL_WATERPUMP_SKIN1="Little Snowman",
 }
+
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin1="Pigeon King"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin2="Family Happiness"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin3="Ice Sculptures"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin4="No-Show"
+STRINGS.SKIN_NAMES.medal_statue_gugugu_skin5="Squab"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin1="Panda Remix"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin2="Lucky Koi"
+STRINGS.SKIN_NAMES.medal_statue_saltfish_skin3="Ice Sculptures"
+STRINGS.SKIN_NAMES.medal_statue_stupidcat_skin1="Fortune Cat"
+STRINGS.SKIN_NAMES.medal_statue_stupidcat_skin2="Ice Sculptures"
+STRINGS.SKIN_NAMES.lureplant_rod_skin1="Vileplume"
+STRINGS.SKIN_NAMES.medal_naughtybell_skin1="Ice Glommer"
+STRINGS.SKIN_NAMES.medal_naughtybell_skin2="Safe and Healthy"
+STRINGS.SKIN_NAMES.sanityrock_mace_skin1="Upstream"
+STRINGS.SKIN_NAMES.sanityrock_mace_skin2="Frostmourn"
+STRINGS.SKIN_NAMES.devour_staff_skin1="Greedy Snake"
+STRINGS.SKIN_NAMES.medal_krampus_chest_item_skin1="Full of Blessings"
+STRINGS.SKIN_NAMES.medal_krampus_chest_item_skin2="Carve Ice and Jade"
+STRINGS.SKIN_NAMES.medal_fishingrod_skin1="Wintersweet"
+STRINGS.SKIN_NAMES.medal_goathat_skin1="Luck and Prosperity"
+STRINGS.SKIN_NAMES.bearger_chest_skin1="Excellent Meal"
+STRINGS.SKIN_NAMES.bearger_chest_skin2="Space Time Chest"
+STRINGS.SKIN_NAMES.medal_box_skin1="Exquisite and Unique"
+STRINGS.SKIN_NAMES.medal_box_skin2="Snow on Paper"
+STRINGS.SKIN_NAMES.spices_box_skin1="Bittersweet"
+STRINGS.SKIN_NAMES.spices_box_skin2="Blessing Sachet"
+STRINGS.SKIN_NAMES.spices_box_skin3="Star Candy Can"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin1="Da Bai"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin2="Imaginer"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin3="Hubert"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin4="Dark Krampus"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin5="Withering Bee King"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin6="Space Time Devourer"
+STRINGS.SKIN_NAMES.medal_statue_changeable_skin7="Shadowthrall Remains"
+STRINGS.SKIN_NAMES.meteor_staff_skin1="Big Dipper"
+STRINGS.SKIN_NAMES.medal_seapond_skin1="Pool Party"
+STRINGS.SKIN_NAMES.medal_seapond_skin2="Winter Hot Spring"
+STRINGS.SKIN_NAMES.medal_statue_blackegg_skin1="Black Handsome"
+STRINGS.SKIN_NAMES.medal_statue_blackegg_skin2="White Egg?"
+STRINGS.SKIN_NAMES.medal_cookpot_skin1="Chafing Dish"
+STRINGS.SKIN_NAMES.medal_fruit_tree_immortal_fruit_skin1="Wisteria Flower"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin1="Winter Jasmine"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin2="Pear Blossom"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin3="Lilac"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin4="Rose"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin5="Rhododendron"
+STRINGS.SKIN_NAMES.medal_statue_potting_skin6="Water Lilies"
+STRINGS.SKIN_NAMES.medal_livingroot_chest_skin1="Mushroom Forest"
+STRINGS.SKIN_NAMES.medal_space_staff_skin1="Bird Clock"
+STRINGS.SKIN_NAMES.medal_toy_chest_skin1="Toy Storage Box"
+STRINGS.SKIN_NAMES.medal_skin_staff_skin1="Snowflake ballad"
+STRINGS.SKIN_NAMES.down_filled_coat_skin1="Chinese Costume"
+STRINGS.SKIN_NAMES.medal_waterpump_skin1="Little Snowman"

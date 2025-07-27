@@ -1,6 +1,6 @@
 local isCh = locale == "zh" or locale == "zhr"--是否为中文
 name = isCh and "能力勋章" or "Functional Medal"
-description = isCh and [[当前版本1.6.0.3
+description = isCh and [[当前版本1.6.5.2
 能力勋章是一个以“成长”为主题的扩展类Mod，在原本游戏的基础上增加了一种新类型的道具——勋章。
 不同的勋章代表着不同的能力，有的勋章能让你拥有其他角色的能力，有的勋章则能大大提高你的工作效率，有的勋章更能给你带来扭转乾坤的力量。
 勋章所带来的能力虽然强大，但是获取起来也并非易事，你要在永恒大陆经历各种各样的冒险，尝尽孤岛生存带来的酸甜苦辣后，方能获得你应有的成长。
@@ -14,7 +14,7 @@ description = isCh and [[当前版本1.6.0.3
 群号:967226714]] or "Addition of the Medal System, you can use the cartographer's desk to make various medals."
 author = "恒子、|白日(画师)|BCI(动画)"
 
-version = "1.6.0.3"--整体.大章节.小章节.优化、修Bug
+version = "1.6.5.2"--整体.大章节.小章节.优化、修Bug
 
 api_version = 10
 
@@ -28,7 +28,7 @@ icon_atlas = "modicon.xml"
 server_filter_tags = {"medal","能力勋章"}
 
 forumthread = "https://www.guanziheng.com"
-priority = -9999--优先级调高
+priority = -10001--优先级调高(刚好压过Insight)
 
 local function Subtitle(name)
 	return {
@@ -63,6 +63,18 @@ configuration_options = isCh and
 			{description = "默认", data = false, hover = "默认成本"},
 		},
 		default = false,
+	},
+	{
+		name = "medal_tag_optimization",
+		label = "标签优化",
+		hover = "开启后可降低玩家佩戴勋章时增加的标签量，从而降低标签溢出的可能性。\n也可以开启原版标签优化，大大降低技能树带来的标签负荷。",
+		options =
+		{
+			{description = "关闭", data = 0, hover = "关闭标签优化"},
+			{description = "勋章标签优化", data = 1, hover = "降低玩家佩戴勋章时增加的标签量"},
+			{description = "原版标签优化", data = 2, hover = "对原版角色的技能树等各种标签进行优化"},
+		},
+		default = 1,
 	},
 	Subtitle("UI相关"),
 	{
@@ -107,6 +119,17 @@ configuration_options = isCh and
 		{
 			{description = "显示", data = true, hover = "显示勋章设置按钮"},
 			{description = "隐藏", data = false, hover = "隐藏勋章设置按钮"},
+		},
+		default = true,
+	},
+	{
+		name = "medal_recipe_filter_switch",
+		label = "勋章制作栏",
+		hover = "在制作栏里加入一个勋章制作栏，本Mod新增的配方都会在其中显示",
+		options =
+		{
+			{description = "显示", data = true, hover = "显示勋章制作栏"},
+			{description = "隐藏", data = false, hover = "隐藏勋章制作栏"},
 		},
 		default = true,
 	},
@@ -227,6 +250,18 @@ configuration_options = isCh and
 		},
 		default = false,
 	},
+	{--标签优化
+		name = "medal_tag_optimization",
+		label = "Tag Optimization",
+		hover = "After activation, it can reduce the amount of tags added by players when wearing medals, thereby reducing the possibility of tag overflow.",
+		options =
+		{
+			{description = "Closed", data = 0, hover = "Closed"},
+			{description = "Medal Tags", data = 1, hover = "Reduce the amount of tags added by players when wearing medals"},
+			{description = "DST Tags", data = 2, hover = "Optimize various tags such as skill trees for the original characters"},
+		},
+		default = 1,
+	},
 	Subtitle("UI Settings"),
 	{--勋章栏
 		name = "medalequipslots_switch",
@@ -270,6 +305,17 @@ configuration_options = isCh and
 		{
 			{description = "Show", data = true, hover = "Show setting icon"},
 			{description = "Hide", data = false, hover = "Hide setting icon"},
+		},
+		default = true,
+	},
+	{
+		name = "medal_recipe_filter_switch",
+		label = "Medal Crafting Filter",
+		hover = "Add a medal filter to the crafting filter, where all new recipes added to this Mod will be displayed",
+		options =
+		{
+			{description = "Show", data = true, hover = "Show Medal Crafting Filter"},
+			{description = "Hide", data = false, hover = "Hide Medal Crafting Filter"},
 		},
 		default = true,
 	},

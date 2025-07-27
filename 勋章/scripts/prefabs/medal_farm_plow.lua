@@ -69,6 +69,7 @@ local function spawn_farm_soil(inst, x,y,z)
 	local cx, cy, cz = TheWorld.Map:GetTileCenterPoint(x,y,z)--获取地皮中心坐标点
 	local spacing=1.3--土堆间距
 	local farm_plant_pos={}--农场作物坐标
+	local seed_use_count = 0--种子消耗计数
 	--清除这块地皮上多余的土堆
 	local ents = TheWorld.Map:GetEntitiesOnTileAtPoint(cx, 0, cz)
 	for _, ent in ipairs(ents) do
@@ -85,7 +86,6 @@ local function spawn_farm_soil(inst, x,y,z)
 			local nz=cz+spacing*j-spacing
 			--根据视角方向调整生成坐标位置，视角方向需要根据之前记录的方向来获取
 			local direction = inst.medal_direction or (TheCamera and TheCamera:GetHeadingTarget())
-			-- if i==0 and j==0 then TheNet:Announce("使用视角:"..(direction or "不存在")) end
 			if direction then
 				direction=direction%360
 				if direction>=270 then
@@ -120,6 +120,7 @@ local function spawn_farm_soil(inst, x,y,z)
 				if removeItem and spawnItem~="farm_soil" then
 					removeItem:Remove()
 					spawnItem=nil
+					seed_use_count = seed_use_count + 1
 				end
 			end
 			--返还未消耗的种子
@@ -127,6 +128,10 @@ local function spawn_farm_soil(inst, x,y,z)
 				inst.components.container:GiveItem(removeItem,i*3+j+1)
 			end
 		end
+	end
+	--天道酬勤
+	if seed_use_count > 0 and inst.bindeployer then
+		RewardToiler(inst.bindeployer,0.01*seed_use_count)
 	end
 	
 	-- if inst ~= nil and inst.SoundEmitter ~= nil then

@@ -9,7 +9,7 @@ local prefabs =
 {
     "monstermeat",
     "krampus_sack",
-	"medal_loss_treasure_map_scraps",
+	-- "medal_loss_treasure_map_scraps",
 	"toil_money",
 	"krampus_soul",
 }
@@ -23,8 +23,8 @@ SetSharedLootTable( 'medal_naughty_krampus',
     {'monstermeat',  1.0},
     {'charcoal',     1.0},
     {'charcoal',     1.0},
-	{'medal_loss_treasure_map_scraps', .2},
-	{'krampus_soul', .05},
+	-- {'medal_loss_treasure_map_scraps', .2},
+	{'krampus_soul', TUNING_MEDAL.KRAMPUS_SOUL_DROP_RATE},
 	{'toil_money', .2},
     {'krampus_sack', .01},
 })
@@ -99,7 +99,6 @@ local function fn()
     inst:AddTag("monster")
     inst:AddTag("hostile")
     inst:AddTag("deergemresistance")
-    -- inst:AddTag("medal_dist_absorb")--远程减伤
 
     inst.AnimState:Hide("ARM")
     inst.AnimState:SetBank("krampus")

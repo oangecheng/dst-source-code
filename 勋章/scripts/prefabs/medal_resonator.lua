@@ -120,13 +120,21 @@ local function transferTreasureMap(inst,obj)
 	end
 end
 --切换回道具形态
-local function ChangeToItem(inst)
+local function ChangeToItem(inst,needfling)
+    if not inst:IsValid() then return end
     local item = SpawnPrefab("medal_resonator_item")
-    item.Transform:SetPosition(inst.Transform:GetWorldPosition())
-    --
+    local pt = inst:GetPosition()
+    item.Transform:SetPosition(pt.x,pt.y,pt.z)
     item.components.finiteuses:SetPercent(inst.components.finiteuses:GetPercent())
 	transferTreasureMap(inst,item)--转移藏宝图
-    return item
+    --用完后直接回到玩家身上，省的捡了
+    if inst.doer and inst:IsNear(inst.doer,5) and inst.doer.components.inventory then
+        inst.doer.components.inventory:GiveItem(item,nil,pt)
+    elseif needfling then--掉落
+        pt.y = pt.y + 1
+        inst.components.lootdropper:FlingItem(item,pt)
+    end
+    inst:Remove()
 end
 
 local MOON_ALTAR_ASTRAL_MARKER_MUST_TAG =  {"moon_altar_astral_marker"}
@@ -142,6 +150,7 @@ local function scanfordevice(inst)
 			local treasure_data=treasureMap:getTreasurePoint(inst)--获取藏宝点信息
 			if treasure_data then
 				-- print("宝藏世界ID为"..treasure_data.worldid..",坐标为:"..treasure_data.x..","..treasure_data.z)
+                -- print("藏宝图价值:"..(treasureMap.gift_fruit_value or 0))
 				--不在一个世界
 				if treasure_data.worldid ~= TheShard:GetShardId() then
                     MedalSay(inst,STRINGS.READMEDALTREASUREMAP_SPEECH.OTHERWORLD)
@@ -160,11 +169,7 @@ local function scanfordevice(inst)
                             end
 							inst.components.container:DestroyContents()--销毁藏宝图
 							inst.components.finiteuses:Use(1)--消耗耐久
-							local item = ChangeToItem(inst)--切换回道具形态
-							local pt = Vector3(inst.Transform:GetWorldPosition())
-							pt.y = pt.y + 3
-							inst.components.lootdropper:FlingItem(item,pt)
-							inst:Remove()
+							ChangeToItem(inst,true)--切换回道具形态
 						end
 					end)
 					hasresult=true
@@ -196,7 +201,13 @@ local function scanfordevice(inst)
 					inst.AnimState:PlayAnimation("beam")
 					inst.SoundEmitter:KillSound("locating")
 					hasresult=true
-                    RewardToiler(inst.doer)--天道酬勤
+                    if treasureMap and (treasureMap.toiler_sign==nil or treasureMap.toiler_sign<2) then
+                        RewardToiler(inst.doer,0.05,treasureMap)--天道酬勤
+                    end
+                    --没找到宝藏时执行
+                    if treasureMap.nofindfn then
+                        treasureMap:nofindfn()
+                    end
 				end
 			end
 		end
@@ -269,7 +280,6 @@ local function OnDismantle(inst)--, doer)
         --收拢动画结束后切回道具形态
 		if inst.AnimState:IsCurrentAnimation("pack") then
             ChangeToItem(inst)
-            inst:Remove()
         end
     end)
 end

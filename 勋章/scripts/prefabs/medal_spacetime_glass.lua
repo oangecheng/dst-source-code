@@ -42,7 +42,7 @@ local function explode(inst)
             if v ~= inst and v:IsValid() and not v:IsInLimbo() then
                 if v:IsValid() and not v:IsInLimbo() then
                     if v.components.combat ~= nil and v.components.health ~= nil and not v.components.health:IsDead() then
-                        v.components.combat:GetAttacked(inst, TUNING_MEDAL.MEDAL_SPACETIME_GLASS_DAMAGE, nil)
+                        v.components.combat:GetAttacked(inst, TUNING_MEDAL.MEDAL_SPACETIME_GLASS_DAMAGE, nil, nil, {medal_chaos = TUNING_MEDAL.MEDAL_SPACETIME_GLASS_CHAOS_DAMAGE})
                         v.components.health:DoDeltaMedalDelayDamage(TUNING_MEDAL.MEDAL_SPACETIME_GLASS_DELAY_DAMAGE)--时之伤
                     end
                 end

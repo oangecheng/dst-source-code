@@ -4,7 +4,6 @@ local assets =
 {
     Asset("ANIM", "anim/dragonfly_chest.zip"),
 	Asset("ANIM", "anim/medal_toy_chest.zip"),
-	Asset("ANIM", "anim/medal_toy_chest_skin1.zip"),
     Asset("ANIM", "anim/ui_chester_shadow_3x4.zip"),
     Asset("ANIM", "anim/ui_tacklecontainer_3x5.zip"),
 	Asset("ATLAS", "minimap/medal_childishness_chest.xml" ),
@@ -61,93 +60,82 @@ end
 
 --子弹包
 local ammo_loot={
-	"medalslingshotammo_sanityrock",--方尖弹
-	"medalslingshotammo_sandspike",--沙刺弹
-	"medalslingshotammo_water",--落水弹
-	"medalslingshotammo_taunt",--痰蛋弹
-	"medalslingshotammo_spines",--尖刺弹
-}
---糖果包
-local candy_loot={
-	"jellybean",--彩虹糖豆
-	"taffy",--太妃糖
-	"spice_blood_sugar",--血糖
-	"spice_rage_blood_sugar",--黑暗血糖
+	{key="medalslingshotammo_sanityrock",weight=1},--方尖弹
+	{key="medalslingshotammo_sandspike",weight=1},--沙刺弹
+	{key="medalslingshotammo_water",weight=1},--落水弹
+	{key="medalslingshotammo_taunt",weight=1},--痰蛋弹
+	{key="medalslingshotammo_spines",weight=1},--尖刺弹
 }
 --遗失物品包
 local book_loot={
-	-- "trapreset_book",--陷阱重置册
-	-- "autotrap_book",--智能陷阱重置册
-	"immortal_book",--不朽之谜
-	"monster_book",--怪物图鉴
-	"unsolved_book",--未解之谜
-	-- "book_tentacles",--触手书
-	-- "book_brimstone",--末日将至
-	-- "book_gardening",--应用园艺学
-	"medal_treasure_map_scraps1",--藏宝图碎片·日出
-	"medal_treasure_map_scraps2",--藏宝图碎片·黄昏
-	"medal_treasure_map_scraps3",--藏宝图碎片·夜晚
+	{key="immortal_book",weight=1},--不朽之谜
+	{key="monster_book",weight=1},--怪物图鉴
+	{key="unsolved_book",weight=1},--未解之谜
+	{key="medal_treasure_map_scraps1",weight=1},--藏宝图碎片·日出
+	{key="medal_treasure_map_scraps2",weight=1},--藏宝图碎片·黄昏
+	{key="medal_treasure_map_scraps3",weight=1},--藏宝图碎片·夜晚
 }
 --宝石礼包
 local gem_loot={
-	redgem=1,--红宝石
-	bluegem=1,--蓝宝石
-	purplegem=0.75,--紫宝石
-	orangegem=0.5,--橙宝石
-	greengem=0.25,--绿宝石
-	yellowgem=0.5,--黄宝石
-	opalpreciousgem=0.05,--彩虹宝石
+	{key="redgem",weight=1},--红宝石
+	{key="bluegem",weight=1},--蓝宝石
+	{key="purplegem",weight=0.75},--紫宝石
+	{key="orangegem",weight=0.5},--橙宝石
+	{key="greengem",weight=0.25},--绿宝石
+	{key="yellowgem",weight=0.5},--黄宝石
+	{key="opalpreciousgem",weight=0.05},--彩虹宝石
 }
 
---掉落礼物(inst,是否为万圣节掉落,空白勋章数量)
-local function DropGifts(inst,ishalloween,blank_medal_num)
+--掉落礼物(inst,是否为万圣节掉落,空白勋章数量,本源加成)
+local function DropGifts(inst,ishalloween,blank_medal_num,has_origin)
 	local bundleitems = {}
+	local destiny_num = GetMedalDestiny(inst)--宿命
 	if ishalloween then
 		--万圣节糖果
 		for i=1,4 do
-			local candy=SpawnPrefab("halloweencandy_"..math.random(NUM_HALLOWEENCANDY or 2))
+			local candy = SpawnPrefab("halloweencandy_"..GetMedalRandomNum(destiny_num,NUM_HALLOWEENCANDY or 2))
 			if candy and candy.components.stackable then
-				candy.components.stackable.stacksize = math.random(20)
+				destiny_num = destiny_num*10%1
+				candy.components.stackable.stacksize = GetMedalRandomNum(destiny_num,20)
 			end
 			table.insert(bundleitems, candy)
 		end
 	else
+		local ammo_mult = has_origin and 1.2 or 1--有本源童真的话弹药数量增加20%
 		--噬魂弹
 		local devoursoulammo=SpawnPrefab("medalslingshotammo_devoursoul")
 		if devoursoulammo and devoursoulammo.components.stackable then
-			local ammo_num= math.random()<.9 and 5 or 10
+			local ammo_num= destiny_num < .9 and 5 or 10
 			--根据空白勋章数量额外给 勋章数量*4~勋章数量*8 个噬魂弹
 			if blank_medal_num and blank_medal_num>0 then
-				ammo_num=ammo_num+math.random(blank_medal_num*4,blank_medal_num*8)
+				destiny_num = destiny_num*10%1
+				ammo_num = ammo_num + GetMedalRandomNum(destiny_num,blank_medal_num*8,blank_medal_num*4)
 			end
-			devoursoulammo.components.stackable.stacksize = math.min(ammo_num,60)
+			devoursoulammo.components.stackable.stacksize = math.min(math.floor(ammo_num * ammo_mult),60)
 		end
 		table.insert(bundleitems, devoursoulammo)
 		--随机弹药
-		local ammo=SpawnPrefab(GetRandomItem(ammo_loot))
+		destiny_num = destiny_num*10%1
+		local ammo = SpawnPrefab(GetMedalRandomItem(ammo_loot,destiny_num))
 		if ammo and ammo.components.stackable then
-			ammo.components.stackable.stacksize = 20
+			ammo.components.stackable.stacksize = math.floor(20 * ammo_mult)
 		end
 		table.insert(bundleitems, ammo)
-		--随机糖果
-		-- local candy=SpawnPrefab(GetRandomItem(candy_loot))
-		-- if candy and candy.components.stackable then
-		-- 	candy.components.stackable.stacksize = math.random(5)
-		-- end
-		-- table.insert(bundleitems, candy)
 		--特制鱼食
-		local chum=SpawnPrefab("medal_chum")
-		if chum and chum.components.stackable then
-			chum.components.stackable.stacksize = 2
-		end
-		table.insert(bundleitems, chum)
-
-		if math.random()<.5 then
+		-- local chum=SpawnPrefab("medal_chum")
+		-- if chum and chum.components.stackable then
+		-- 	chum.components.stackable.stacksize = 2
+		-- end
+		-- table.insert(bundleitems, chum)
+		destiny_num = destiny_num*10%1
+		if destiny_num<.5 then
 			--随机书籍
-			table.insert(bundleitems, SpawnPrefab(GetRandomItem(book_loot)))
+			destiny_num = destiny_num*10%1
+			table.insert(bundleitems, SpawnPrefab(GetMedalRandomItem(book_loot,destiny_num)))
 		else
 			--随机宝石
-			table.insert(bundleitems, SpawnPrefab(weighted_random_choice(gem_loot)))
+			destiny_num = destiny_num*10%1
+			table.insert(bundleitems, SpawnPrefab(GetMedalRandomItem(gem_loot,destiny_num)))
 		end
 		
 	end
@@ -160,13 +148,6 @@ local function DropGifts(inst,ishalloween,blank_medal_num)
     end
     inst.components.lootdropper:FlingItem(bundle)
 end
---万圣节玩具列表
-local halloween_toy_list={}
-if HALLOWEDNIGHTS_TINKET_START and HALLOWEDNIGHTS_TINKET_END then
-	for i=HALLOWEDNIGHTS_TINKET_START,HALLOWEDNIGHTS_TINKET_END do
-		table.insert(halloween_toy_list,"trinket_"..i)
-	end
-end
 
 --兑换礼物
 local function exchangeGift(inst,player)
@@ -176,7 +157,7 @@ local function exchangeGift(inst,player)
 	local blank_medal_num=0--空白勋章数量
 	for k,v in ipairs(itemlist) do
 		--不能有玩具、空白勋章之外的东西
-		if string.sub(v.prefab,1,8)~="trinket_" and v.prefab~="antliontrinket" and v.prefab~="blank_certificate" then
+		if not (IsTrinket(v.prefab) or v:HasTag("blank_certificate")) then
 			MedalSay(player,STRINGS.EXCHANGEGIFT_SPEECH.FAIL2)
 			return false
 		end
@@ -185,15 +166,15 @@ local function exchangeGift(inst,player)
 			MedalSay(player,STRINGS.EXCHANGEGIFT_SPEECH.FAIL1)
 			return false
 		end
-		if v.prefab~="blank_certificate" and not table.contains(trinket_list,v.prefab) then 
+		if (not v:HasTag("blank_certificate")) and not table.contains(trinket_list,v.prefab) then 
 			table.insert(trinket_list,v.prefab)
 		end
 		--统计万圣节玩具数量
-		if table.contains(halloween_toy_list,v.prefab) then
+		if IsTrinket(v.prefab,true) then
 			halloween_toy_num=halloween_toy_num+1
 		end
 		--统计空白勋章数量
-		if v.prefab=="blank_certificate" then
+		if v:HasTag("blank_certificate") then
 			blank_medal_num=blank_medal_num+1
 		end
 	end
@@ -206,7 +187,7 @@ local function exchangeGift(inst,player)
 	MedalSay(player,halloween_toy_num>1 and STRINGS.EXCHANGEGIFT_SPEECH.HALLOWEEN or STRINGS.EXCHANGEGIFT_SPEECH.SUCCESS)
 	inst.components.container:DestroyContents()--销毁里面的物品
 	inst.components.container:Close()--关闭容器
-	DropGifts(inst,halloween_toy_num>1,blank_medal_num)--掉落礼物
+	DropGifts(inst,halloween_toy_num>1,blank_medal_num,HasOriginMedal(player,"senior_childishness"))--掉落礼物
 	local fx = SpawnPrefab("collapse_small")
 	fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
 	fx:SetMaterial("wood")
@@ -291,6 +272,7 @@ local function MakeChest(name,istoychest)
 				end
 			end)
 			MakeMediumPropagator(inst)--可引燃
+			inst:AddComponent("medal_itemdestiny")--宿命
 			inst:AddComponent("medal_skinable")
 		end
 		

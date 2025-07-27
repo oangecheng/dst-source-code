@@ -7,14 +7,12 @@ local assets =
 	Asset("ATLAS_BUILD", "images/medal_moonglass_hammer.xml",256),
 }
 
---切换移植状态标签
+--切换月光破坏标签
 local function changeHammerTag(inst,owner)
-	--清除破坏工具标签
-	if inst:HasTag("MEDALHAMMER_tool") then
-		inst:RemoveTag("MEDALHAMMER_tool")
-	end
 	if TheWorld.state.isfullmoon or owner:HasTag("inmoonlight") then
-		inst:AddTag("MEDALHAMMER_tool")--破坏工具标签
+		inst:AddTag("MEDALHAMMER_tool")--月光破坏标签
+	else
+		inst:RemoveTag("MEDALHAMMER_tool")
 	end
 end
 
@@ -23,18 +21,13 @@ local function onequip(inst, owner)
 	owner.AnimState:OverrideSymbol("swap_object", "swap_medal_moonglass_hammer", "swap_hammer")
     owner.AnimState:Show("ARM_carry")
     owner.AnimState:Hide("ARM_normal")
-	
-	--监听是否月圆
-	inst.onfullmoonfn=function(inst,isfullmoon)
-		changeHammerTag(inst,owner)
-	end 
-	inst:WatchWorldState("isfullmoon", inst.onfullmoonfn)--监听月圆
-	
-	--监听玩家可移植状态变化
-	inst.changestatefn=function(self)
+	owner.medal_has_moon_hammer = true--手持月光玻璃锤
+
+	inst.changetooltag = function(source,isfullmoon)
 		changeHammerTag(inst,owner)
 	end
-	inst:ListenForEvent("changehammerstate", inst.changestatefn, owner)--监听玩家可移植状态变化
+	inst:WatchWorldState("isfullmoon", inst.changetooltag)--监听月圆
+	inst:ListenForEvent("change_medal_moonlinght", inst.changetooltag, owner)--监听玩家月光环境变化
 	
 	changeHammerTag(inst,owner)
 end
@@ -42,17 +35,19 @@ end
 local function onunequip(inst, owner)
 	owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
+	owner.medal_has_moon_hammer = nil
 	
-	--取消监听月圆事件
-	inst:StopWatchingWorldState("isfullmoon", inst.onfullmoonfn)
-	--取消监听玩家状态
-	inst:RemoveEventCallback("changehammerstate", inst.changestatefn,owner)
-	--取消监听玩家敲东西
-	-- owner:RemoveEventCallback("finishedwork", inst.finishedwork)
-	--清除破坏工具标签
-	if inst:HasTag("MEDALHAMMER_tool") then
-		inst:RemoveTag("MEDALHAMMER_tool")
-	end
+	inst:StopWatchingWorldState("isfullmoon", inst.changetooltag)--取消监听月圆事件
+	inst:RemoveEventCallback("change_medal_moonlinght", inst.changetooltag,owner)--取消监听玩家状态
+	inst.changetooltag = nil
+	inst:RemoveTag("MEDALHAMMER_tool")--清除月光破坏工具标签
+end
+
+--添加可装备组件相关内容
+local function SetupEquippable(inst)
+	inst:AddComponent("equippable")
+    inst.components.equippable:SetOnEquip(onequip)
+    inst.components.equippable:SetOnUnequip(onunequip)
 end
 
 local function fn()
@@ -79,14 +74,14 @@ local function fn()
         inst:AddTag("weapon")
     end
 
+	inst.medal_repair_immortal = {--修补列表
+		moonglass = TUNING_MEDAL.MOONGLASS_TOOL.ADDUSE,--月光玻璃
+		immortal_essence = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,--不朽精华
+		immortal_fruit = TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,--不朽果实
+	}
+
     -- MakeInventoryFloatable(inst, "small", 0.05, {1.2, 0.75, 1.2})
 	MakeInventoryFloatable(inst, "med", 0.05, {0.8, 0.4, 0.8})
-
-	inst.special_hammer_loot={--特殊破坏产出表
-		saltstack = {"saltrock"},--盐矿
-		dustmothden = {"medal_dustmothden_base","thulecite","thulecite","moonrocknugget","moonrocknugget"},--尘蛾窝
-		medal_dustmothden = {},--时空尘蛾窝
-	}
 
     inst.entity:SetPristine()
 
@@ -113,7 +108,6 @@ local function fn()
 	inst:AddComponent("finiteuses")
 	inst.components.finiteuses:SetMaxUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES)
 	inst.components.finiteuses:SetUses(TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES)
-	inst.components.finiteuses:SetOnFinished(inst.Remove)
 	inst.components.finiteuses:SetConsumption(ACTIONS.MEDALHAMMER, 1)
 	inst.components.finiteuses:SetConsumption(ACTIONS.HAMMER, 1)
 
@@ -122,13 +116,12 @@ local function fn()
 	inst.components.weapon:SetDamage(TUNING.HAMMER_DAMAGE)
 
     inst:AddComponent("inspectable")
-    inst:AddComponent("equippable")
-    inst.components.equippable:SetOnEquip(onequip)
-    inst.components.equippable:SetOnUnequip(onunequip)
 
     MakeHauntableLaunch(inst)
 	
 	inst.components.floater:SetBankSwapOnFloat(true, -11, {sym_build = "swap_medal_moonglass_hammer",sym_name = "swap_hammer"})
+
+	SetImmortalTool(inst,SetupEquippable,TUNING_MEDAL.MOONGLASS_TOOL.MAXUSES,true)
 
     return inst
 end

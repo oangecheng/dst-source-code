@@ -5,6 +5,10 @@ local function MackItem(def)
 		Asset("ATLAS", "images/"..def.name..".xml"),
 		Asset("ATLAS_BUILD", "images/"..def.name..".xml",256),
 	}
+
+	if def.bank ~= def.build then
+		table.insert(assets,Asset("ANIM", "anim/"..def.bank..".zip"))
+	end
 	
 	local function fn()
 		local inst = CreateEntity()
@@ -54,6 +58,9 @@ local function MackItem(def)
 		inst:AddComponent("inspectable")
 
 		if def.burnable then
+			inst:AddComponent("fuel")
+    		inst.components.fuel.fuelvalue = TUNING.SMALL_FUEL
+			
 			MakeSmallBurnable(inst, TUNING.MED_BURNTIME)
 			MakeSmallPropagator(inst)
 		end
@@ -69,6 +76,19 @@ local function MackItem(def)
 	
 	return Prefab(def.name, fn, assets)
 end
+
+--初始化谜题
+local function InitPuzzle(inst)
+	local order = {1,2,3,4,5,6,7,8}
+	inst.puzzle = {}
+	inst.product_orchestrina=true
+	for i=1,8 do
+		local num = math.random(1,#order)
+		table.insert(inst.puzzle,order[num])
+		table.remove(order,num)
+	end
+end
+
 --堆叠数量
 local SIZE_L=TUNING.STACK_SIZE_LARGEITEM--10
 local SIZE_M=TUNING.STACK_SIZE_MEDITEM--20
@@ -138,6 +158,7 @@ local items_loot={
 		bank="immortal_gem",
 		build="immortal_gem",
 		anim="idle",
+		maxsize=SIZE_S,
 	},
 	{--时空碎片
 		name="medal_time_slider",
@@ -151,6 +172,11 @@ local items_loot={
 		bank="medal_space_gem",
 		build="medal_space_gem",
 		anim="idle",
+		maxsize=SIZE_S,
+		masterfn=function(inst)
+			local upgrader = inst:AddComponent("upgrader")
+			upgrader.upgradetype = UPGRADETYPES.MEDAL_CHEST
+		end,
 	},
 	{--时空灵石
 		name="medal_spacetime_lingshi",
@@ -173,9 +199,13 @@ local items_loot={
 		build="medal_spacetime_snacks",
 		anim="idle",
 		maxsize=SIZE_S,
-		taglist={"showmedalinfo"},--可检查信息
+		taglist={"showmedalinfo","medaldustmothfood"},--可检查信息、时空尘蛾食物
 		masterfn=function(inst)
 			inst:AddComponent("tradable")--可交易
+			inst:AddComponent("edible")
+			inst.components.edible.foodtype = FOODTYPE.ELEMENTAL
+			inst.components.edible.hungervalue = TUNING.CALORIES_SMALL
+			
 			inst.components.tradable.spacetime_value = TUNING_MEDAL.MEDAL_SPACETIME_SNACKS_HUNGER--时空饱食度
 			inst.getMedalInfo = function(inst)--显示时空饱食度
 				return STRINGS.MEDAL_INFO.SPACETIMEVALUE..(inst.components.tradable.spacetime_value or 0)
@@ -207,10 +237,16 @@ local items_loot={
 			inst.quickdelivery = {--支持快速传送的道具
 				medal_treasure_map="medal_treasure",--藏宝图
 				medal_loss_treasure_map="medal_treasure",--遗失藏宝图
-				deer_antler1="klaus_sack",--鹿角
-				deer_antler2="klaus_sack",--鹿角
-				deer_antler3="klaus_sack",--鹿角
-				klaussackkey="klaus_sack",--麋鹿茸
+				deer_antler1="klaus_sack",--鹿角→赃物袋
+				deer_antler2="klaus_sack",--鹿角→赃物袋
+				deer_antler3="klaus_sack",--鹿角→赃物袋
+				klaussackkey="klaus_sack",--麋鹿茸→赃物袋
+				lureplantbulb="lureplant",--食人花种子→食人花
+				goose_feather="moose",--麋鹿鹅羽毛→麋鹿鹅
+				lunarplant_husk="lunarthrall_plant",--亮茄外壳→亮茄
+				wagpunk_bits="wagstaff_machinery",--废铁→被丢弃的垃圾
+				purebrilliance="lunarrift_portal",--纯粹辉煌→裂隙
+				horrorfuel="daywalker",--纯粹恐惧→噩梦猪人
 			}
 		end,
 		masterfn=function(inst)
@@ -277,6 +313,7 @@ local items_loot={
 		anim="medal_tribute_symbol",
 		maxsize=SIZE_S,
 		burnable=true,--可燃
+		taglist={"medal_tradeable"},--可和雕像交易
 	},
 	{--格罗姆精华
 		name="medal_glommer_essence",
@@ -284,6 +321,7 @@ local items_loot={
 		build="medal_glommer_essence",
 		anim="medal_glommer_essence",
 		maxsize=SIZE_S,
+		burnable=true,--可燃
 	},
 	{--藏宝图碎片·日出
 		name="medal_treasure_map_scraps1",
@@ -291,6 +329,7 @@ local items_loot={
 		build="medal_treasure_map_scraps",
 		anim="medal_treasure_map_scraps1",
 		maxsize=SIZE_S,
+		burnable=true,--可燃
 	},
 	{--藏宝图碎片·黄昏
 		name="medal_treasure_map_scraps2",
@@ -298,6 +337,7 @@ local items_loot={
 		build="medal_treasure_map_scraps",
 		anim="medal_treasure_map_scraps2",
 		maxsize=SIZE_S,
+		burnable=true,--可燃
 	},
 	{--藏宝图碎片·夜晚
 		name="medal_treasure_map_scraps3",
@@ -305,12 +345,135 @@ local items_loot={
 		build="medal_treasure_map_scraps",
 		anim="medal_treasure_map_scraps3",
 		maxsize=SIZE_S,
+		burnable=true,--可燃
 	},
-	{--遗失藏宝图碎片
-		name="medal_loss_treasure_map_scraps",
-		bank="medal_loss_treasure_map_scraps",
-		build="medal_loss_treasure_map_scraps",
-		anim="medal_loss_treasure_map_scraps",
+	-- {--遗失藏宝图碎片
+	-- 	name="medal_loss_treasure_map_scraps",
+	-- 	bank="medal_loss_treasure_map_scraps",
+	-- 	build="medal_loss_treasure_map_scraps",
+	-- 	anim="medal_loss_treasure_map_scraps",
+	-- 	maxsize=SIZE_S,
+	-- },
+	{--酬勤令
+		name="medal_diligence_token",
+		bank="medal_diligence_token",
+		build="medal_diligence_token",
+		anim="medal_diligence_token",
+		maxsize=SIZE_S,
+		taglist={"medal_tradeable"},--可和雕像交易
+	},
+	{--暗影魔法石
+		name="medal_shadow_magic_stone",
+		bank="moonrock_seed",
+		build="medal_shadow_magic_stone",
+		anim="idle",
+		maxsize=SIZE_S,
+		taglist={"powerabsorbable"},--可吸收能力
+		masterfn=function(inst)
+			inst:AddComponent("playerprox")
+			inst.components.playerprox:SetDist(4, 5)
+			inst.components.playerprox.onnear = function(inst)
+				inst.AnimState:PlayAnimation("proximity_pre")
+    			inst.AnimState:PushAnimation("proximity_loop", true)
+			end
+			inst.components.playerprox.onfar = function(inst)
+				inst.AnimState:PlayAnimation("proximity_pst")
+        		inst.AnimState:PushAnimation("idle", false)
+			end
+		end
+	},
+	{--传承书页
+		name="medal_inherit_page",
+		bank="medal_inherit_page",
+		build="medal_inherit_page",
+		anim="medal_inherit_page",
+		maxsize=SIZE_S,
+		burnable=true,--可燃
+		taglist={"powerabsorbable","archive_lockbox"},--可吸收能力、可传承知识
+		clientfn=function(inst)--客户端扩展函数
+			inst.copy_list = {--支持临摹的目标
+				dustmothden="dustmothden_copy_blueprint",--尘蛾窝
+				archive_cookpot="archive_cookpot_copy_blueprint",--远古窑
+				insanityrock="insanityrock_copy_blueprint",--方尖碑
+				sanityrock="sanityrock_copy_blueprint",--反向方尖碑
+				meatrack_hermit="meatrack_hermit_copy_blueprint",--隐士晾肉架
+				beebox_hermit="beebox_hermit_copy_blueprint",--隐士蜂箱
+			}
+		end,
+		masterfn=function(inst)--额外扩展函数
+			inst.InitPuzzle = InitPuzzle
+			InitPuzzle(inst)
+			inst:ListenForEvent("onteach", function(inst)
+				--生成特效
+				SpawnPrefab("lavaarena_player_revive_from_corpse_fx").Transform:SetPosition(inst.Transform:GetWorldPosition())
+				--禁止拾取
+				if inst.components.inventoryitem then
+					inst.components.inventoryitem.canbepickedup=false
+				end
+				local x, y, z = inst.Transform:GetWorldPosition()
+				local player = FindClosestPlayerInRange(x, y, z, 10, true)
+				--获取距离最近的玩家没学过的蓝图
+				if player ~= nil and player.components.builder and inst.copy_list ~= nil then
+					for k, v in pairs(inst.copy_list) do
+						if not player.components.builder:KnowsRecipe(k.."_copy") then
+							inst.inherit_recipe = v
+							break
+						end
+					end
+				end
+				inst:DoTaskInTime(2, function() 
+					local blueprint = SpawnPrefab(inst.inherit_recipe or "blueprint")--生成蓝图
+					if blueprint then
+						local x, y, z = inst.Transform:GetWorldPosition()
+						local main = TheSim:FindEntities(x,y,z, 10, {"archive_orchestrina_main"})
+						if main then
+							for i,ent in ipairs(main)do
+								ent.busy = false--解除法阵的占用状态
+							end
+						end
+						blueprint.Transform:SetPosition(x, y, z)
+						if inst.components.stackable and inst.components.stackable:IsStack() then
+							inst.components.stackable:Get():Remove()
+							--恢复可拾取状态
+							if inst.components.inventoryitem and not inst.components.inventoryitem.canbepickedup then
+								inst.components.inventoryitem.canbepickedup=true
+							end
+							--重置谜题
+							if inst.InitPuzzle then
+								inst:InitPuzzle()
+							end
+							--多余的弹出去
+							LaunchAt(inst, inst, nil, 1, 2, 3, 360)
+						else
+							inst:Remove()
+						end
+					end
+				end)
+			end)
+		end,
+	},
+	{--本源花瓣
+		name="medal_origin_petals",
+		bank="medal_ivy",
+		build="medal_ivy",
+		anim="medal_ivy",
+		maxsize=SIZE_M,
+		masterfn=function(inst)
+			if inst.components.inventoryitem then
+				inst.components.inventoryitem.canbepickedup = false
+    			inst.components.inventoryitem.canonlygoinpocket = true
+				inst.components.inventoryitem:SetOnDroppedFn(function(inst)
+					SpawnPrefab("winters_feast_depletefood").Transform:SetPosition(inst.Transform:GetWorldPosition())
+					inst:Remove()
+				end)
+			end
+		end
+	},
+	{--本源精华
+		name="medal_origin_essence",
+		bank="medal_monster_essence",
+		build="medal_monster_essence",
+		anim="medal_monster_essence",
 		maxsize=SIZE_S,
 	},
 }

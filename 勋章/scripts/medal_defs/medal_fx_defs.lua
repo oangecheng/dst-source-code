@@ -95,6 +95,29 @@ local medal_fx={
         build = "medal_spacetime_charged_tile",
         anim = "crack_fx",
     },
+    {--驱光遗骸从骨架复活时的特效
+        name = "medal_shadowthrall_revive_from_bones_fx",
+        bank = "lavaarena_player_revive_fx",
+        build = "lavaarena_player_revive_fx",
+        anim = "player_revive",
+        sound = "dontstarve/common/revive",
+        bloom = true,
+        fourfaced = true,
+        autorotate = true,
+        fn = function(inst)
+            FinalOffset1(inst)
+            inst.AnimState:SetMultColour(0/255, 0/255, 0/255, 0.75)
+        end,
+    },
+    {--驱光遗骸诞生特效
+        name = "medal_shadowthrall_screamer_spawn_fx",
+        bank = "shadow_thrall_projectile_fx",
+        build = "shadow_thrall_projectile_fx",
+        anim = "projectile_impact",
+        fn = function(inst)
+            inst.AnimState:SetScale(2, 2)
+        end,
+    },
 }
 
 

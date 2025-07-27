@@ -1,10 +1,22 @@
 local medal_defs=require("medal_defs/functional_medal_defs").MEDAL_DEFS
 
+local function MedalLevelUp(inst,lv)
+	inst.medal_level = (inst.medal_level + (lv or 1))--等级继承
+	if inst.medal_level >= inst.medal_level_max then
+		inst.medal_level = inst.medal_level_max
+		inst:RemoveTag("upgradablemedal")--已满级的移除可融合升级标签
+	end
+	inst.changemedallevelname:set(inst.medal_level)--名字变更
+	if inst.LevelUpFn then
+		inst:LevelUpFn()--升级时执行自定义方法
+	end
+end
+
 local function MakeCertificate(def)
 	local assets={
 		Asset("ANIM", "anim/functional_medals.zip"),
-		Asset("ATLAS", "images/"..def.name..".xml"),
-		Asset("ATLAS_BUILD", "images/"..def.name..".xml",256),
+		Asset("ATLAS", "images/"..(def.atlas or def.name)..".xml"),
+		Asset("ATLAS_BUILD", "images/"..(def.atlas or def.name)..".xml",256),
 	}
 	--存储函数
 	local function onsavefn(inst,data)
@@ -24,6 +36,10 @@ local function MakeCertificate(def)
 			inst.medal_level = type(data.medal_level)=="table" and (data.medal_level[inst.prefab] or 1) or data.medal_level
 			if medal_defs[inst.prefab] and medal_defs[inst.prefab].maxlevel then
 				inst.medal_level=math.min(inst.medal_level,medal_defs[inst.prefab].maxlevel)
+				--已满级的移除可融合升级标签
+				if inst.medal_level >= medal_defs[inst.prefab].maxlevel then
+					inst:RemoveTag("upgradablemedal")
+				end
 			else
 				inst.medal_level=nil--这里用来清除被移除了等级机制的勋章等级
 			end
@@ -69,19 +85,17 @@ local function MakeCertificate(def)
 		end
 		--可升级
 		if def.upgradable then
-			inst.medal_level=1--初始等级
-			inst.medal_level_max=def.maxlevel or 2
+			inst:AddTag("upgradablemedal")--可融合升级标签
 			inst.changemedallevelname = net_shortint(inst.GUID, "changemedallevelname", "changemedallevelnamedirty")
-			inst:ListenForEvent("changemedallevelnamedirty", function(inst)
-				if inst.changemedallevelname:value() then
-					inst.displaynamefn = function(aaa)
-						return subfmt(STRINGS.NAMES["SHOW_MEDAL_LEVEL"], { level=inst.changemedallevelname:value(),medal = STRINGS.NAMES[string.upper(inst.prefab)] })
-					end
+			inst.displaynamefn = function(inst)
+				local level = inst.changemedallevelname and inst.changemedallevelname:value() or 1
+				if level>1 then
+					return subfmt(STRINGS.NAMES["SHOW_MEDAL_LEVEL"], { level = level, medal = STRINGS.NAMES[string.upper(inst.prefab)] })
 				end
-			end)
+				return STRINGS.NAMES[string.upper(inst.prefab)]
+			end
 		end
 		
-		inst.medal_repair_loot=def.medal_repair_loot--修补材料列表(fuel)
 		inst.medal_addexp_loot=def.medal_addexp_loot--增加熟练度材料列表
 		inst.medal_repair_common=def.medal_repair_common--修补材料列表(finiteuses)
 		
@@ -107,7 +121,7 @@ local function MakeCertificate(def)
 		
 		inst:AddComponent("inventoryitem")
 		inst.components.inventoryitem.imagename = def.name
-		inst.components.inventoryitem.atlasname = "images/"..def.name..".xml"
+		inst.components.inventoryitem.atlasname = "images/"..(def.atlas or def.name)..".xml"
 		
 		--添加燃料消耗组件
 		if def.fuellevel then
@@ -140,6 +154,12 @@ local function MakeCertificate(def)
 		inst.components.equippable:SetOnUnequip(def.onunequipfn)
 		inst.onequipwithrhfn=def.onequipwithrhfn
 		inst.onunequipwithrhfn=def.onunequipwithrhfn
+
+		if def.upgradable then
+			inst.medal_level = 1--初始等级
+			inst.medal_level_max = def.maxlevel or 2--最大等级
+			inst.MedalLevelUp = MedalLevelUp--升级函数
+		end
 		
 		--主机额外扩展函数
 		if def.extrafn then

@@ -4,12 +4,8 @@ local cooking = require("cooking")
 
 local assets =
 {
-    -- Asset("ANIM", "anim/cook_pot.zip"),
-    -- Asset("ANIM", "anim/cook_pot_food.zip"),
-    -- Asset("ANIM", "anim/ui_cookpot_1x4.zip"),
 	Asset("ANIM", "anim/cook_pot.zip"),
 	Asset("ANIM", "anim/medal_cookpot.zip"),
-	Asset("ANIM", "anim/medal_cookpot_skin1.zip"),
 	Asset("ANIM", "anim/cook_pot_food.zip"),
 	Asset("ANIM", "anim/cook_pot_food2.zip"),
 	Asset("ANIM", "anim/cook_pot_food3.zip"),
@@ -17,7 +13,6 @@ local assets =
 	Asset("ANIM", "anim/cook_pot_food5.zip"),
 	Asset("ANIM", "anim/cook_pot_food6.zip"),
 	Asset("ANIM", "anim/ui_cookpot_1x4.zip"),
-	-- Asset("MINIMAP_IMAGE", "cookpot_archive"),
 	Asset("ATLAS", "images/medal_cookpot.xml"),
 	Asset("IMAGE", "images/medal_cookpot.tex"),
 	Asset("ATLAS", "minimap/medal_cookpot.xml" ),

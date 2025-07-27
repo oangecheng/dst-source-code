@@ -31,12 +31,12 @@ local function DoElectric(inst,ent)
     if ent and ent.components.combat ~= nil and not ent:HasTag("playerghost") and ent.components.health and not ent.components.health:IsDead() then
         --抱歉，时空乱流可不是绝缘能抵挡的，能抵挡一半就不错了
         local damame_mult=(ent.components.inventory ~= nil and ent.components.inventory:IsInsulated()) and 0.5 or 1
-        ent.components.combat:GetAttacked(inst, TUNING_MEDAL.MEDAL_SPACETIME_SPARK_DAMAGE*damame_mult, nil, "electric")
+        ent.components.combat:GetAttacked(inst, TUNING_MEDAL.MEDAL_SPACETIME_SPARK_DAMAGE*damame_mult, nil, "electric", {medal_chaos = TUNING_MEDAL.MEDAL_SPACETIME_SPARK_CHAOS_DAMAGE})
         if ent.components.hauntable ~= nil and ent.components.hauntable.panicable then
             ent.components.hauntable:Panic(2)
         end
         --时之伤
-        ent.components.health:DoDeltaMedalDelayDamage(TUNING_MEDAL.MEDAL_SPACETIME_SPARK_DELAY_DAMAGE*damame_mult)
+        ent.components.health:DoDeltaMedalDelayDamage(TUNING_MEDAL.MEDAL_SPACETIME_SPARK_DELAY_DAMAGE)
     end
 end
 

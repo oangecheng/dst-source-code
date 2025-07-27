@@ -5,10 +5,10 @@ local upvaluehelper = require "medal_upvaluehelper"--出自 风铃草大佬
 ------------------------------------------------------------------------------------------------------
 --修改是否是Mod食谱函数(只是加了个锅凭啥算Mod料理！)
 local oldIsModCookingProductfn = GLOBAL.IsModCookingProduct
-GLOBAL.IsModCookingProduct=function(cooker, name)
+GLOBAL.IsModCookingProduct=function(cooker, ...)
 	if cooker == "medal_cookpot" then return false end
 	if oldIsModCookingProductfn then
-		return oldIsModCookingProductfn(cooker,name)
+		return oldIsModCookingProductfn(cooker, ...)
 	end
     return false
 end
@@ -183,8 +183,9 @@ end)
 ------------------------------------------------------------------------------------------------------
 -------------------------------------------大力士弹弓崩溃----------------------------------------------
 ------------------------------------------------------------------------------------------------------
+local OnHitOther
 AddPrefabPostInit("wolfgang",function(inst)
-	local OnHitOther = upvaluehelper.GetEventHandle(inst,"onhitother","prefabs/wolfgang")
+	OnHitOther = OnHitOther or upvaluehelper.GetEventHandle(inst,"onhitother","prefabs/wolfgang")
 	if OnHitOther then
 		inst:RemoveEventCallback("onhitother",OnHitOther)
 		inst:ListenForEvent("onhitother", function(inst,data)
@@ -195,6 +196,21 @@ AddPrefabPostInit("wolfgang",function(inst)
 			end
 		end)
 	end
+	--佩戴噬灵勋章下健身房后也能继续灵魂跳跃
+	local oldSetGymStopState = inst.SetGymStopState
+	inst.SetGymStopState = function(inst, ...)
+		if oldSetGymStopState then
+			oldSetGymStopState(inst, ...)
+		end
+		if inst.medal_soulstealer ~= nil and inst.medalblinkable then
+			if inst.medalblinkable:value() then
+				inst.medalblinkable:set_local(false)
+				inst.medalblinkable:set(true)
+			else
+				inst.medalblinkable:set(true)
+			end
+		end
+	end
 end)
 
 ------------------------------------------------------------------------------------------------------
@@ -204,10 +220,10 @@ AddPrefabPostInit("polly_rogershat",function(inst)
 	if GLOBAL.TheWorld.ismastersim then
 		if inst.components.spawner then
 			local oldoverridespawnlocation = inst.components.spawner.overridespawnlocation
-			inst.components.spawner.overridespawnlocation = function(inst)
+			inst.components.spawner.overridespawnlocation = function(inst, ...)
 				local x,y,z
 				if oldoverridespawnlocation then
-					x,y,z = oldoverridespawnlocation(inst)
+					x,y,z = oldoverridespawnlocation(inst, ...)
 				end
 				--找不到坐标的话就在脚底下生成吧
 				if x==nil then
@@ -226,10 +242,10 @@ end)
 AddComponentPostInit("moonstormwatcher", function(self)
 	local oldToggleMoonstorms = self.ToggleMoonstorms
 	if oldToggleMoonstorms then
-		self.ToggleMoonstorms=function(self,data)
+		self.ToggleMoonstorms=function(self,data, ...)
 			--增加风暴种类的判断，免得被其他风暴影响到
 			if data.stormtype==nil or data.stormtype == STORM_TYPES.MOONSTORM then
-				oldToggleMoonstorms(self,data)
+				oldToggleMoonstorms(self,data, ...)
 			end
 		end
 	end
@@ -241,21 +257,21 @@ end)
 AddComponentPostInit("playervision", function(self)
 	local oldForceGoggleVision = self.ForceGoggleVision
 	if oldForceGoggleVision then
-		self.ForceGoggleVision=function(self,force)
+		self.ForceGoggleVision=function(self,force, ...)
 			local isequipped = self.inst and self.inst.medalnightvision and self.inst.medalnightvision:value()
 			force = force or isequipped
 			if oldForceGoggleVision then
-				oldForceGoggleVision(self,force)
+				oldForceGoggleVision(self,force, ...)
 			end
 		end
 	end
 	local oldForceNightVision = self.ForceNightVision
 	if oldForceNightVision then
-		self.ForceNightVision=function(self,force)
+		self.ForceNightVision=function(self,force, ...)
 			local isequipped = self.inst and self.inst.medalnightvision and self.inst.medalnightvision:value()
 			force = force or isequipped
 			if oldForceNightVision then
-				oldForceNightVision(self,force)
+				oldForceNightVision(self,force, ...)
 			end
 		end
 	end
@@ -321,6 +337,10 @@ local action_loot={
 		imitator="WALTER",
 		tiploot={"GENERIC","NOT_NIGHT","NO_FIRE"},
 	},
+	CASTAOE={--范围施法
+		imitator="WAXWELL",
+		tiploot={"NO_MAX_SANITY"},
+	},
 }
 
 local announce_loot={
@@ -346,3 +366,117 @@ GLOBAL.ModManager.RegisterPrefabs = function(self,...)
 
     oldRegisterPrefabs(self,...)
 end
+
+------------------------------------------------------------------------------------------------------
+-------------------------------------------威屌胡子格掉落----------------------------------------------
+------------------------------------------------------------------------------------------------------
+AddComponentPostInit("inventory", function(self)
+	self.DropEquipped=function(self,keepBackpack)--我他妈直接覆盖
+		for k, v in pairs(self.equipslots) do
+			--背包不掉落的时候，勋章自动卸下防止丢失
+			if keepBackpack and k == "medal" then
+				local medal = self:Unequip(k)
+				if medal ~= nil then
+					self:GiveItem(medal)
+				end
+			--别把胡子整掉了啊
+			elseif not (k=="beard" or (keepBackpack and v:HasTag("backpack"))) then
+				self:DropItem(v, true, true)
+			end
+		end
+	end
+end)
+
+------------------------------------------------------------------------------------------------------
+----------------------修复刺针旋花等没有bloomed动画的杂草播放该动画帧导致的报错----------------------------
+------------------------------------------------------------------------------------------------------
+local PlayStageAnim
+local function RepairWeeds(inst)
+	if PlayStageAnim == nil then
+		local stagesfn = inst.components.growable and inst.components.growable.stages and inst.components.growable.stages[1] and inst.components.growable.stages[1].fn
+		if stagesfn then
+			PlayStageAnim = upvaluehelper.Get(stagesfn, "PlayStageAnim")
+			if PlayStageAnim then
+				upvaluehelper.Set(stagesfn,"PlayStageAnim",function(inst, anim, custom_pre)
+					if POPULATING or inst:IsAsleep() then
+						inst.AnimState:PlayAnimation("crop_"..anim, true)
+						local NumFrames = inst.AnimState:GetCurrentAnimationNumFrames()
+						if NumFrames and NumFrames>0 then
+							inst.AnimState:SetFrame(math.random(NumFrames) - 1)
+						end
+					elseif custom_pre ~= nil then
+						inst.AnimState:PlayAnimation(custom_pre, false)
+						inst.AnimState:PushAnimation("crop_"..anim, true)
+					else
+						inst.AnimState:PlayAnimation("grow_"..anim, false)
+						inst.AnimState:PushAnimation("crop_"..anim, true)
+					end
+				end)
+			end
+		end
+	end
+end
+--因为不知道会存在哪些杂草，所以最好遍历一下
+local WEED_DEFS = require("prefabs/weed_defs").WEED_DEFS
+for k, v in pairs(WEED_DEFS) do
+	AddPrefabPostInit(k,function(inst)
+		RepairWeeds(inst)
+	end)
+end
+
+------------------------------------------------------------------------------------------------------
+---------------------------------------跳跃动作导致踏水失效---------------------------------------------
+------------------------------------------------------------------------------------------------------
+local ToggleOnPhysics = nil
+AddStategraphPostInit("wilson", function(sg)
+    if ToggleOnPhysics == nil then
+		if sg.states.jumpout then
+			local oldonexit = sg.states.jumpout.onexit
+			if oldonexit ~= nil then
+				ToggleOnPhysics = upvaluehelper.Get(oldonexit, "ToggleOnPhysics")
+				if ToggleOnPhysics ~= nil then
+					upvaluehelper.Set(oldonexit,"ToggleOnPhysics",function(inst)
+						ToggleOnPhysics(inst)
+						if inst and inst.medal_canTread then--重置碰撞体后若玩家处于可踏水状态则重设一下可踏水状态
+							SetMedalTreadWaterCollides(inst,true)
+						end
+					end)
+				end
+			end
+		end
+	end
+end)
+
+------------------------------------------------------------------------------------------------------
+---------------------------------------方尖碑皮肤读取异常报错-----------------------------------------
+------------------------------------------------------------------------------------------------------
+if PREFAB_SKINS then
+	PREFAB_SKINS.sanityrock_copy =PREFAB_SKINS.sanityrock
+	PREFAB_SKINS.insanityrock_copy =PREFAB_SKINS.insanityrock
+end
+AddComponentPostInit("playercontroller", function(self)
+	local oldRemoteMakeRecipeAtPoint = self.RemoteMakeRecipeAtPoint
+	self.RemoteMakeRecipeAtPoint = function(self, recipe, pt, rot, skin, ...)
+		if not self.ismastersim and recipe and (recipe.name == "insanityrock_copy" or recipe.name == "sanityrock_copy") then
+			local skin_index = skin ~= nil and PREFAB_SKINS_IDS[recipe.product] ~= nil and PREFAB_SKINS_IDS[recipe.product][skin] or nil
+			if self.locomotor == nil then
+				-- NOTES(JBK): Does not call locomotor component functions needed for pre_action_cb, manual call here.
+				if ACTIONS.BUILD.pre_action_cb ~= nil then
+					ACTIONS.BUILD.pre_action_cb(BufferedAction(self.inst, nil, ACTIONS.BUILD, nil, pt, recipe.product, 1, nil, rot))
+				end
+				local platform, pos_x, pos_z = self:GetPlatformRelativePosition(pt.x, pt.z)
+				SendRPCToServer(RPC.MakeRecipeAtPoint, recipe.rpc_id, pos_x, pos_z, rot, skin_index, platform, platform ~= nil)
+			elseif self:CanLocomote() then
+				self.locomotor:Stop()
+				local act = BufferedAction(self.inst, nil, ACTIONS.BUILD, nil, pt, recipe.product, 1, nil, rot)
+				act.preview_cb = function()
+					SendRPCToServer(RPC.MakeRecipeAtPoint, recipe.rpc_id, act.pos.local_pt.x, act.pos.local_pt.z, rot, skin_index, act.pos.walkable_platform, act.pos.walkable_platform ~= nil)
+				end
+				self.locomotor:PreviewAction(act, true)
+			end
+		elseif oldRemoteMakeRecipeAtPoint ~= nil then
+			oldRemoteMakeRecipeAtPoint(self, recipe, pt, rot, skin, ...)
+		end
+	end
+	
+end)

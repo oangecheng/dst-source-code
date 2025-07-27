@@ -404,6 +404,10 @@ local states =
                             inst.components.lootdropper:FlingItem(skin_coupon)
                         end
                     end
+                    --统计死亡次数
+                    if TheWorld and TheWorld.components.medal_infosave then
+                        TheWorld.components.medal_infosave:CountChaosCreatureDeathTimes(inst)
+                    end
                     if inst.hivebase ~= nil then
 						inst.hivebase:Remove()--如果有对应的血坑，进行移除
                     end

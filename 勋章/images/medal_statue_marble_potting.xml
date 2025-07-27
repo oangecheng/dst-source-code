@@ -1,1 +1,12 @@
-<Atlas><Texture filename="medal_statue_marble_potting.tex" /><Elements><Element name="medal_statue_marble_potting.tex" u1="0.0078125" u2="0.9921875" v1="0.0078125" v2="0.9921875" /></Elements></Atlas>
+<Atlas>
+	<Texture filename="medal_statue_marble_potting.tex"/>
+	<Elements>
+		<Element name="medal_statue_potting_skin1.tex" u1="0.336735" u2="0.663265" v1="0.336735" v2="0.663265"/>
+		<Element name="medal_statue_potting_skin2.tex" u1="0.673469" u2="1.000000" v1="0.336735" v2="0.663265"/>
+		<Element name="medal_statue_potting_skin6.tex" u1="0.000000" u2="0.326531" v1="0.000000" v2="0.326531"/>
+		<Element name="medal_statue_potting_skin3.tex" u1="0.000000" u2="0.326531" v1="0.336735" v2="0.663265"/>
+		<Element name="medal_statue_potting_skin4.tex" u1="0.336735" u2="0.663265" v1="0.673469" v2="1.000000"/>
+		<Element name="medal_statue_marble_potting.tex" u1="0.000000" u2="0.326531" v1="0.673469" v2="1.000000"/>
+		<Element name="medal_statue_potting_skin5.tex" u1="0.673469" u2="1.000000" v1="0.673469" v2="1.000000"/>
+	</Elements>
+</Atlas>

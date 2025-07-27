@@ -5,18 +5,6 @@ local function MakeBook(def)
 		Asset("ATLAS", "images/"..def.name..".xml"),
 		Asset("ATLAS_BUILD", "images/"..def.name..".xml",256),
 	}
-
-	local function onsave(inst,data)
-		if inst.medal_destiny_num then
-			data.medal_destiny_num=inst.medal_destiny_num
-		end
-	end
-
-	local function onload(inst,data)
-		if data and data.medal_destiny_num then
-			inst.medal_destiny_num=data.medal_destiny_num
-		end
-	end
 	
 	local function fn()
 		local inst = CreateEntity()
@@ -85,9 +73,6 @@ local function MakeBook(def)
 		if def.extrafn then
 			def.extrafn(inst)
 		end
-
-		inst.OnSave = onsave
-		inst.OnLoad = onload
 
 		return inst
 	end

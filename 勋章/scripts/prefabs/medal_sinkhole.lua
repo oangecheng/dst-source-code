@@ -138,6 +138,10 @@ local function donextcollapse(inst)
 
     SpawnFx(inst, inst.collapsestage, .8)
 
+    if inst.no_destructive then
+        return--没有破坏力的直接return掉
+    end
+
     local x, y, z = inst.Transform:GetWorldPosition()
     local ents = TheSim:FindEntities(x, 0, z, TUNING.ANTLION_SINKHOLE.RADIUS + 1, nil, inst.collapsestage > 1 and NON_COLLAPSIBLE_TAGS or NON_COLLAPSIBLE_TAGS_FIRST, COLLAPSIBLE_TAGS)
     for i, v in ipairs(ents) do

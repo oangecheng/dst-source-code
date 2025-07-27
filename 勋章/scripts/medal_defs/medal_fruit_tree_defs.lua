@@ -7,7 +7,7 @@ local common_productlist={0.05,0.15,0.55,0.25}--常见
 local uncommon_productlist={0.1,0.2,0.5,0.2}--不常见
 local rare_productlist={0.2,0.3,0.4,0.1}--稀有
 local banana_productlist={0.2,0.6,0.2}--香蕉
-local immortal_productlist={0.96,0.035,0.005}--不朽果实
+local immortal_productlist={0.55,0.33,0.1,0.02}--不朽果实
 
 --定义果树数据
 local MEDAL_FRUIT_TREE_DEFS={
@@ -174,7 +174,7 @@ local MEDAL_FRUIT_TREE_DEFS={
 		nomagic=true,--不可催熟
 		noburnt=true,--不可燃
 		growinwinter=true,--冬季可生长
-		skinnum=1,--皮肤数量(命名都按skin+编号来)
+		skinable=true,--可换皮
 		hasdestiny=true,--拥有宿命(塞种子成功率)
 	},
 	{--幸运果实

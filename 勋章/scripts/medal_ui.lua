@@ -1,3 +1,6 @@
+local upvaluehelper = require "medal_upvaluehelper"
+
+local Text = require "widgets/text"
 ---------------------------------------------------------------------------------------------------------
 -------------------------------------------ICON、状态徽章------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
@@ -14,7 +17,7 @@ end
 --饱食下降箭头动画
 local function hungerDownAnim(self)
 	local oldOnUpdate=self.OnUpdate
-	self.OnUpdate = function(dt)
+	self.OnUpdate = function(self, ...)
 		local anim = "neutral"
 		local hungerrate = 1--饱食下降速度
 		if self.owner and self.owner.medal_hungerrate then
@@ -35,20 +38,23 @@ local function hungerDownAnim(self)
 				self.hungerarrow:GetAnimState():PlayAnimation(anim, true)
 			end
 		elseif oldOnUpdate then
-			oldOnUpdate(self)
+			oldOnUpdate(self, ...)
 		end
 	end
 end
 AddClassPostConstruct( "widgets/hungerbadge", hungerDownAnim)
 
+----------------------------------------------------------------------------------------------
+-------------------------------------------HUD------------------------------------------------
+----------------------------------------------------------------------------------------------
 --特殊界面效果
 AddClassPostConstruct("screens/playerhud",function(inst)
 	local MedalInjured = require("widgets/medal_injured")--蜂毒伤害效果
 	local Medal_SpacetimestormOver = require "widgets/medal_spacetimestormover"--时空风暴效果
 	local Medal_SpacetimeDustOver = require "widgets/medal_spacetimedustover"
 	local oldCreateOverlays =inst.CreateOverlays
-	function inst:CreateOverlays(owner)
-		oldCreateOverlays(self, owner)
+	function inst:CreateOverlays(owner, ...)
+		oldCreateOverlays(self, owner, ...)
 		self.medal_injured = self.overlayroot:AddChild(MedalInjured(owner))
 		self.medal_spacetimedustover = self.storm_overlays:AddChild(Medal_SpacetimeDustOver(owner))
 		self.medal_spacetimestormover = self.overlayroot:AddChild(Medal_SpacetimestormOver(owner, self.medal_spacetimedustover))
@@ -60,15 +66,27 @@ AddClassPostConstruct("widgets/redux/craftingmenu_hud", function(self)
 	local medalBuffPanel = require("widgets/medal_buff_panel")
 	self.medalBuffPanel = self:AddChild(medalBuffPanel(self.owner))--buff信息面板
 	local oldOpen=self.Open
-	self.Open = function(self)
-		oldOpen(self)
+	self.Open = function(self, ...)
+		oldOpen(self, ...)
 		self.medalBuffPanel:Hide()
 	end
 
 	local oldClose=self.Close
-	self.Close = function(self)
-		oldClose(self)
+	self.Close = function(self, ...)
+		oldClose(self, ...)
 		self.medalBuffPanel:Show()
+	end
+end)
+--佩戴本源隐藏复眼的眼镜滤镜
+AddClassPostConstruct("widgets/gogglesover", function(self)
+	local oldToggleGoggles = self.ToggleGoggles
+	self.ToggleGoggles = function(self,show, ...)
+		if self.owner ~= nil and self.owner.medalnightvision and self.owner.medalnightvision:value() and HasOriginMedal(self.owner) then
+			show = false
+		end
+		if oldToggleGoggles then
+			oldToggleGoggles(self,show, ...)
+		end
 	end
 end)
 
@@ -76,6 +94,7 @@ end)
 -----------------------------------------------勋章栏----------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
 --加入勋章栏
+-- TUNING.ADD_MEDAL_EQUIPSLOTS = false
 if TUNING.ADD_MEDAL_EQUIPSLOTS then
 	local Widget = require "widgets/widget"
 
@@ -87,21 +106,9 @@ if TUNING.ADD_MEDAL_EQUIPSLOTS then
 			HANDS = "hands",
 			HEAD = "head",
 			BODY = "body",
+			BEARD = "beard",
 			MEDAL = "medal",
 		}
-	end
-	GLOBAL.EQUIPSLOT_IDS = {}
-	local slot = 0--装备栏格子数量
-	local noslot = {--屏蔽元素反应模组的额外装备栏，防止装备栏UI异常增长
-		CIRCLET = true,	
-		SANDS = true,
-		GOBLET = true,
-		FLOWER = true,
-		PLUME = true,
-	}
-	for k, v in pairs(GLOBAL.EQUIPSLOTS) do
-		slot = slot + (noslot[k] and 0 or 1)
-		GLOBAL.EQUIPSLOT_IDS[v] = slot
 	end
 
 	local W = 68
@@ -147,23 +154,29 @@ if TUNING.ADD_MEDAL_EQUIPSLOTS then
 		end
 		--更新物品栏背景长度
 		self.RefreshBgSize = function(self)
-			self.bg:SetScale(1.3+(slot-4)*0.05,1,1.25)--根据格子数量缩放装备栏
-			self.bgcover:SetScale(1.3+(slot-4)*0.05,1,1.25)
+			-- self.bg:SetScale(1.3+(slot-4)*0.05,1,1.25)--根据格子数量缩放装备栏
+			-- self.bgcover:SetScale(1.3+(slot-4)*0.05,1,1.25)
+			if self.bg and self.bg.GetSize then
+				local total_w,_ = self:getTotalW()
+				local w,_ = self.bg:GetSize()
+				self.bg:SetScale((total_w+W+SEP)/w,1,1)--根据格子数量缩放装备栏
+				self.bgcover:SetScale((total_w+W+SEP)/w,1,1)
+			end
 		end
 
 		local oldRefresh = self.Refresh
 		local oldRebuild = self.Rebuild
 
-		self.Refresh = function(self)
+		self.Refresh = function(self, ...)
 			if oldRefresh then
-				oldRefresh(self)
+				oldRefresh(self, ...)
 			end
 			self:RefreshBgSize()
 		end
 		
-		self.Rebuild = function(self)
+		self.Rebuild = function(self, ...)
 			if oldRebuild then
-				oldRebuild(self)
+				oldRebuild(self, ...)
 			end
 			self:RefreshBgSize()
 			self:RefreshMedalInvPos()
@@ -213,10 +226,10 @@ local function cmp(a, b)
             if (grouptag_a and grouptag_b) then
                 if(grouptag_a==grouptag_b)then
                     --同类勋章空白勋章后置
-                    if(prefab_a=="blank_certificate" and prefab_b ~= "blank_certificate")then
+                    if(prefab_a=="copy_blank_certificate" and prefab_b ~= "copy_blank_certificate")then
                         return 1
                     end
-                    if(prefab_a~="blank_certificate" and prefab_b == "blank_certificate")then
+                    if(prefab_a~="copy_blank_certificate" and prefab_b == "copy_blank_certificate")then
                         return -1
                     end
                 end
@@ -364,7 +377,13 @@ end
 ---------------------------------------------------------------------------------------------------------
 -----------------------------------------------新容器----------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
-
+local containers = require "containers"
+local params = containers.params or upvaluehelper.Get(containers.widgetsetup, "params", "^scripts/containers.lua")
+local setupbyself--是否需要自己加widgetsetup
+if not params then
+	params = {}
+	setupbyself = true
+end
 --容器默认坐标
 local default_pos={
 	bearger_chest = Vector3(0, 220, 0),--熊皮宝箱
@@ -377,25 +396,28 @@ local default_pos={
 	livingroot_chest2 = Vector3(0, 200, 0),--树根宝箱第2阶段
 	livingroot_chest3 = Vector3(0, 200, 0),--树根宝箱第3阶段
 	livingroot_chest4 = Vector3(0, 200, 0),--树根宝箱第4阶段
-	medal_box = Vector3(-140, -120, 0),--勋章盒2*6
-	spices_box = Vector3(0, 220, 0),--调料盒2*6
-	medal_ammo_box = Vector3(-275, -120, 0),--弹药盒2*6
+	medal_box = Vector3(-140, -120, 0),--勋章盒2*7
+	spices_box = Vector3(-140, -120, 0),--Vector3(0, 220, 0),--调料盒2*7
+	medal_ammo_box = Vector3(-140, -120, 0),--Vector3(-275, -120, 0),--弹药盒2*7
 	medal_farm_plow = Vector3(0, 200, 0),--高效耕地机
 	medal_spacetime_chest = Vector3(0, 200, 0),--时空宝箱
+	medal_pay_tribute_box = Vector3(0, 30, 0),--奉纳盒
 	medal_resonator = Vector3(0, 160, 0),--宝藏探测仪
 	medal_fishingrod = Vector3(0, 15, 0),--玻璃钓竿
 	multivariate_certificate = TUNING.MEDAL_INV_SWITCH and Vector3(0, 60, 0) or Vector3(400, -280, 0),--融合勋章
 	medium_multivariate_certificate = TUNING.MEDAL_INV_SWITCH and Vector3(0, 80, 0) or Vector3(400, -280, 0),--中级融合勋章
 	large_multivariate_certificate = TUNING.MEDAL_INV_SWITCH and Vector3(0, 80, 0) or Vector3(400, -280, 0),--高级融合勋章
+	origin_certificate = TUNING.MEDAL_INV_SWITCH and Vector3(0, 100, 0) or Vector3(400, -280, 0),--本源勋章
 }
 --熊皮宝箱
-local params = {}
 params.bearger_chest = {
 	widget =
 	{
 		slotpos = {},
 		animbank = "ui_chester_shadow_3x4",
 		animbuild = "ui_chester_shadow_3x4",
+		animbank_upgraded = "ui_chester_upgraded_3x4",
+		animbuild_upgraded = "ui_chester_upgraded_3x4",
 		pos = default_pos.bearger_chest,
 		side_align_tip = 160,
 	},
@@ -427,16 +449,9 @@ for y = 2.5, -0.5, -1 do
         table.insert(params.medal_toy_chest.widget.slotpos, Vector3(75 * x - 75 * 2 + 75, 75 * y - 75 * 2 + 75, 0))
     end
 end
---玩具黑名单(节日玩具不可入箱)
-local toy_blacklist={}
-if HALLOWEDNIGHTS_TINKET_START and HALLOWEDNIGHTS_TINKET_END then
-	for i=HALLOWEDNIGHTS_TINKET_START,HALLOWEDNIGHTS_TINKET_END do
-		table.insert(toy_blacklist,"trinket_"..i)
-	end
-end
 
 function params.medal_toy_chest.itemtestfn(container, item, slot)
-    return (item.prefab=="antliontrinket" or string.sub(item.prefab,1,8)=="trinket_") and not table.contains(toy_blacklist,item.prefab) and not container:Has(item.prefab,1)
+    return IsTrinket(item.prefab) and not IsTrinket(item.prefab,true) and not container:Has(item.prefab,1)
 end
 
 --童心箱
@@ -520,17 +535,65 @@ function params.medal_spacetime_chest.widget.buttoninfo.validfn(inst)
 	return inst.replica.container ~= nil and inst.replica.container:IsFull()--容器必须被填满
 end
 
+--奉纳盒
+params.medal_pay_tribute_box = {
+	widget =
+	{
+		slotpos = {},
+		-- animbank = "ui_chest_3x3",
+		-- animbuild = "ui_chest_3x3",
+		bgatlas = "images/quagmire_recipebook.xml",
+		bgimage = "quagmire_recipe_menu_bg.tex",
+		pos = default_pos.medal_pay_tribute_box,
+		side_align_tip = 160,
+		buttoninfo={
+			text = STRINGS.MEDAL_UI.PAY_TRIBUTE,
+			position = Vector3(220, -336, 0),
+		}
+	},
+	acceptsstacks = false,
+	type = "chest",
+}
+
+for x = 0, 3 do
+	table.insert(params.medal_pay_tribute_box.widget.slotpos, Vector3(80 * (x - 2) + 40, -336, 0))
+end
+
+--点击按钮
+function params.medal_pay_tribute_box.widget.buttoninfo.fn(inst, doer)
+	if inst.components.container ~= nil then
+		if inst.components.container:IsFull() then
+			if inst.PayTribute then--奉纳
+				inst.PayTribute(inst,doer)
+			end
+		end
+	elseif inst.replica.container ~= nil and not inst.replica.container:IsBusy() then
+		SendRPCToServer(RPC.DoWidgetButtonAction, nil, inst, nil)
+	end
+end
+
+function params.medal_pay_tribute_box.widget.buttoninfo.validfn(inst)
+	return inst.replica.container ~= nil and inst.replica.container:IsFull()--容器必须被填满
+end
+
+function params.medal_pay_tribute_box.itemtestfn(container, item, slot)
+    return GetPayTributeData(item.prefab) ~= nil
+end
+
 --坎普斯宝匣白名单
 local krampus_chest_white_list={
-	"multivariate_certificate",--融合勋章
-	"medium_multivariate_certificate",--中级融合勋章
-	"large_multivariate_certificate",--高级融合勋章
-	"medal_fishingrod",--玻璃钓竿
-	"oceanfishingrod",--海钓竿
-	"slingshot",--弹弓
-	"medal_resonator_item",--宝藏探测仪
-	"alterguardianhat",--启迪之冠
-	"alterguardianhatshard",--启迪之冠碎片
+	multivariate_certificate = true,--融合勋章
+	medium_multivariate_certificate = true,--中级融合勋章
+	large_multivariate_certificate = true,--高级融合勋章
+	origin_certificate = true,--本源勋章
+	medal_fishingrod = true,--玻璃钓竿
+	oceanfishingrod = true,--海钓竿
+	-- slingshot = true,--弹弓
+	medal_resonator_item = true,--宝藏探测仪
+	alterguardianhat = true,--启迪之冠
+	alterguardianhatshard = true,--启迪之冠碎片
+	antlionhat = true,--刮地皮头盔
+	houndstooth_blowpipe = true,--嚎弹炮
 }
 
 --坎普斯宝匣
@@ -554,7 +617,9 @@ for y = 2.5, -0.5, -1 do
 end
 
 function params.medal_krampus_chest.itemtestfn(container, item, slot)
-    return table.contains(krampus_chest_white_list,item.prefab) or not (item:HasTag("irreplaceable") or item:HasTag("_container"))
+    return krampus_chest_white_list[item.prefab] 
+		or item:HasTag("slingshot") 
+		or not (item:HasTag("irreplaceable") or item:HasTag("_container"))
 end
 
 params.medal_krampus_chest_item = {
@@ -579,7 +644,9 @@ for y = 0, 5 do
 end
 
 function params.medal_krampus_chest_item.itemtestfn(container, item, slot)
-    return table.contains(krampus_chest_white_list,item.prefab) or not (item:HasTag("irreplaceable") or item:HasTag("_container"))
+    return krampus_chest_white_list[item.prefab] 
+		or item:HasTag("slingshot") 
+		or not (item:HasTag("irreplaceable") or item:HasTag("_container"))
 end
 
 --蓝曜石制冰机
@@ -716,42 +783,43 @@ params.medal_box = {
 }
 
 for y = 0, 6 do
-	table.insert(params.medal_box.widget.slotpos, Vector3(-162, -75 * y + 240, 0))
-	table.insert(params.medal_box.widget.slotpos, Vector3(-162 + 75, -75 * y + 240, 0))
+	for x = 0, 1 do
+		-- table.insert(params.medal_box.widget.slotpos, Vector3(-188 + 64 * x, -67 * y + 250, 0))
+		table.insert(params.medal_box.widget.slotpos, Vector3(-162 + 75 * x, -75 * y + 240, 0))
+	end
+	-- table.insert(params.medal_box.widget.slotpos, Vector3(-162, -75 * y + 240, 0))
+	-- table.insert(params.medal_box.widget.slotpos, Vector3(-162 + 75, -75 * y + 240, 0))
 end
 
 function params.medal_box.itemtestfn(container, item, slot)
     return item:HasTag("medal")
 end
 params.medal_box.priorityfn = params.medal_box.itemtestfn
--- function params.medal_box.priorityfn(container, item, slot)
---     return item:HasTag("medal")
--- end
 --调料盒
 params.spices_box = {
 	widget =
 	{
 		slotpos = {},
-		animbank = "ui_chester_shadow_3x4",
-		animbuild = "ui_chester_shadow_3x4",
+		animbank = "ui_krampusbag_2x8",
+		animbuild = "ui_krampusbag_2x8",
 		pos = default_pos.spices_box,
-		side_align_tip = 160,
+		-- side_align_tip = 160,
 		-- dragtype="spices_box",--拖拽标签，有则可拖拽
+		dragtype="medal_box",--拖拽标签，有则可拖拽
 	},
-	-- issidewidget = true,
-	type = "chest",
+	issidewidget = true,
+	type = "medal_box",
 }
 
---3*4
-for y = 2.5, -0.5, -1 do
-	for x = 0, 2 do
-		table.insert(params.spices_box.widget.slotpos, Vector3(75 * x - 75 * 2 + 75, 75 * y - 75 * 2 + 75, 0))
-	end
+for y = 0, 6 do
+	table.insert(params.spices_box.widget.slotpos, Vector3(-162, -75 * y + 240, 0))
+	table.insert(params.spices_box.widget.slotpos, Vector3(-162 + 75, -75 * y + 240, 0))
 end
 
 function params.spices_box.itemtestfn(container, item, slot)
     return item:HasTag("spice")
 end
+params.spices_box.priorityfn = params.spices_box.itemtestfn
 
 --弹药盒
 params.medal_ammo_box = {
@@ -762,10 +830,10 @@ params.medal_ammo_box = {
         animbuild = "ui_krampusbag_2x8",
 		pos = default_pos.medal_ammo_box,
 		-- side_align_tip = 160,
-		dragtype="medal_krampus_chest_item",--"medal_box",--拖拽标签，有则可拖拽
+		dragtype="medal_box",--拖拽标签，有则可拖拽
 	},
 	issidewidget = true,
-	type = "medal_krampus_chest",--"medal_box",
+	type = "medal_box",
 }
 
 for y = 0, 6 do
@@ -776,6 +844,7 @@ end
 function params.medal_ammo_box.itemtestfn(container, item, slot)
     return item:HasTag("slingshotammo")
 end
+params.medal_ammo_box.priorityfn = params.medal_ammo_box.itemtestfn
 
 --高效耕地机
 params.medal_farm_plow = {
@@ -917,18 +986,12 @@ params.medium_multivariate_certificate = {
 	excludefromcrafting = true,--里面的道具不能直接用于制作
 }
 
--- for y = 1, 0, -1 do
---     for x = 0, 2 do
---         table.insert(params.medium_multivariate_certificate.widget.slotpos, Vector3(80 * x - 80 * 2 + 80, 80 * y - 80 * 2 + 120, 0))
---         table.insert(params.medium_multivariate_certificate.widget.slotbg, { atlas="images/medal_equip_slot.xml",image = "medal_equip_slot.tex" })
---     end
--- end
-
 --检测可放入融合勋章的物品
-function params.medium_multivariate_certificate.itemtestfn(container, item, slot)
-	--可放入融合勋章并且没有相同的勋章组标签
-	return item:HasTag("addfunctional") and not (item.grouptag and container.inst:HasTag(item.grouptag))
-end
+-- function params.medium_multivariate_certificate.itemtestfn(container, item, slot)
+-- 	--可放入融合勋章并且没有相同的勋章组标签
+-- 	return item:HasTag("addfunctional") and not (item.grouptag and container.inst:HasTag(item.grouptag))
+-- end
+params.medium_multivariate_certificate.itemtestfn = params.multivariate_certificate.itemtestfn
 
 --高级融合勋章
 params.large_multivariate_certificate = {
@@ -956,10 +1019,45 @@ for y = 1, 0, -1 do
 end
 
 --检测可放入融合勋章的物品
-function params.large_multivariate_certificate.itemtestfn(container, item, slot)
-	--可放入融合勋章并且没有相同的勋章组标签
-	return item:HasTag("addfunctional") and not (item.grouptag and container.inst:HasTag(item.grouptag))
+-- function params.large_multivariate_certificate.itemtestfn(container, item, slot)
+-- 	--可放入融合勋章并且没有相同的勋章组标签
+-- 	return item:HasTag("addfunctional") and not (item.grouptag and container.inst:HasTag(item.grouptag))
+-- end
+params.large_multivariate_certificate.itemtestfn = params.multivariate_certificate.itemtestfn
+
+--本源勋章
+params.origin_certificate = {
+	widget =
+	{
+		slotpos = {},
+		slotbg = {},
+		animbank = "ui_chest_upgraded_3x3",--"ui_chest_3x3",
+		animbuild = "ui_chest_upgraded_3x3",--"ui_chest_3x3",
+		pos = default_pos.origin_certificate,
+		hanchor=0,--锚点，0中1左2右
+		vanchor=2,--锚点，0中1上2下
+		dragtype="origin_certificate",--拖拽标签，有则可拖拽
+	},
+	usespecificslotsforitems = true,--使用特定插槽
+	type = "multivariate_certificate",
+	excludefromcrafting = true,--里面的道具不能直接用于制作
+}
+
+for y = 2, 0, -1 do
+    for x = 0, 2 do
+        table.insert(params.origin_certificate.widget.slotpos, Vector3(80 * x - 80 * 2 + 80, 80 * y - 80 * 2 + 80, 0))
+		table.insert(params.origin_certificate.widget.slotbg, { atlas="images/medal_equip_slot.xml",image = "medal_equip_slot.tex" })
+    end
 end
+
+-- for y = 1, 0, -1 do
+--     for x = 0, 2 do
+--         table.insert(params.origin_certificate.widget.slotpos, Vector3(80 * x - 80 * 2 + 80, 80 * y - 80 * 2 + 120, 0))
+--         table.insert(params.origin_certificate.widget.slotbg, { atlas="images/medal_equip_slot.xml",image = "medal_equip_slot.tex" })
+--     end
+-- end
+
+params.origin_certificate.itemtestfn = params.multivariate_certificate.itemtestfn
 
 params.medal_cookpot =
 {
@@ -982,7 +1080,7 @@ params.medal_cookpot =
             position = Vector3(0, -165, 0),
         }
     },
-    acceptsstacks = false,
+    -- acceptsstacks = false,
     type = "cooker",
 }
 
@@ -1004,63 +1102,102 @@ function params.medal_cookpot.widget.buttoninfo.validfn(inst)
     return inst.replica.container ~= nil and inst.replica.container:IsFull()
 end
 
---加入容器
-local containers = require "containers"
+--定义容器最大格子数
 for k, v in pairs(params) do
     containers.MAXITEMSLOTS = math.max(containers.MAXITEMSLOTS, v.widget.slotpos ~= nil and #v.widget.slotpos or 0)
 end
+--兜个底 一般情况下不会需要用到自己加widgetsetup
+if setupbyself then
+	local containers_widgetsetup = containers.widgetsetup
 
-local containers_widgetsetup = containers.widgetsetup
-
-function containers.widgetsetup(container, prefab, data)
-    local t = data or params[prefab or container.inst.prefab]
-    if t~=nil then
-        for k, v in pairs(t) do
-			container[k] = v
+	function containers.widgetsetup(container, prefab, data)
+		local t = data or params[prefab or container.inst.prefab]
+		if t~=nil then
+			for k, v in pairs(t) do
+				container[k] = v
+			end
+			container:SetNumSlots(container.widget.slotpos ~= nil and #container.widget.slotpos or 0)
+		else
+			return containers_widgetsetup and containers_widgetsetup(container, prefab, data)
 		end
-		container:SetNumSlots(container.widget.slotpos ~= nil and #container.widget.slotpos or 0)
-    else
-        return containers_widgetsetup(container, prefab, data)
-    end
+	end
 end
 
 ---------------------------------------------------------------------------------------------------------
 ----------------------------------------------容器拖拽---------------------------------------------------
 ---------------------------------------------------------------------------------------------------------
---给容器添加拖拽功能
-if TUNING.MEDAL_CONTAINERDRAG_SETTING>0 then
-	AddClassPostConstruct("widgets/containerwidget", function(self)
-		local oldOpen = self.Open
-		self.Open = function(self,...)
-			oldOpen(self,...)
-			if self.container and self.container.replica.container then
-				local widget = self.container.replica.container:GetWidget()
-				if widget then	
-					--拖拽坐标标签，有则用标签，无则用容器名
-					local dragname=widget.dragtype or (TUNING.MEDAL_CONTAINERDRAG_SETTING>1 and self.container and self.container.prefab)
-					if dragname then
-						--设置可拖拽
-						if not self.candrag then
-							MakeMedalDragableUI(self,self.bganim,dragname,{drag_offset=0.6})
-						end
-						--设置容器坐标(可装备的容器第一次打开做个延迟，不然加载游戏进来位置读不到)
-						local newpos=GetMedalDragPos(dragname) or default_pos[dragname]
-						if newpos then
-							if self.container:HasTag("_equippable") and not self.container.isopended then
-								self.container:DoTaskInTime(0, function()
-									self:SetPosition(newpos)
-								end)
-								self.container.isopended=true
-							else
+if TUNING.MEDAL_CONTAINERDRAG_SETTING >0 then
+	AddClassPostConstruct("widgets/widget", function(self)
+		local oldGetTooltip = self.GetTooltip
+		self.GetTooltip = function(self, ...)
+			local str = oldGetTooltip and oldGetTooltip(self, ...)
+			--关闭拖拽的时候不显示tips
+			if not TUNING.MEDAL_CLIENT_DRAG_SWITCH and str == STRINGS.MEDAL_UI.DRAGABLETIPS then
+				str = nil
+			end
+			return str
+		end
+	end)
+end
+
+local MedalPayTributePage = require "widgets/redux/medalpaytributepage"
+AddClassPostConstruct("widgets/containerwidget", function(self)
+	local oldOpen = self.Open
+	self.Open = function(self, container, doer, ...)
+		oldOpen(self, container, doer, ...)
+		--给容器添加拖拽功能
+		if TUNING.MEDAL_CONTAINERDRAG_SETTING>0 and self.container and self.container.replica.container then
+			local widget = self.container.replica.container:GetWidget()
+			if widget then	
+				--拖拽坐标标签，有则用标签，无则用容器名
+				local dragname=widget.dragtype or (TUNING.MEDAL_CONTAINERDRAG_SETTING>1 and self.container and self.container.prefab)
+				if dragname then
+					--设置可拖拽
+					if not self.candrag then
+						MakeMedalDragableUI(self,self.bgimage,dragname,{drag_offset=0.6})
+						MakeMedalDragableUI(self,self.bganim,dragname,{drag_offset=0.6})
+					end
+					--设置容器坐标(可装备的容器第一次打开做个延迟，不然加载游戏进来位置读不到)
+					local newpos=GetMedalDragPos(dragname) or default_pos[dragname]
+					if newpos then
+						if self.container:HasTag("_equippable") and not self.container.isopended then
+							self.container:DoTaskInTime(0, function()
 								self:SetPosition(newpos)
-							end
+							end)
+							self.container.isopended=true
+						else
+							self:SetPosition(newpos)
 						end
 					end
 				end
 			end
 		end
-	end)
-end
+		--奉纳盒界面显示
+		-- self:ShowPayTributeData()
+		if self.container and self.container.prefab == "medal_pay_tribute_box" then
+			self.medal_tribute_panel = self:AddChild(MedalPayTributePage(self.container))
+			--奉纳盒按钮
+			local old_onclick = self.button and self.button.onclick
+			if old_onclick~=nil then
+				self.button:SetOnClick(function()
+					old_onclick(container, doer)
+					if self.medal_tribute_panel and self.medal_tribute_panel.RefreshNewData then
+						self.medal_tribute_panel:RefreshNewData()
+					end
+				end)
+			end
+		end
+	end
+
+	local oldClose = self.Close
+	self.Close = function(self,...)
+		if self.medal_tribute_panel ~= nil then
+			self.medal_tribute_panel:Kill()
+			self.medal_tribute_panel = nil
+		end
+		oldClose(self,...)
+	end
+end)
 
 ---------------------------------------------------------------------------------------------------------
 ----------------------------------------------新界面---------------------------------------------------
@@ -1260,9 +1397,9 @@ AddClassPostConstruct("widgets/redux/cookbookpage_crockpot", function(self)
 		end
 		--hook数据应用函数
 		local oldupdate_fn=self.recipe_grid.update_fn
-		self.recipe_grid.update_fn=function(context, widget, data, index)
+		self.recipe_grid.update_fn=function(context, widget, data, ...)
 			if oldupdate_fn then
-				oldupdate_fn(context, widget, data, index)
+				oldupdate_fn(context, widget, data, ...)
 			end
 			local showmedal=false--是否显示勋章标记
 			--这里可以拿到料理数据了，根据勋章数据决定是否显示
@@ -1286,8 +1423,99 @@ AddClassPostConstruct("widgets/redux/cookbookpage_crockpot", function(self)
 	end
 end)
 
+---------------------------------------------------------------------------------------------------------
+--------------------------------------------制作栏巧手标记------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+AddClassPostConstruct("widgets/redux/craftingmenu_widget", function(self)
+	
+	if self.recipe_grid then
+		--添加文字标记
+		local splist=self.recipe_grid:GetListWidgets()
+		if splist and #splist>0 then
+			for k,v in pairs(splist) do
+				v.medal_num = v.cell_root:AddChild(Text(BODYTEXTFONT, 40))
+				v.medal_num:SetPosition(0, -45)
+				v.medal_num:SetString("5/15")
+			end
+		end
 
+		local build_list--建造列表
+		local odlRefresh = self.Refresh
+		self.Refresh = function(self, tech_tree_changed)
+			if ThePlayer and ThePlayer.medal_build_list then
+				local buildstr=ThePlayer.medal_build_list:value()--同步玩家建造列表
+				-- print(buildstr)
+				build_list = buildstr and buildstr~="" and json.decode(buildstr)
+			end
+			if odlRefresh then
+				odlRefresh(self, tech_tree_changed)
+			end
+		end
+		
+		--hook数据应用函数
+		local oldupdate_fn=self.recipe_grid.update_fn
+		self.recipe_grid.update_fn=function(context, widget, data, ...)
+			
+			if oldupdate_fn then
+				oldupdate_fn(context, widget, data, ...)
+			end
+			-- local showmedal=false--是否显示勋章标记
+			local shownum = 0--显示数字
+			--这里可以拿到料理数据了，根据勋章数据决定是否显示
+			if widget and widget.data and widget.data.recipe and widget.data.recipe.product then
+				-- print(build_list)
+				shownum = build_list and build_list[widget.data.recipe.product] or 0
+			end
+			if widget and widget.medal_num then
+				if shownum>0 then
+					widget.medal_num:SetString(shownum.."/"..TUNING_MEDAL.HANDY_TEST.SINGLE_MAX)
+					widget.medal_num:Show()
+				else
+					widget.medal_num:Hide()
+				end
+			end
+		end
+	end
+end)
 
+---------------------------------------------------------------------------------------------------------
+--------------------------------------------制作栏解锁提醒------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+--提示文字对照表
+local HINT_TECH_STRINGS = {
+	seasoningchef = "SEASONINGCHEF",--主厨勋章
+	wisdombuilder = "WISDOMBUILDER",--智慧勋章
+	has_handy_medal = "HAS_HANDY_MEDAL",--巧手勋章
+	has_plant_medal = "HAS_PLANT_MEDAL",--虫木勋章
+	has_transplant_medal = "HAS_TRANSPLANT_MEDAL",--植物勋章
+	tentaclemedal = "TENTACLEMEDAL",--触手勋章
+	naughtymedal = "NAUGHTYMEDAL",--淘气勋章
+	has_bathfire_medal = "HAS_BATHFIRE_MEDAL",--浴火勋章
+	has_childishness = "HAS_CHILDISHNESS",--童心勋章
+	senior_childishness = "SENIOR_CHILDISHNESS",--童真勋章
+	is_bee_king = "IS_BEE_KING",--蜂王勋章
+    spacetime_medal = "SPACETIME_MEDAL",--时空勋章
+    has_shadowmagic_medal = "HAS_SHADOWMAGIC_MEDAL",--暗影魔法勋章
+	traditionalbearer1 = "TRADITIONALBEARER1",--1级传承勋章
+	traditionalbearer2 = "TRADITIONALBEARER2",--2级传承勋章
+	traditionalbearer3 = "TRADITIONALBEARER3",--3级传承勋章
+}
+AddClassPostConstruct("widgets/redux/craftingmenu_details", function(self)
+	local oldUpdateBuildButton = self.UpdateBuildButton
+	self.UpdateBuildButton = function(self, ...)
+		local meta = self.data and self.data.meta
+		--替换特定recipe的hint_tech_ingredient
+		if meta ~= nil and (meta.build_state == "hint" or meta.build_state == "hide") 
+			and self.ingredients ~= nil and self.ingredients.hint_tech_ingredient == nil 
+			and self.ingredients.recipe ~= nil and self.ingredients.recipe.builder_tag ~= nil
+			and not self.owner:HasTag(self.ingredients.recipe.builder_tag) then
+			self.ingredients.hint_tech_ingredient = HINT_TECH_STRINGS[self.ingredients.recipe.builder_tag] or nil
+		end
+		if oldUpdateBuildButton then
+			oldUpdateBuildButton(self, ...)
+		end
+	end
+end)
 ---------------------------------------------------------------------------------------------------------
 -------------------------------------------人物检查栏装备显示----------------------------------------------
 ---------------------------------------------------------------------------------------------------------
@@ -1323,7 +1551,7 @@ local MedalEquipWidgetLoot={
 }
 AddClassPostConstruct("widgets/playeravatarpopup", function(self)
 	local oldUpdateEquipWidgetForSlot = self.UpdateEquipWidgetForSlot
-	self.UpdateEquipWidgetForSlot = function(self,image_group, slot, equipdata)
+	self.UpdateEquipWidgetForSlot = function(self,image_group, slot, equipdata, ...)
 		local name = equipdata ~= nil and equipdata[EquipSlot.ToID(slot)] or nil
 		name = name ~= nil and #name > 0 and name or "none"
 		if table.contains(MedalEquipWidgetLoot,name) then
@@ -1345,7 +1573,60 @@ AddClassPostConstruct("widgets/playeravatarpopup", function(self)
 
 			image_group._image:SetTexture(atlas, name..".tex", default)
 		elseif oldUpdateEquipWidgetForSlot then
-			oldUpdateEquipWidgetForSlot(self,image_group, slot, equipdata)
+			oldUpdateEquipWidgetForSlot(self,image_group, slot, equipdata, ...)
+		end
+	end
+end)
+
+
+--水中木树叶
+-- AddClassPostConstruct("widgets/leafcanopy", function(self)
+-- 	local ROWS = 5
+-- 	-- self.
+-- 	for i=1,ROWS do
+--         for j=1,5 do
+-- 			if self["leavesTop"..i.."_"..j] then
+-- 				self["leavesTop"..i.."_"..j]:GetAnimState():SetBuild("medal_leaves_canopy")
+-- 			end
+-- 		end
+--     end
+-- end)
+--------------------------------------------------------------------------------------------------------
+-------------------------------------------本源树冠叶子贴图----------------------------------------------
+--------------------------------------------------------------------------------------------------------
+local function changeLeavesBuild(widget,build)
+	for i=1,5 do
+	    for j=1,5 do
+			if widget["leavesTop"..i.."_"..j] then
+				widget["leavesTop"..i.."_"..j]:GetAnimState():SetBuild(build or "leaves_canopy")
+			end
+		end
+	end
+end
+
+local showleaves = nil
+local old_build = nil
+local function new_showleaves(widget)
+	local build = widget["leavesTop1_1"]:GetAnimState():GetBuild()
+	if old_build == nil then
+		old_build = build
+	end
+	if widget.owner ~= nil and widget.owner:HasTag("under_origin_tree") then
+		if build ~= "medal_leaves_canopy" then
+			changeLeavesBuild(widget,"medal_leaves_canopy")
+		end
+	elseif build == "medal_leaves_canopy" then
+		changeLeavesBuild(widget,old_build)
+	end
+	if showleaves ~= nil then
+		showleaves(widget)
+	end
+end
+AddClassPostConstruct("widgets/leafcanopy", function(self)
+	if showleaves == nil and self.OnUpdate ~= nil then
+		showleaves = upvaluehelper.Get(self.OnUpdate, "showleaves")
+		if showleaves ~= nil then
+			upvaluehelper.Set(self.OnUpdate,"showleaves",new_showleaves)
 		end
 	end
 end)

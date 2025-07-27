@@ -21,13 +21,7 @@ local function onEatenfFn(inst, eater)
 			end
 		end
 	end
-	--添加buff
-	if eater.components.debuffable ~= nil and eater.components.debuffable:IsEnabled() and
-        not (eater.components.health ~= nil and eater.components.health:IsDead()) and
-        not eater:HasTag("playerghost") then
-		
-		eater.components.debuffable:AddDebuff("buff_medal_freeblink", "buff_medal_freeblink")
-    end
+	eater:AddDebuff("buff_medal_freeblink", "buff_medal_freeblink")--添加buff
 	--晚上和洞穴里概率召唤暗夜坎普斯
 	local rage_krampus_chance_mult=TheWorld.state.isnewmoon and 2.5 or 1--新月概率提升至50%
 	if (TheWorld.state.isnight or TheWorld:HasTag("cave")) and math.random()<TUNING_MEDAL.RAGE_KRAMPUS_CALL_RATE*rage_krampus_chance_mult then

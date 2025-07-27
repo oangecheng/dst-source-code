@@ -8,7 +8,6 @@ local assets =
 
 --记录皮肤数据
 local function setSkinData(inst,skin_name,skin_id)
-    print(skin_name,skin_id)
     inst.skin_name = skin_name
     inst.skin_id = skin_id
 end
@@ -51,7 +50,7 @@ local function getSkinInfo(inst)
         if skindata then
             local skininfo = skindata.skin_info[inst.skin_id]
             if skininfo then
-                return (STRINGS.NAMES[string.upper(inst.skin_name)] or inst.skin_name) .."-".. skininfo.name
+                return (STRINGS.NAMES[string.upper(inst.skin_name)] or inst.skin_name) .."-".. GetSkinName(skininfo.name)
             end
         end
     end

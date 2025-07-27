@@ -36,13 +36,13 @@ local good_loot={
 --其他填充物列表
 local normal_loot={
 	thulecite = 6,--铥矿
-	thulecite_pieces = 6,--铥矿碎片
-	fossil_piece = 2,--化石碎片
-	medal_obsidian = 6,--红晶
-	medal_blue_obsidian = 4,--蓝晶
+	thulecite_pieces = 8,--铥矿碎片
+	fossil_piece = 7,--化石碎片
+	medal_obsidian = 5,--红晶
+	medal_blue_obsidian = 2,--蓝晶
 	glommerfuel = 12,--格罗姆粘液
 	goldnugget = 12,--金块
-	nitre = 10,--硝石
+	nitre = 8,--硝石
 	mosquitosack = 8,--蚊子血囊
 	medal_weed_seeds = 6,--杂草种子
 	moonrocknugget=10,--月岩
@@ -289,48 +289,43 @@ local function getTreasurePoint(inst,resonator)
 		return inst.treasure_data--有坐标点信息了就直接return
 	end
 	
-	local max_tries=100--最大尝试生成次数
+	local MAXTRIES = 100--最大尝试生成次数
+	local max_tries=MAXTRIES--最大尝试生成次数
 	local radius=50--两个宝藏的最小距离
 	local w, h = TheWorld.Map:GetSize()
 	w = (w - w/2) * TILE_SCALE
 	h = (h - h/2) * TILE_SCALE
 	local ix,iy,iz=inst.Transform:GetWorldPosition()--获取探测仪坐标
-	local prior_radius=200--宝藏优先生成范围(包含正负数，所以实际范围要*2)
-	local prior_tries=4--每多少次尝试在范围内生成一个坐标点
+	local prior_radius = TILE_SCALE*40--宝藏优先生成半径(40格地皮)
+	local min_spacing = TILE_SCALE*20--宝藏生成点和当前探测仪至少间隔20地皮
+	local is_vicinity = math.random() < TUNING_MEDAL.TREASURE_POS_NEARBY_CHANCE--是否尽量尝试在附近生成
 	while (max_tries > 0) do
 		local x, z
-		max_tries = max_tries - 1
-		if max_tries%prior_tries==0 then--每隔prior_tries次就尝试一次在范围内生成
-			x, z = (math.random()*2-1)*prior_radius+ix, (math.random()*2-1)*prior_radius+iz
+		if is_vicinity then
+			local try_radius = prior_radius+(MAXTRIES-max_tries)*TILE_SCALE--尝试生成范围,每次尝试半径增加1格地皮
+			x, z = (math.random()*2-1)*math.min(try_radius,w)+ix, (math.random()*2-1)*math.min(try_radius,h)+iz
 		else
 			x, z = (math.random()*2-1)*w, (math.random()*2-1)*h
 		end
 		x, z = x-x%0.01, z-z%0.01--保留两位小数
-		-- if TheWorld.Map:IsPassableAtPoint(x, 0, z) then
-			--只能在大陆生成
-			if TheWorld.Map:IsAboveGroundAtPoint(x, 0, z, false) and TheWorld.Map:GetTileAtPoint(x, 0, z) <= GROUND.SCALE and not TheWorld.Map:NodeAtPointHasTag(x, 0, z, "not_mainland") then
-			local isnear=false--是否在其他宝藏附近
-			local canspawn=true--是否可生成藏宝点
-			--离其他宝藏太近不能生成藏宝点
-			if #(TheSim:FindEntities(x, 0, z, radius, {"medal_treasure"})) >0 then
-				canspawn=false
-				-- print("离其他的太近了")
-			end
-			--坐标点必需可以部署探测仪
-			if resonator and canspawn then
-				if not TheWorld.Map:CanDeployAtPoint(Vector3(x, 0, z), resonator) then
-					canspawn=false
-					-- print("这里不能部署")
-				end
-			end
-			
-			if canspawn then
-				inst.treasure_data={ worldid = TheShard:GetShardId(), x = x, z = z}--记录藏宝点信息
-				-- print(x,z,max_tries)
-				return inst.treasure_data
-			end
+		max_tries = max_tries - 1
+		
+		if distsq(x, z, ix, iz) > min_spacing * min_spacing--距离不能太近
+		and TheWorld.Map:IsAboveGroundAtPoint(x, 0, z, false)
+		and TheWorld.Map:GetTileAtPoint(x, 0, z) <= GROUND.SCALE 
+		and not TheWorld.Map:NodeAtPointHasTag(x, 0, z, "not_mainland")--只能在主大陆生成
+		and (resonator == nil or TheWorld.Map:CanDeployAtPoint(Vector3(x, 0, z), resonator)) then--坐标点必需可以部署探测仪
+			inst.treasure_data={ worldid = TheShard:GetShardId(), x = x, z = z}--记录藏宝点信息
+			-- print(x,z,max_tries)
+			return inst.treasure_data
 		end
 	end
+
+end
+
+--物品触发天道酬勤后执行
+local function doRewardToiler(inst)
+	inst.toiler_sign = (inst.toiler_sign or 0) + 1
 end
 
 --定义藏宝图
@@ -351,9 +346,17 @@ local function MakeTreasureMap(def)
 		if inst.treasurechloot then
 			data.treasurechloot = shallowcopy(inst.treasurechloot)
 		end
-		--宿命啊宿命
-		if inst.medal_destiny_num then
-			data.medal_destiny_num=inst.medal_destiny_num
+		--包果价值
+		if inst.gift_fruit_value then
+			data.gift_fruit_value = inst.gift_fruit_value
+		end
+		--已预言标记
+		if inst.isprophesied then
+			data.isprophesied = inst.isprophesied
+		end
+		--天道酬勤标记
+		if inst.toiler_sign then
+			data.toiler_sign = inst.toiler_sign
 		end
 	end
 	
@@ -366,8 +369,14 @@ local function MakeTreasureMap(def)
 			if data.treasurechloot then
 				inst.treasurechloot=shallowcopy(data.treasurechloot)
 			end
-			if data.medal_destiny_num then
-				inst.medal_destiny_num=data.medal_destiny_num
+			if data.gift_fruit_value then
+				inst.gift_fruit_value=data.gift_fruit_value
+			end
+			if data.isprophesied then
+				inst.isprophesied=data.isprophesied
+			end
+			if data.toiler_sign then
+				inst.toiler_sign=data.toiler_sign
 			end
 		end
 	end
@@ -405,9 +414,16 @@ local function MakeTreasureMap(def)
 		inst:AddComponent("inventoryitem")
 		inst.components.inventoryitem.imagename = def.name
 		inst.components.inventoryitem.atlasname = "images/"..def.name..".xml"
+
+		inst:AddComponent("fuel")
+    	inst.components.fuel.fuelvalue = TUNING.SMALL_FUEL
+
+		MakeSmallBurnable(inst, TUNING.SMALL_BURNTIME)
+    	MakeSmallPropagator(inst)
 		
 		inst.spawnTreasure = def.spawnTreasure--生成宝藏
 		inst.getTreasurePoint = getTreasurePoint--获取藏宝点
+		inst.reward_toiler_fn = doRewardToiler--天道酬勤
 		
 		inst.OnSave = mapsavefn
 		inst.OnLoad = maploadfn
@@ -446,14 +462,6 @@ local function sign_fn()
 	return inst
 end
 
---遗失宝藏列表
-local loss_treasure_loot = {
-	{key="medal_tribute_symbol",weight=3},--奉纳符
-	{key="mission_certificate",weight=3},--使命勋章
-	{key="medal_gift_fruit_seed",weight=3},--包果种子
-	{key="medal_gift_fruit",weight=1,num=3},--包果
-}
-
 local treasure_map_loot={
 	medal_treasure_map={--普通藏宝图
 		name="medal_treasure_map",
@@ -472,6 +480,26 @@ local treasure_map_loot={
 		end,
 		masterfn=function(inst)
 			inst.treasurechloot = getTreasureLoot(inst)--获取宝藏奖励表
+			inst.runesSpawnTreasure = function(inst,doer)--时空符文快速挖宝
+				local x,y,z = doer.Transform:GetWorldPosition()
+				local chest = SpawnPrefab("medal_treasure_chest")
+				if chest ~= nil then
+					chest.Transform:SetPosition(x,y,z)
+					if chest.components.container then
+						local treasureitems = inst.treasurechloot or getTreasureLoot(inst)
+						for k, v in pairs(treasureitems) do
+							local treasureitem = SpawnPrefab(k)
+							if treasureitem then 
+								if v>1 and treasureitem.components.stackable then
+									treasureitem.components.stackable:SetStackSize(v)
+								end
+								chest.components.container:GiveItem(treasureitem)
+							end
+						end
+						chest.components.container:Open(doer)--直接打开
+					end
+				end
+			end
 		end,
 	},
 	medal_loss_treasure_map={--遗失藏宝图
@@ -481,31 +509,70 @@ local treasure_map_loot={
 		anim="medal_loss_treasure_map",
 		taglist={"medal_tradeable"},--可和雕像交易
 		spawnTreasure=function(inst,resonator)--生成宝藏
-			local treasure , num = GetMedalRandomItem(loss_treasure_loot, inst.medal_destiny_num)
-			if treasure and resonator then
+			if resonator then
+				local gift_value = math.clamp(inst.gift_fruit_value,TUNING_MEDAL.GIFT_FRUIT_VALUE_MIN,TUNING_MEDAL.GIFT_FRUIT_VALUE_MAX)
+				local loot = {
+					medal_gift_fruit_seed = math.floor(gift_value/4),--种子数量
+					medal_gift_fruit = gift_value%4,--果实数量
+				}
 				local pt = resonator:GetPosition()
-				for i = 1, num or 1 do
-					local item = SpawnPrefab(treasure)
-					if item then
-						if treasure=="mission_certificate" then
-							if item.InitMission then--初始化使命勋章任务
-								item:InitMission(nil,nil,resonator.doer)
+
+				for k, v in pairs(loot) do
+					if v>0 then
+						local item = SpawnPrefab(k)
+						if item then
+							if item.components.stackable then
+								item.components.stackable:SetStackSize(v)
 							end
-						end
-						if resonator.components.lootdropper then
-							resonator.components.lootdropper:FlingItem(item,pt)
-						else
-							item.Transform:SetPosition(pt.x,pt.y,pt.z)
+							if resonator.components.lootdropper then
+								resonator.components.lootdropper:FlingItem(item,pt)
+							else
+								item.Transform:SetPosition(pt.x,pt.y,pt.z)
+							end
 						end
 					end
 				end
 			end
 		end,
 		masterfn=function(inst)
-			if not inst.medal_destiny_num then
-				inst.medal_destiny_num=math.random()--命运数字
+			inst.gift_fruit_value = TUNING_MEDAL.GIFT_FRUIT_VALUE_MAX--包果价值
+			inst.nofindfn=function(inst)--没找到宝藏
+				inst.gift_fruit_value = math.max(inst.gift_fruit_value-1,TUNING_MEDAL.GIFT_FRUIT_VALUE_MIN)
 			end
-		end
+			inst.ProphesyFn=function(inst)--预言
+				if not inst.isprophesied then
+					inst.isprophesied = true--被预言过的标记
+					inst.gift_fruit_value = math.max(inst.gift_fruit_value-3,TUNING_MEDAL.GIFT_FRUIT_VALUE_MIN)
+				end
+			end
+			inst.runesSpawnTreasure = function(inst,doer)--时空符文快速挖宝
+				local x,y,z = doer.Transform:GetWorldPosition()
+				local chest = SpawnPrefab("medal_treasure_chest")
+				if chest ~= nil then
+					chest.Transform:SetPosition(x,y,z)
+					if chest.components.container then
+						local gift_value = math.clamp(inst.gift_fruit_value,TUNING_MEDAL.GIFT_FRUIT_VALUE_MIN,TUNING_MEDAL.GIFT_FRUIT_VALUE_MAX)
+						local loot = {
+							medal_gift_fruit_seed = math.floor(gift_value/4),--种子数量
+							medal_gift_fruit = gift_value%4,--果实数量
+						}
+
+						for k, v in pairs(loot) do
+							if v>0 then
+								local item = SpawnPrefab(k)
+								if item then
+									if item.components.stackable then
+										item.components.stackable:SetStackSize(v)
+									end
+									chest.components.container:GiveItem(item)
+								end
+							end
+						end
+						chest.components.container:Open(doer)--直接打开
+					end
+				end
+			end
+		end,
 	},
 }
 

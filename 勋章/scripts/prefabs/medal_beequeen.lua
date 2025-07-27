@@ -1,3 +1,4 @@
+local upvaluehelper = require "medal_upvaluehelper"--出自 风铃草大佬
 local assets =
 {
     Asset("ANIM", "anim/bee_queen_basic.zip"),
@@ -127,14 +128,16 @@ local function DoHoneyTrail(inst)
         local fx = nil
         if TheWorld.Map:IsPassableAtPoint(hx, hy, hz) then
             fx = SpawnPrefab("medal_honey_trail")
+            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
             local scale=GetRandomMinMax(level.min_scale, level.max_scale)--小径尺寸
 			Extinguish(hx,hy,hz)--灭火
 			--设置小径变量(形状,尺寸比例,持续时间)
 			fx:SetVariation(PickHoney(inst), scale, level.duration + math.random() * .5)
         else
             fx = SpawnPrefab("splash_sink")
+            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
         end
-        fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
+        
     end
 end
 --开始流蜜
@@ -154,28 +157,27 @@ local function StopHoney(inst)
 end
 
 --开始恢复体力(睡觉、冰冻休眠的时候回血)
-local function StartRecovery(inst)
-	if inst.medal_recovery_task == nil then
-		inst.medal_recovery_task = inst:DoPeriodicTask(0.5, function(inst)
-			--每0.5秒恢复233点血
-			if inst.components.health ~= nil and not inst.components.health:IsDead() then
-				inst.components.health:DoDelta(233)
-			end
-			--每0.5秒减少1点凋零值
-			if inst.withered_num > 0 then
-				inst.withered_num = math.max(inst.withered_num - 1,0)
-			end
-		end)--定时生成蜂蜜小径(0.2秒加一次计数)
-	end
-end
+-- local function StartRecovery(inst)
+-- 	if inst.components.health ~= nil and not inst.components.health:IsDead() then
+--         inst.components.health:DoDelta(233)
+--     end
+--     if inst.medal_recovery_task == nil then
+-- 		inst.medal_recovery_task = inst:DoPeriodicTask(0.5, function(inst)
+-- 			--每0.5秒恢复233点血
+-- 			if inst.components.health ~= nil and not inst.components.health:IsDead() then
+-- 				inst.components.health:DoDelta(233)
+-- 			end
+-- 		end)
+-- 	end
+-- end
 
---停止恢复体力
-local function StopRecovery(inst)
-    if inst.medal_recovery_task ~= nil then
-        inst.medal_recovery_task:Cancel()
-        inst.medal_recovery_task = nil
-    end
-end
+-- --停止恢复体力
+-- local function StopRecovery(inst)
+--     if inst.medal_recovery_task ~= nil then
+--         inst.medal_recovery_task:Cancel()
+--         inst.medal_recovery_task = nil
+--     end
+-- end
 
 --------------------------------------------------------------------------
 --更新玩家目标组
@@ -236,21 +238,26 @@ local function KeepTargetFn(inst, target)
 end
 --额外伤害
 local function bonus_damage_via_allergy(inst, target, damage, weapon)
-	--对有蜜蜂过敏的目标额外造成10点伤害
-	local extra_damage = target:HasTag("allergictobees") and TUNING.BEE_ALLERGY_EXTRADAMAGE or 0
-    local blood_mark = target.blood_honey_mark or 0--血蜜标记层数
-	--对中了蜂毒的目标造成额外伤害=(max(蜂毒层数-3,0)/5+向下取整(凋零值/10)+1)*蜂毒层数*(0.005*血蜜标记层数²+1)*难度系数
-	if target.injured_damage then
-		local withered_num=inst.GetWithereNum and inst:GetWithereNum() or 0
-		extra_damage = extra_damage+(math.max(target.injured_damage-3,0)/5+math.floor(withered_num/10)+1)*target.injured_damage*(0.005*math.pow(blood_mark,2)+1)*TUNING_MEDAL.MEDAL_BEEQUEEN_EXTRA_DAMAGE_MULT
-	end
-	-- print("蜂王额外伤害:"..extra_damage)
-	return extra_damage
+	--对有蜜蜂过敏的目标造成额外伤害
+	return target:HasTag("allergictobees") and TUNING.BEE_ALLERGY_EXTRADAMAGE or 0
 end
+--计算混沌伤害,混沌伤害=向上取整(((蜂毒层数*0.25+向下取整(凋零值*0.1))*蜂毒层数*(0.005*血蜜标记层数²+1)+基础混沌伤害)*难度系数)
+local function CalcChaosDamage(inst, target)
+    local chaos_damage = TUNING_MEDAL.MEDAL_BEEQUEEN_CHAOS_DAMAGE--基础混沌伤害
+    local injured_damage = target and target.injured_damage--蜂毒层数
+    if injured_damage then
+		local blood_mark = target and target.blood_honey_mark or 0--血蜜标记层数
+        local withered_num = inst and inst.GetWithereNum and inst:GetWithereNum() or 0--凋零值
+		chaos_damage = chaos_damage + (injured_damage * 0.25 + math.floor(withered_num * 0.1)) * injured_damage * (0.005 * math.pow(blood_mark, 2) + 1)
+	end
+    chaos_damage = math.ceil(chaos_damage * TUNING_MEDAL.MEDAL_BEEQUEEN_CHAOS_DAMAGE_MULT)
+    return chaos_damage
+end
+
 --会引起尖叫的物品清单
 local screech_loot={
-	"winona_catapult_projectile",--投石机
-	-- "eyeturret",--眼球塔
+	winona_catapult_projectile=true,--投石机
+	-- eyeturret=true,--眼球塔
 }
 --被攻击时
 local function OnAttacked(inst, data)
@@ -282,7 +289,7 @@ local function OnAttacked(inst, data)
                     data.attacker.components.pinnable:Stick("medal_blood_honey_goo")
                 end
             --被特殊建筑攻击了，直接发出尖叫
-            elseif data.attacker.prefab and table.contains(screech_loot,data.attacker.prefab) then
+            elseif data.attacker.prefab and screech_loot[data.attacker.prefab] then
                 inst:PushEvent("screech")
             end
         end
@@ -302,11 +309,7 @@ local function OnAttackOther(inst, data)
         fx.Transform:SetPosition(data.target.Transform:GetWorldPosition())
         fx:SetVariation(PickHoney(inst), GetRandomMinMax(1, 1.3), 4 + math.random() * .5)
 		--添加流血debuff
-		if data.target.components.debuffable ~= nil and data.target.components.debuffable:IsEnabled() and
-			not (data.target.components.health ~= nil and data.target.components.health:IsDead()) and
-			not data.target:HasTag("playerghost") then
-			data.target.components.debuffable:AddDebuff("buff_medal_injured","buff_medal_injured")
-		end
+        data.target:AddDebuff("buff_medal_injured","buff_medal_injured")
     end
 end
 --没攻击到目标时，往前面射一坨粘液，试图黏住玩家
@@ -324,14 +327,9 @@ local function OnMissOther(inst)
 					SpawnPrefab("medal_blood_honey_splat").Transform:SetPosition(v.Transform:GetWorldPosition())
 				end
                 --有黑暗血糖
-                if v.components.debuffable and v.components.debuffable:HasDebuff("buff_medal_suckingblood") then
-                    --暗影盾
-                    local fx=SpawnPrefab("medal_shield_player")
-                    if fx then fx.entity:SetParent(v.entity) end
+                if v.medal_dark_ningxue then
                     --抵消buff时长
-                    v.components.debuffable:AddDebuff("buff_medal_suckingblood", "buff_medal_suckingblood",{extend_durationfn=function(timer_left)
-                        return math.max(0,timer_left - TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
-                    end})
+                    ConsumeMedalBuff(v,"buff_medal_suckingblood",TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_GOO_CONSUME)
                 else
                     v.components.pinnable:Stick("medal_blood_honey_goo")
                 end
@@ -346,23 +344,9 @@ local function OnMissOther(inst)
 		fx:SetVariation(PickHoney(inst), GetRandomMinMax(1, 1.3), 4 + math.random() * .5)
 	end
 end
---掉血时
-local function OnHealthDelta(inst,data)
-	if data then
-		-- if data.afflicter and data.afflicter:HasTag("player") then
-			if data.amount and data.amount<0 then
-				-- print("受到伤害:"..(-data.amount))
-				inst.withered_num = inst.withered_num + math.ceil(math.max(-data.amount/TUNING_MEDAL.MEDAL_BEEQUEEN_HEALTH-0.006,0)*500)
-				if inst.UpdateState then
-					inst:UpdateState()
-				end
-			end
-		-- end
-	end
-end
 
 --------------------------------------------------------------------------
-local upvaluehelper = require "medal_upvaluehelper"--出自 风铃草大佬
+local TakeDrink
 --嘶吼、恐吓
 local function scareFn(inst)
 	local x,y,z = inst.Transform:GetWorldPosition()
@@ -373,8 +357,12 @@ local function scareFn(inst)
 		for i,v in ipairs(ents) do
 			if v:HasTag("mosquito") then
 				if v.drinks then
-					local TakeDrink = upvaluehelper.GetEventHandle(v,"onattackother","prefabs/mosquito")--获取蚊子的吸血函数
-					TakeDrink(v)--吸血
+					if TakeDrink == nil then
+                        TakeDrink = upvaluehelper.GetEventHandle(v,"onattackother","prefabs/mosquito")--获取蚊子的吸血函数
+                    end
+                    if TakeDrink ~= nil then
+                        TakeDrink(v)--吸血
+                    end
 				end
 			elseif v:HasTag("catapult") then-- or v:HasTag("eyeturret") then
 				--直接远程导弹打击
@@ -424,27 +412,23 @@ end
 
 --获取凋零值
 local function getWithereNum(inst)
-	local withered_num=inst.withered_num or 0--凋零值
-	--士气加成，守卫的数量越多，减伤越高、对玩家的伤害倍率也越高
+	local withered_num = 0--凋零值
+	--士气加成，守卫的数量越多，凋零值越高
 	if inst.components.commander then
 		local soldiers_num = inst.components.commander:GetNumSoldiers()--获取守卫数量
 		--凋零值=凋零值+max(守卫数量-最小阈值,0)*2.5
-		withered_num = math.min(withered_num + math.max(soldiers_num-TUNING_MEDAL.MEDAL_BEEQUEEN_TOTAL_GUARDS,0)*2.5,90)
+		withered_num = math.min(withered_num + math.max(soldiers_num-TUNING_MEDAL.MEDAL_BEEQUEEN_TOTAL_GUARDS,0)*2.5,100)
 	end
-	-- print("凋零值:"..withered_num)
 	return withered_num
 end
 
 --更新自身状态
 local function updateState(inst)
 	local withered_num=inst.GetWithereNum and inst:GetWithereNum() or 0
-	-- print("凋零值:"..withered_num..",减伤:"..(withered_num/100)..",伤害倍率:"..(withered_num*0.005+0.5))
-	inst.components.health:SetAbsorptionAmount(withered_num/100)--减伤=凋零值/100
 	inst.components.combat.playerdamagepercent = withered_num*0.005+0.5--对玩家伤害倍率=凋零值*0.005+0.5
 	
 	--守卫数量上限=(周围玩家数量+1)*4+玩家跟随者数量*1
 	if inst.components.grouptargeter then
-		-- local player_num = GetTableSize(inst.components.grouptargeter:GetTargets())--获取周围玩家数量
         local player_num = 0
         local target_num = 0
         for k, v in pairs(inst.components.grouptargeter:GetTargets()) do
@@ -454,7 +438,6 @@ local function updateState(inst)
             end
         end
 		inst.spawnguards_threshold = math.max(TUNING_MEDAL.MEDAL_BEEQUEEN_MIN_GUARDS_PER_SPAWN*(player_num + 1) + target_num,TUNING_MEDAL.MEDAL_BEEQUEEN_TOTAL_GUARDS)--守卫数量阈值
-        -- print(inst.spawnguards_threshold)
 	end
 end
 
@@ -524,7 +507,6 @@ end
 local function OnSave(inst, data)
     --增强距离=指挥距离>默认指挥距离 and 指挥距离 or nil
 	data.boost = inst.components.commander.trackingdist > DEFAULT_COMMANDER_RANGE and math.ceil(inst.components.commander.trackingdist) or nil
-	data.withered_num=inst.withered_num--凋零值
 end
 --加载
 local function OnLoad(inst, data)
@@ -545,11 +527,6 @@ local function OnLoad(inst, data)
 			if not (inst.commanderboost or inst:IsAsleep()) then
 				BoostCommanderRange(inst, false)
 			end
-		end
-		--读取凋零值
-		inst.withered_num=data.withered_num or 0
-		if inst.UpdateState then
-			inst:UpdateState()
 		end
 	end
 end
@@ -637,8 +614,7 @@ local function fn()
     inst:AddTag("flying")--飞行生物
     inst:AddTag("ignorewalkableplatformdrowning")--无视炸船溺水
 	inst:AddTag("medal_beequeen")--凋零之蜂标签(用来确认世界唯一性)
-	inst:AddTag("senior_tentaclemedal")--不会被触手主动攻击
-	-- inst.senior_tentaclemedal=true--不会被触手主动攻击
+	inst:AddTag("chaos_creature")--混沌生物
 
     inst.SoundEmitter:PlaySound("dontstarve/creatures/together/bee_queen/wings_LP", "flying")
 
@@ -655,8 +631,6 @@ local function fn()
     if not TheWorld.ismastersim then
         return inst
     end
-	
-	inst.withered_num=0--凋零值
 
     inst:AddComponent("inspectable")
     inst.components.inspectable:RecordViews()
@@ -664,11 +638,11 @@ local function fn()
     inst:AddComponent("lootdropper")
     inst.components.lootdropper:SetChanceLootTable('medal_beequeen')
 
-    inst:AddComponent("sleeper")--睡眠组件
-    inst.components.sleeper:SetResistance(4)--睡眠抗性
-    inst.components.sleeper:SetSleepTest(ShouldSleep)
-    inst.components.sleeper:SetWakeTest(ShouldWake)
-    inst.components.sleeper.diminishingreturns = true--睡眠收益递减(就是越来越抗催眠)
+    -- inst:AddComponent("sleeper")--睡眠组件
+    -- inst.components.sleeper:SetResistance(4)--睡眠抗性
+    -- inst.components.sleeper:SetSleepTest(ShouldSleep)
+    -- inst.components.sleeper:SetWakeTest(ShouldWake)
+    -- inst.components.sleeper.diminishingreturns = true--睡眠收益递减(就是越来越抗催眠)
 
     inst:AddComponent("locomotor")
     inst.components.locomotor:EnableGroundSpeedMultiplier(false)--不受地皮速度影响
@@ -711,9 +685,13 @@ local function fn()
 
     inst:AddComponent("knownlocations")--记录坐标点组件
 
-    MakeLargeBurnableCharacter(inst, "swap_fire")--可点燃
-    MakeHugeFreezableCharacter(inst, "hive_body")--可冰冻
-    inst.components.freezable.diminishingreturns = true--冰冻效果递减
+    inst:AddComponent("planarentity")--实体抵抗
+    inst:AddComponent("medal_chaosdamage")--混沌伤害
+    inst.components.medal_chaosdamage:SetCalcBonusDamageFn(CalcChaosDamage)--额外混沌伤害
+
+    -- MakeLargeBurnableCharacter(inst, "swap_fire")--可点燃
+    -- MakeHugeFreezableCharacter(inst, "hive_body")--可冰冻
+    -- inst.components.freezable.diminishingreturns = true--冰冻效果递减
 
     inst:SetStateGraph("SGmedal_beequeen")
     inst:SetBrain(brain)
@@ -732,14 +710,14 @@ local function fn()
     inst.OnEntitySleep = OnEntitySleep--预置物休眠
     inst.OnEntityWake = OnEntityWake--预置物唤醒
 
-    inst.UpdateState = updateState--更新自身状态
+    -- inst.UpdateState = updateState--更新自身状态
 	inst.ScareFn=scareFn--嘶吼函数
 	inst.GetWithereNum=getWithereNum--获取凋零值
 	
 	inst.StartHoney = StartHoney--开始流蜜
     inst.StopHoney = StopHoney--停止流蜜
-	inst.StartRecovery = StartRecovery--开始恢复体力(睡觉、冰冻休眠的时候恢复体力)
-	inst.StopRecovery = StopRecovery--停止恢复体力
+	-- inst.StartRecovery = StartRecovery--开始恢复体力(睡觉、冰冻休眠的时候恢复体力)
+	-- inst.StopRecovery = StopRecovery--停止恢复体力
     inst.honeytask = nil
     inst.honeycount = 0--蜂蜜计数
     inst.honeythreshold = 0--产蜜阈值
@@ -750,10 +728,11 @@ local function fn()
     end
     inst:StartHoney()--开始生成蜜蜂小径
 
+    inst.update_state_task = inst:DoPeriodicTask(1, updateState)--更新自身状态
+
     inst:ListenForEvent("attacked", OnAttacked)--被攻击时
     inst:ListenForEvent("onattackother", OnAttackOther)--攻击到目标时
     inst:ListenForEvent("onmissother", OnMissOther)--没攻击到目标时
-	inst:ListenForEvent("healthdelta", OnHealthDelta)--掉血时
 
     return inst
 end

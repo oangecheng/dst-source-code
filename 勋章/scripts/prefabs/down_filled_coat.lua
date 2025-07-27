@@ -1,7 +1,6 @@
 local assets =
 {
     Asset("ANIM", "anim/down_filled_coat.zip"),
-    Asset("ANIM", "anim/down_filled_coat_skin1.zip"),
 	Asset("ATLAS", "images/down_filled_coat.xml"),
 	Asset("ATLAS_BUILD", "images/down_filled_coat.xml",256),
 }
@@ -44,7 +43,7 @@ local function create_common()
 	inst:AddTag("powerabsorbable")--可吸收能力
 	inst:AddTag("nofreezing")--不会过冷
     inst:AddTag("medal_skinable")--可换皮肤
-	inst.medal_repair_loot = {goose_feather=TUNING_MEDAL.DOWN_FILLED_COAT_ADDUSE}--可用鸭毛修复10%
+	inst.medal_repair_common = {goose_feather=TUNING_MEDAL.DOWN_FILLED_COAT_ADDUSE}--可用鸭毛修复10%
 	
 	MakeInventoryFloatable(inst, "small", 0.1, 0.8)
 

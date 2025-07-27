@@ -108,101 +108,29 @@ buff_defs.buff_medal_sanityregen={
 	end,
 }
 	
--------------------------------------吸血buff-------------------------------------------------
---是否是有效攻击对象
-local function IsValidVictim(victim)
-    return victim ~= nil
-        and not ((victim:HasTag("prey") and not victim:HasTag("hostile")) or
-                victim:HasTag("veggie") or
-                victim:HasTag("structure") or
-                victim:HasTag("wall") or
-                victim:HasTag("balloon") or
-                victim:HasTag("groundspike") or
-                victim:HasTag("smashable") or
-                victim:HasTag("abigail") or
-                victim:HasTag("companion"))
-        and victim.components.health ~= nil
-        and victim.components.combat ~= nil
-end
-local BATTLEBORN_STORE_TIME = 3--战斗收益存储时间
-local BATTLEBORN_DECAY_TIME = 5--战斗收益衰减时间
-local BATTLEBORN_TRIGGER_THRESHOLD = 1--战斗收益阈值
---战斗收益
-local function medal_battleborn_onattack(inst, data)
-    local victim = data.target--获取攻击目标
-	local weapon = data.weapon--获取武器
-	local conversion_rate = .25--收益转换率
-	--如果玩家没死并且攻击目标有效并且玩家用的是战斗长矛
-    if not inst.components.health:IsDead() and IsValidVictim(victim) then
-		local total_health = victim.components.health:GetMaxWithPenalty()--获取攻击目标最大血量
-        local damage = data.weapon ~= nil and data.weapon.components.weapon.damage or inst.components.combat.defaultdamage--获取伤害值，取武器伤害或玩家基础伤害
-        local percent = (damage <= 0 and 0)--收益百分比，伤害小于等于0取0
-                    or (total_health <= 0 and math.huge)--血量小于等于0就取无穷大
-                    or damage / total_health--伤害/血量
-		-- if weapon and weapon.prefab=="spear_wathgrithr" then
-		-- 	conversion_rate=conversion_rate*2
-		-- end
-		--战斗收益加成=攻击目标基础伤害*收益转换率*收益百分比，0.33~2
-        local delta = math.clamp(victim.components.combat.defaultdamage * conversion_rate * percent, .33, 2)
-		
-		--战斗收益衰减
-        if inst.medal_battleborn > 0 then
-            --攻击间隔时间大于8，战斗收益归零；0<时间间隔<5,战斗收益=战斗收益*(1-(时间间隔/战斗收益衰减时间)^2)
-			local dt = GetTime() - inst.medal_battleborn_time - BATTLEBORN_STORE_TIME
-            if dt >= BATTLEBORN_DECAY_TIME then
-                inst.medal_battleborn = 0
-            elseif dt > 0 then
-                local k = dt / BATTLEBORN_DECAY_TIME
-                inst.medal_battleborn = Lerp(inst.medal_battleborn, 0, k * k)
-            end
-        end
-
-        inst.medal_battleborn = inst.medal_battleborn + delta--战斗收益+=收益加成
-        inst.medal_battleborn_time = GetTime()--战斗收益时间戳
-
-		--战斗收益>收益阈值则给玩家增加相应值的血量，战斗收益归零
-        if inst.medal_battleborn > BATTLEBORN_TRIGGER_THRESHOLD then
-            inst.components.health:DoDelta(inst.medal_battleborn, false, "medal_battleborn")
-            -- inst.components.sanity:DoDelta(inst.medal_battleborn)
-            inst.medal_battleborn = 0
-        end
-    end
-end
-
+-------------------------------------黑暗血糖buff-------------------------------------------------
 buff_defs.buff_medal_suckingblood={
 	name="buff_medal_suckingblood",
 	duration=TUNING_MEDAL.MEDAL_BUFF_SUCKINGBLOOD_DURATION,
 	priority=2,
 	onattachedfn=function(inst, target)
-		if not target.medal_battleborn then
-			target.medal_battleborn = 0
-			target.medal_battleborn_time = 0
-			target:ListenForEvent("onattackother", medal_battleborn_onattack)
-		end
+		target.medal_dark_ningxue = true--黑暗凝血buff标记
 	end,
 	ondetachedfn=function(inst, target)
-		target.medal_battleborn = nil
-		target.medal_battleborn_time = nil
-		target:RemoveEventCallback("onattackother", medal_battleborn_onattack)
+		target.medal_dark_ningxue = nil--移除黑暗凝血buff标记
 	end,
 }
 
--------------------------------------凝血buff-------------------------------------------------
+-------------------------------------血糖buff-------------------------------------------------
 buff_defs.buff_medal_bloodsucking={
 	name="buff_medal_bloodsucking",
 	duration=TUNING_MEDAL.MEDAL_BUFF_BLOODSUCKING_DURATION,
 	priority=2,
 	onattachedfn=function(inst, target)
-		--添加凝血标记
-		if target and target.components.health then
-			target.components.health.ningxuebuff=true--凝血buff标记
-		end
+		target.medal_ningxue = true--凝血标记
 	end,
 	ondetachedfn=function(inst, target)
-		--去除凝血标记
-		if target and target.components.health and target.components.health.ningxuebuff then
-			target.components.health.ningxuebuff=nil
-		end
+		target.medal_ningxue = nil--去除凝血标记
 	end,
 }
 
@@ -240,15 +168,13 @@ buff_defs.buff_medal_transplantable={
 	onattachedfn=function(inst, target)
 		if not target:HasTag("inmoonlight") then
 			target:AddTag("inmoonlight")
-			target:PushEvent("changetransplantstate")
-			target:PushEvent("changehammerstate")
+			target:PushEvent("change_medal_moonlinght")
 		end
 	end,
 	ondetachedfn=function(inst, target)
 		if target:HasTag("inmoonlight") then
 			target:RemoveTag("inmoonlight")
-			target:PushEvent("changetransplantstate")
-			target:PushEvent("changehammerstate")
+			target:PushEvent("change_medal_moonlinght")
 		end
 	end,
 }
@@ -381,6 +307,22 @@ buff_defs.buff_medal_strong={
 }
 
 -------------------------------------群伤buff-------------------------------------------------
+--是否是有效攻击对象
+local function IsValidVictim(victim)
+    return victim ~= nil
+        and not ((victim:HasTag("prey") and not victim:HasTag("hostile")) or
+                victim:HasTag("veggie") or
+                victim:HasTag("structure") or
+                victim:HasTag("wall") or
+                victim:HasTag("balloon") or
+                victim:HasTag("groundspike") or
+                victim:HasTag("smashable") or
+                victim:HasTag("abigail") or
+                victim:HasTag("shadowminion") or
+                victim:HasTag("companion"))
+        and victim.components.health ~= nil
+        and victim.components.combat ~= nil
+end
 
 local function medal_aoecombat_onattack(inst, data)
 	--远程射击武器会推两次消息，以第一次消耗为准
@@ -434,20 +376,33 @@ buff_defs.buff_medal_aoecombat={
 	end,
 }
 
--------------------------------------持续掉血debuff-------------------------------------------------
+-------------------------------------蜂毒debuff-------------------------------------------------
 local function OnTickInjured(inst,target)
 	if target.components.health ~= nil and
 	    not target.components.health:IsDead() and
 	    not target:HasTag("playerghost") then
 		target.components.health:DoDelta((target.injured_damage or 1)*TUNING_MEDAL.MEDAL_BUFF_INJURED_DAMAGE, nil, "buff_medal_injured",nil,nil,true)--无视防御
 		--中毒效果界面
-		if target.player_classified then
+		if target.player_classified and target.player_classified.medal_injured then
 			target.player_classified.medal_injured:set_local(false)
 			target.player_classified.medal_injured:set(true)
 		end
-	    -- target.components.health:DoDelta(TUNING_MEDAL.MEDAL_BUFF_INJURED_DAMAGE, nil, "medal_beequeen",nil,nil,true)--无视防御
 	else
 		 inst.components.debuff:Stop()
+	end
+end
+
+--叠毒
+local function AddInjured(inst, target)
+	if inst.injured_task then
+		inst.injured_task:Cancel()
+		inst.injured_task = nil
+	end
+	if target ~= nil and target:IsValid() and target.components.health ~= nil then
+		if not target.components.health:IsDead() then
+			target.injured_damage = math.min(target.injured_damage and target.injured_damage+1 or 1,TUNING_MEDAL.MEDAL_BUFF_INJURED_MAX)--叠毒
+			inst.injured_task = inst:DoPeriodicTask(1, OnTickInjured, nil, target)
+		end
 	end
 end
 
@@ -456,28 +411,10 @@ buff_defs.buff_medal_injured={
 	duration=TUNING_MEDAL.MEDAL_BUFF_INJURED_DURATION,
 	priority=2,
 	onattachedfn=function(inst, target)
-		if inst.injured_task then
-			inst.injured_task:Cancel()
-			inst.injured_task = nil
-		end
-		if target ~= nil and target:IsValid() and target.components.health ~= nil then
-			if not target.components.health:IsDead() then
-				target.injured_damage = math.min(target.injured_damage and target.injured_damage+1 or 1,TUNING_MEDAL.MEDAL_BUFF_INJURED_MAX)--叠毒
-				inst.injured_task = inst:DoPeriodicTask(1, OnTickInjured, nil, target)
-			end
-		end
+		AddInjured(inst, target)
 	end,
 	onextendedfn=function(inst, target)
-		if inst.injured_task then
-			inst.injured_task:Cancel()
-			inst.injured_task = nil
-		end
-		if target ~= nil and target:IsValid() and target.components.health ~= nil then
-			if not target.components.health:IsDead() then
-				target.injured_damage = math.min(target.injured_damage and target.injured_damage+1 or 1,TUNING_MEDAL.MEDAL_BUFF_INJURED_MAX)--叠毒
-				inst.injured_task = inst:DoPeriodicTask(1, OnTickInjured, nil, target)
-			end
-		end
+		AddInjured(inst, target)
 	end,
 	ondetachedfn=function(inst, target)
 		if inst.injured_task then
@@ -485,6 +422,44 @@ buff_defs.buff_medal_injured={
 			inst.injured_task = nil
 		end
 		target.injured_damage = nil--毒性移除
+	end,
+}
+
+-------------------------------------流血debuff-------------------------------------------------
+local function OnTickBleed(inst,target,has_origin)
+	if target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() and not target:HasTag("playerghost") then
+		local idx = has_origin and 2 or 1
+		target.components.health:DoDelta(-1 * TUNING_MEDAL.MEDAL_BUFF_BLEED_DAMAGE[idx], nil, "buff_medal_bleed",nil,nil,true)--无视防御
+	else
+		 inst.components.debuff:Stop()
+	end
+end
+
+local function DoBleed(inst, target, data)
+	if inst.bleed_task then
+		inst.bleed_task:Cancel()
+		inst.bleed_task = nil
+	end
+	if target ~= nil and target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() then
+		inst.bleed_task = inst:DoPeriodicTask(1, OnTickBleed, nil, target, data and data.has_origin)
+	end
+end
+
+buff_defs.buff_medal_bleed={
+	name="buff_medal_bleed",
+	duration=TUNING_MEDAL.MEDAL_BUFF_BLEED_DURATION,
+	priority=2,
+	onattachedfn=function(inst, target, data)
+		DoBleed(inst, target, data)
+	end,
+	onextendedfn=function(inst, target, data)
+		DoBleed(inst, target ,data)
+	end,
+	ondetachedfn=function(inst, target)
+		if inst.bleed_task then
+			inst.bleed_task:Cancel()
+			inst.bleed_task = nil
+		end
 	end,
 }
 
@@ -527,10 +502,17 @@ end
 buff_defs.buff_medal_weak={
 	name="buff_medal_weak",
 	duration=TUNING_MEDAL.MEDAL_BUFF_WEAK_DURATION,
-	onattachedfn=function(inst, target)
-		if target ~= nil and target:IsValid() and not target.inlimbo and target.components.combat ~= nil and target.components.health ~= nil and not target.components.health:IsDead() then
-			target.components.combat.externaldamagetakenmultipliers:SetModifier("buff_medal_weak", TUNING_MEDAL.MEDAL_BUFF_WEAK_MULTIPLE)
+	onattachedfn=function(inst, target, data)
+		if target ~= nil and target:IsValid() and not target.inlimbo and target.components.combat ~= nil and not IsEntityDeadOrGhost(target) then
+			local idx = data and data.has_origin and 2 or 1--本源增强
+			target.components.combat.externaldamagetakenmultipliers:SetModifier("buff_medal_weak", TUNING_MEDAL.MEDAL_BUFF_WEAK_MULTIPLE[idx])
 			target.medal_weak_task = target:DoPeriodicTask(1, OnTick, nil, target)
+		end
+	end,
+	onextendedfn=function(inst, target, data)
+		if target ~= nil and target:IsValid() and not target.inlimbo and target.components.combat ~= nil and not IsEntityDeadOrGhost(target) then
+			local idx = data and data.has_origin and 2 or 1--本源增强
+			target.components.combat.externaldamagetakenmultipliers:SetModifier("buff_medal_weak", TUNING_MEDAL.MEDAL_BUFF_WEAK_MULTIPLE[idx])
 		end
 	end,
 	ondetachedfn=function(inst, target)
@@ -561,10 +543,11 @@ buff_defs.buff_medal_malaise={
 }
 
 ----------------------------------------毒伤标记-------------------------------------------------
-local function AddPoisonMark(target)
+local function AddPoisonMark(target,marknum)
 	if target ~= nil and target:IsValid() and target.components.health ~= nil then
 		if not target.components.health:IsDead() then
-			target.medal_poison_mark = math.min(target.medal_poison_mark and target.medal_poison_mark+1 or 1,TUNING_MEDAL.MEDAL_BUFF_POISONMARK_MAX)--叠加层数
+			marknum = marknum or 1
+			target.medal_poison_mark = math.min(target.medal_poison_mark and target.medal_poison_mark + marknum or marknum, TUNING_MEDAL.MEDAL_BUFF_POISONMARK_MAX)--叠加层数
 		end
 	end
 end
@@ -572,11 +555,11 @@ end
 buff_defs.buff_medal_poisonmark={
 	name="buff_medal_poisonmark",
 	duration=TUNING_MEDAL.MEDAL_BUFF_POISONMARK_DURATION,
-	onattachedfn=function(inst, target)
-		AddPoisonMark(target)
+	onattachedfn=function(inst, target, data)
+		AddPoisonMark(target, data and data.marknum)
 	end,
-	onextendedfn=function(inst, target)
-		AddPoisonMark(target)
+	onextendedfn=function(inst, target, data)
+		AddPoisonMark(target, data and data.marknum)
 	end,
 	ondetachedfn=function(inst, target)
 		target.medal_poison_mark = nil--移除毒伤标记
@@ -599,39 +582,155 @@ end
 buff_defs.buff_medal_mermcurse={
 	name="buff_medal_mermcurse",
 	duration=TUNING_MEDAL.BUFF_MEDAL_MERMCURSE_DURATION,
-	onattachedfn=function(inst, target,followsymbol, followoffset, data)
+	onattachedfn=function(inst, target, data)
 		AddMermCurse(target,data and data.curse)
 	end,
-	onextendedfn=function(inst, target,followsymbol, followoffset, data)
+	onextendedfn=function(inst, target, data)
 		AddMermCurse(target,data and data.curse)
 	end,
 	ondetachedfn=function(inst, target)
-		target.medal_merm_curse = nil--移除毒伤标记
+		target.medal_merm_curse = nil--移除鱼人标记
 	end,
 }
 
-----------------------------------------天道酬勤-------------------------------------------------
-buff_defs.buff_medal_rewardtoiler_mark={
-	name="buff_medal_rewardtoiler_mark",
-	duration=TUNING_MEDAL.MEDAL_BUFF_REWARDTOILER_MARK_DURATION,
-	onattachedfn=function(inst, target)
-		if target ~= nil and target:IsValid() and target.components.health ~= nil then
-			if not target.components.health:IsDead() then
-				target.rewardtoiler_mark = math.min(target.rewardtoiler_mark and target.rewardtoiler_mark+1 or 1,TUNING_MEDAL.MEDAL_BUFF_REWARDTOILER_MARK_MAX)--叠加层数
-			end
+----------------------------------------迷糊标记(捞月)-------------------------------------------------
+local function AddConfusedMark(target)
+	if target ~= nil and target:IsValid() and target.components.health ~= nil then
+		if not target.components.health:IsDead() then
+			target.medal_confused_mark = math.min(target.medal_confused_mark and target.medal_confused_mark+1 or 1,TUNING_MEDAL.MEDAL_BUFF_CONFUSED_MAX)--叠加层数
 		end
+	end
+end
+
+buff_defs.buff_medal_confused={
+	name="buff_medal_confused",
+	duration=TUNING_MEDAL.MEDAL_BUFF_CONFUSED_DURATION,
+	onattachedfn=function(inst, target)
+		AddConfusedMark(target)
 	end,
 	onextendedfn=function(inst, target)
-		if target ~= nil and target:IsValid() and target.components.health ~= nil then
-			if not target.components.health:IsDead() then
-				target.rewardtoiler_mark = math.min(target.rewardtoiler_mark and target.rewardtoiler_mark+1 or 1,TUNING_MEDAL.MEDAL_BUFF_REWARDTOILER_MARK_MAX)--叠加层数
-			end
-		end
+		AddConfusedMark(target)
 	end,
 	ondetachedfn=function(inst, target)
-		target.rewardtoiler_mark = nil--移除标记
+		target.medal_confused_mark = nil--移除迷糊标记
 	end,
 }
 
+----------------------------------------红晶标记-------------------------------------------------
+local NO_TAGS_NO_PLAYERS =	{ "bramble_resistant", "INLIMBO", "notarget", "noattack", "flight", "invisible", "wall", "player", "companion" , "noredattack" , "shadowminion" }
+local COMBAT_TARGET_TAGS = { "_combat" }
+local ATTACKRANGE = 3
+--引爆红晶标记
+local function DoRedAttack(target)
+	if target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() then
+		local marks = target.medal_red_mark or 1
+		local x, y, z = target.Transform:GetWorldPosition()
+		local mult = target.medal_red_mark_mult or 1--本源伤害加成倍数
+		if marks >= 5 then
+			SpawnMedalFX("firesplash_fx",target)
+            for i, v in ipairs(TheSim:FindEntities(x, y, z, ATTACKRANGE, COMBAT_TARGET_TAGS, NO_TAGS_NO_PLAYERS)) do
+                if v ~= target and v:IsValid() and v.components.health ~= nil and not v.components.health:IsDead() then
+                    v.components.health:DoDelta(math.asin(1*.2)*-68*mult, nil, "buff_medal_redmark")
+					v:AddDebuff("buff_medal_redmark","buff_medal_redmark",{noredattack=true})--添加红晶标记
+                end
+            end
+		end
+		SpawnMedalFX("willow_throw_flame",target)
+		target.components.health:DoDelta(math.asin(marks*.2)*-68*mult, nil, "buff_medal_redmark")
+	end
+	target:RemoveTag("noredattack")
+	target.medal_red_mark = nil--移除红晶标记
+	target.medal_red_mark_mult = nil--移除红晶标记伤害加成
+end
+
+--添加红晶标记
+local function AddRedMark(target, data)
+	if target ~= nil and target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() then
+		SpawnMedalFX("halloween_firepuff_2",target)
+		if data and data.noredattack then
+			target:AddTag("noredattack")
+		else
+			target:RemoveTag("noredattack")
+		end
+		if data and data.has_origin then
+			target.medal_red_mark_mult = 1.5--本源伤害加成倍数
+		end
+		target.medal_red_mark = math.min(target.medal_red_mark and target.medal_red_mark+1 or 1,TUNING_MEDAL.MEDAL_BUFF_REDMARK_MAX)--叠加层数
+		--满5层了直接爆
+		if target.medal_red_mark >= TUNING_MEDAL.MEDAL_BUFF_REDMARK_MAX then
+			target:DoTaskInTime(0,function(target)--做个延迟，防止过早移除buff导致报错
+				target:RemoveDebuff("buff_medal_redmark")
+			end)
+		end
+	end
+end
+
+buff_defs.buff_medal_redmark={
+	name="buff_medal_redmark",
+	duration=TUNING_MEDAL.MEDAL_BUFF_REDMARK_DURATION,
+	onattachedfn=function(inst, target, data)
+		AddRedMark(target, data)
+	end,
+	onextendedfn=function(inst, target, data)
+		AddRedMark(target, data)
+	end,
+	ondetachedfn=function(inst, target)
+		DoRedAttack(target)
+	end,
+}
+
+----------------------------------------蓝晶标记-------------------------------------------------
+--添加蓝晶标记
+local function AddBlueMark(inst, target, data)
+	if target ~= nil and target:IsValid() and target.components.health ~= nil and not target.components.health:IsDead() 
+		and (target.components.freezable==nil or not target.components.freezable:IsFrozen()) then
+		SpawnMedalFX("halloween_firepuff_cold_2",target)
+		local marknum = data and data.marknum or 1
+		target.medal_blue_mark = math.min(target.medal_blue_mark and target.medal_blue_mark + marknum or marknum,TUNING_MEDAL.MEDAL_BUFF_BLUEMARK_MAX)--叠加层数
+		--满5层了直接冰冻
+		if target.medal_blue_mark >= TUNING_MEDAL.MEDAL_BUFF_BLUEMARK_MAX and target.components.freezable and not target.components.freezable:IsFrozen()
+			and target.components.combat and target.components.combat.losetargetcallback~=nil then
+				target.components.freezable:AddColdness(6,TUNING_MEDAL.MEDAL_BUFF_BLUEMARK_FROZEN_TIME)
+				target.components.freezable:SpawnShatterFX()
+				target.components.combat.externaldamagetakenmultipliers:SetModifier("buff_medal_bluemark", data and data.has_origin and 2 or 1.75)--易伤
+				target:DoTaskInTime(0,function(target)--做个延迟，防止过早移除buff导致报错
+					target:RemoveDebuff("buff_medal_bluemark")
+				end)
+		--否则就减速
+		elseif target.components.locomotor ~= nil then
+			target.components.locomotor:SetExternalSpeedMultiplier(inst, "buff_medal_bluemark", 1 - target.medal_blue_mark * TUNING_MEDAL.MEDAL_BUFF_BLUEMARK_SPEED_MULT)
+		end
+	end
+end
+
+buff_defs.buff_medal_bluemark={
+	name="buff_medal_bluemark",
+	duration=TUNING_MEDAL.MEDAL_BUFF_BLUEMARK_DURATION,
+	onattachedfn=function(inst, target, data)
+		AddBlueMark(inst, target, data)
+	end,
+	onextendedfn=function(inst, target, data)
+		AddBlueMark(inst, target, data)
+	end,
+	ondetachedfn=function(inst, target)
+		target.medal_blue_mark = nil--移除蓝晶标记
+		if target.components.locomotor ~= nil then
+			target.components.locomotor:RemoveExternalSpeedMultiplier(inst, "buff_medal_bluemark")
+		end
+	end,
+}
+
+-------------------------------------混乱buff(反向操作)-------------------------------------------------
+buff_defs.buff_medal_confusion={
+	name="buff_medal_confusion",
+	duration=TUNING_MEDAL.MEDAL_BUFF_CONFUSION_DURATION,
+	priority=2,
+	onattachedfn=function(inst, target)
+		target:AddTag("medal_confusion")
+	end,
+	ondetachedfn=function(inst, target)
+		target:RemoveTag("medal_confusion")
+	end,
+}
 
 return buff_defs

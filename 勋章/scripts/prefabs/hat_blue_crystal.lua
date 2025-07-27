@@ -70,7 +70,7 @@ local function fn()
 	inst:AddTag("hat")
 	inst:AddTag("powerabsorbable")--可吸收能力
 	inst:AddTag("nooverheat")--不会过热
-	inst.medal_repair_loot = {medal_blue_obsidian=TUNING_MEDAL.HAT_BLUE_CRYSTAL_ADDUSE}--可用蓝曜石修复
+	inst.medal_repair_common = {medal_blue_obsidian=TUNING_MEDAL.HAT_BLUE_CRYSTAL_ADDUSE}--可用蓝曜石修复
 	
 	MakeInventoryFloatable(inst,"med",0.1,0.65)
 

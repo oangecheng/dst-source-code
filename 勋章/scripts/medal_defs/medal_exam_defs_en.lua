@@ -43,10 +43,10 @@ local medal_exams={
 		content="【DST】How many items can you put into the slingshot?",
 		answer=2,
 		options={
-			"9 kinds",
-			"8 kinds",
-			"7 kinds",
-			"6 kinds",
+			"19 kinds",
+			"18 kinds",
+			"17 kinds",
+			"16 kinds",
 		},
 	},
 	{--6
@@ -300,13 +300,13 @@ local medal_exams={
 		},
 	},
 	{--31
-		content="【MEDAL】Which of the following is not fatalistic?",
+		content="【MEDAL】Which of the following items cannot use Fatalistic Potion to change destiny?",
 		answer=4,
 		options={
-			"The result of using the life changing liquid medicine",
-			"Result of Immortal Seeds Plugging Living Wood",
-			"Reward for ordinary treasure",
-			"Rewards in Lost Packages",
+			"Giant Immortal Fruit",
+			"Immortality Mystery",
+			"Monster Manual",
+			"Immortal Fruit Plant",
 		},
 	},
 	{--32

@@ -82,7 +82,6 @@ AddModRPCHandler(
 	"Functional_medal",
 	"SetCameraHeading",
 	function(player, camera_heading)
-		-- TheNet:Announce("当前视角:"..camera_heading)
 		if player and player.player_classified and player.player_classified.medalcameraheading then
 			player.player_classified.medalcameraheading:set(camera_heading)
 		end
@@ -107,6 +106,43 @@ AddModRPCHandler(
 	function(player, inst, answer)
 		if inst.components.medal_examable then
 			inst.components.medal_examable:MakeChoice(answer,player)
+		end
+	end
+)
+
+--关闭容器
+AddModRPCHandler(
+	"Functional_medal",
+	"CloseContainer",
+	function(player, inst)
+		if inst.components.container ~= nil then
+			inst.components.container:Close(player)
+		end
+	end
+)
+
+--切换buff信息同步设置
+AddModRPCHandler(
+	"Functional_medal",
+	"ToggleBuffTask",
+	function(player, setnum)
+		if player and player.components.medal_showbufftime then
+			if setnum == 0 then
+				player.components.medal_showbufftime:Cancel()
+			else
+				player.components.medal_showbufftime:Start()
+			end
+		end
+	end
+)
+
+--暗影魔法工具切换
+AddModRPCHandler(
+	"Functional_medal",
+	"ShadowToolSwitch",
+	function(player, inst, idx)
+		if inst and inst.SwitchTool then
+			inst:SwitchTool(idx)
 		end
 	end
 )
